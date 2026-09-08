@@ -98,6 +98,11 @@
   branch such as `m21_9`. When a CI check fails but passes locally, "is my branch behind
   `master`?" should be one of the first things to check: fetch and merge `master`, then the
   newer types/code on `master` will reproduce the failure locally.
+- The issue and PR templates in `.github/` are requirements, not suggestions. Read and follow
+  them even when opening through the API or `gh`, which do not fill them in for you. An issue
+  or PR that ignores the template may be closed without comment.
+- A PR from an account with no merged PR here is profiled automatically, and anything flagged
+  is posted publicly as a comment on the PR.
 - All PRs and Issues that use AI to be declared AI-assisted. Just write "AI-assisted (Claude)" with short name of Agent replacing "Claude". No robot emoji under any circumstance.
 - 20 or more lines of code written by an agent needs to be declared as AI-assisted in the docstring.  
   Humans can remove and should remove this note when they do a review.
