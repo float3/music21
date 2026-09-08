@@ -964,17 +964,26 @@ class Chord(ChordBase):
         '''
         Common method for stripping pitches based on redundancy of one pitch
         attribute. The `attribute` is provided by a string.
+
+        `'nameWithOctave'` is a special case: the string it gives spells
+        B-flat in octave 1 and B-natural in octave -1 alike, so two pitches
+        are compared by their name and octave instead of by it.
         '''
         if not inPlace:  # make a copy
             returnObj = copy.deepcopy(self)
         else:
             returnObj = self
 
-        uniquePitches = []
+        uniquePitches: list[t.Any] = []
         deleteComponents = []
         for comp in returnObj._notes:
-            if getattr(comp.pitch, attribute) not in uniquePitches:
-                uniquePitches.append(getattr(comp.pitch, attribute))
+            if attribute == 'nameWithOctave':
+                value = (comp.pitch.name, comp.pitch.octave, comp.pitch.octaveIsImplicit)
+            else:
+                value = getattr(comp.pitch, attribute)
+
+            if value not in uniquePitches:
+                uniquePitches.append(value)
             else:
                 deleteComponents.append(comp)
 
@@ -3615,41 +3624,35 @@ class Chord(ChordBase):
         >>> c2c
         <music21.chord.Chord C2 E3 G4 C5>
 
-        It is a known bug that because pitch.nameWithOctave gives
-        the same value for B-flat in octave 1 as B-natural in octave
-        negative 1, negative octaves can screw up this method.
-        With all the things left to do for music21, it doesn't seem
-        a bug worth squashing at this moment, but FYI:
+        Two pitches count as the same when they have the same name in the same
+        octave. Note that this is a finer distinction than
+        :attr:`~music21.pitch.Pitch.nameWithOctave`, whose '-' is the flat sign
+        and the minus sign both: B-flat in octave 1 and B-natural in octave -1
+        are two different pitches that spell alike, and both are kept.
 
         >>> p1 = pitch.Pitch('B-')
         >>> p1.octave = 1
         >>> p2 = pitch.Pitch('B')
         >>> p2.octave = -1
-        >>> c3 = chord.Chord([p1, p2])
-        >>> removedPitches = c3.removeRedundantPitches(inPlace=True)
-        >>> c3.pitches
-        (<music21.pitch.Pitch B-1>,)
-
-        >>> c3.pitches[0].name
-        'B-'
-        >>> c3.pitches[0].octave
-        1
-        >>> removedPitches
-        [<music21.pitch.Pitch B-1>]
-        >>> removedPitches[0].name
-        'B'
-        >>> removedPitches[0].octave
-        -1
-
-        The first pitch survives:
-
-        >>> c3.pitches[0] is p1
+        >>> p1.nameWithOctave == p2.nameWithOctave
         True
 
-        >>> c3.pitches[0] is p2
-        False
+        >>> c3 = chord.Chord([p1, p2])
+        >>> c3.removeRedundantPitches(inPlace=True)
+        []
+        >>> [(p.name, p.octave) for p in c3.pitches]
+        [('B-', 1), ('B', -1)]
+
+        A pitch with no octave of its own is likewise not the same pitch as
+        one placed in the default octave:
+
+        >>> c4 = chord.Chord([pitch.Pitch('C'), pitch.Pitch('C4')])
+        >>> c4.removeRedundantPitches()
+        <music21.chord.Chord C C4>
 
         * Changed in v6: inPlace defaults to False.
+        * Changed in v11: a negative octave is no longer read as a flat, so
+          B-natural in octave -1 survives beside B-flat in octave 1.
         '''
         return self._removePitchByRedundantAttribute('nameWithOctave',
                                                      inPlace=inPlace)

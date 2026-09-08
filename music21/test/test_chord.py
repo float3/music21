@@ -739,6 +739,34 @@ class Test(unittest.TestCase):
             # noinspection PyTypeChecker
             Chord([note.Unpitched()])  # type: ignore
 
+    def testRemoveRedundantPitchesTellsNegativeOctavesFromFlats(self):
+        '''
+        nameWithOctave spells both B-flat in octave 1 and B-natural in
+        octave -1 as 'B-1', so comparing pitches by that string made the
+        second look like a repeat of the first.
+        '''
+        flat = pitch.Pitch('B-')
+        flat.octave = 1
+        natural = pitch.Pitch('B')
+        natural.octave = -1
+        self.assertEqual(flat.nameWithOctave, natural.nameWithOctave)
+
+        ch = Chord([flat, natural])
+        self.assertEqual(ch.removeRedundantPitches(inPlace=True), [])
+        self.assertEqual([(p.name, p.octave) for p in ch.pitches],
+                         [('B-', 1), ('B', -1)])
+
+        # a real repeat still goes, whatever octave it is in
+        repeated = Chord([flat, natural, pitch.Pitch('B-1')])
+        removed = repeated.removeRedundantPitches(inPlace=True)
+        self.assertEqual([p.nameWithOctave for p in removed], ['B-1'])
+        self.assertEqual(len(repeated.pitches), 2)
+
+        # and a pitch with no octave is not the one in the default octave
+        octaveless = Chord([pitch.Pitch('C'), pitch.Pitch('C4')])
+        self.assertEqual(octaveless.removeRedundantPitches(inPlace=True), [])
+        self.assertEqual(len(octaveless.pitches), 2)
+
     def testCacheClearedOnAdd(self):
         ch = chord.Chord('C4 E4 G4')
         self.assertTrue(ch.isConsonant())
