@@ -627,6 +627,33 @@ class Test(unittest.TestCase):
         self.assertEqual(descending_melodic_minor_reversed[0].nameWithOctave, 'C4')  # was B-4
         self.assertEqual(descending_melodic_minor_reversed[-1].nameWithOctave, 'B-4')  # was C4
 
+    def test_get_pitch_from_node_degree_returns_a_new_pitch(self):
+        '''
+        A realization may be held in _ascendingCache or _descendingCache, so
+        the pitch taken out of one has to be the caller's own -- otherwise
+        writing to it edits the cached scale.
+        '''
+        net = IntervalNetwork()
+        net.fillBiDirectedEdges(['M2', 'M2', 'm2', 'M2', 'M2', 'M2', 'm2'])
+
+        first = net.getPitchFromNodeDegree('c4', 1, 1)
+        self.assertEqual(first.nameWithOctave, 'C4')
+        first.octave = 1
+
+        again = net.getPitchFromNodeDegree('c4', 1, 1)
+        self.assertEqual(again.nameWithOctave, 'C4')
+
+    def test_next_pitch_does_not_move_a_cached_degree(self):
+        '''
+        nextPitch() writes the origin's octave onto the pitch it gets back
+        from getPitchFromNodeDegree(), so walking the scale down near C1 used
+        to leave the tonic reading C1 ever after.
+        '''
+        sc = scale.RagAsawari('c4')
+        self.assertEqual(str(sc.pitchFromDegree(1)), 'C4')
+        self.assertEqual(str(sc.nextPitch('c1', Direction.ASCENDING)), 'D1')
+        self.assertEqual(str(sc.pitchFromDegree(1)), 'C4')
+
 
 # ------------------------------------------------------------------------------
 if __name__ == '__main__':

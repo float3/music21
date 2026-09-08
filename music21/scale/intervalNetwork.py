@@ -2707,15 +2707,19 @@ class IntervalNetwork:
                 # environLocal.printDebug(['comparing', realizedNId,
                 #   'nodeTargetId', nodeTargetId])
 
+                # Return a new object: the realization this pitch came out of
+                # may be held in _ascendingCache or _descendingCache, and a
+                # caller that writes to the pitch -- nextPitch() sets its
+                # octave -- would edit the cached scale itself.
                 if realizedNId == nodeTargetId.id:
-                    return realizedPitch[i]
+                    return copy.deepcopy(realizedPitch[i])
                 # NOTE: this condition may be too generous, and was added to solve
                 # a non-tracked problem.
                 # only match this generously if we are equating termini
                 if equateTermini:
                     if ((realizedNId in (Terminus.HIGH, Terminus.LOW))
                             and (nodeTargetId.id in (Terminus.HIGH, Terminus.LOW))):
-                        return realizedPitch[i]
+                        return copy.deepcopy(realizedPitch[i])
 
             # environLocal.printDebug(['getPitchFromNodeDegree() on trial', trial, ',
             #    failed to find node', nodeTargetId])
