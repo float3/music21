@@ -3625,14 +3625,12 @@ class Chord(ChordBase):
         <music21.chord.Chord C2 E3 G4 C5>
 
         Pitches with extreme octaves (whose `.nameWithOctave`s
-        look identical) are still distinguished.  B-flat in octave 1 and
-        B-natural in octave -1 both spell 'B-1', the '-' being the flat sign
-        in the one and the minus sign in the other:
+        look identical) are still distinguished.
 
-        >>> p1 = pitch.Pitch('B-')
-        >>> p1.octave = 1
-        >>> p2 = pitch.Pitch('B')
-        >>> p2.octave = -1
+        >>> p1 = pitch.Pitch('B')
+        >>> p1.octave = -1
+        >>> p2 = pitch.Pitch('B-')
+        >>> p2.octave = 1
         >>> p1.nameWithOctave == p2.nameWithOctave
         True
 
@@ -3646,7 +3644,7 @@ class Chord(ChordBase):
         >>> c3
         <music21.chord.Chord B-1 B-1>
         >>> [(p.name, p.octave) for p in c3.pitches]
-        [('B-', 1), ('B', -1)]
+        [('B', -1), ('B-', 1)]
 
         A pitch with no octave of its own is likewise not the same pitch as
         one placed in the default octave:
