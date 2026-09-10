@@ -2707,10 +2707,7 @@ class IntervalNetwork:
                 # environLocal.printDebug(['comparing', realizedNId,
                 #   'nodeTargetId', nodeTargetId])
 
-                # Return a new object: the realization this pitch came out of
-                # may be held in _ascendingCache or _descendingCache, and a
-                # caller that writes to the pitch -- nextPitch() sets its
-                # octave -- would edit the cached scale itself.
+                # realizedPitch may be a cached realization: hand back a copy
                 if realizedNId == nodeTargetId.id:
                     return copy.deepcopy(realizedPitch[i])
                 # NOTE: this condition may be too generous, and was added to solve

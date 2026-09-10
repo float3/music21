@@ -644,11 +644,6 @@ class Test(unittest.TestCase):
         self.assertEqual(again.nameWithOctave, 'C4')
 
     def test_next_pitch_does_not_move_a_cached_degree(self):
-        '''
-        nextPitch() writes the origin's octave onto the pitch it gets back
-        from getPitchFromNodeDegree(), so walking the scale down near C1 used
-        to leave the tonic reading C1 ever after.
-        '''
         sc = scale.RagAsawari('c4')
         self.assertEqual(str(sc.pitchFromDegree(1)), 'C4')
         self.assertEqual(str(sc.nextPitch('c1', Direction.ASCENDING)), 'D1')

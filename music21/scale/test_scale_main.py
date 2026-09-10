@@ -456,9 +456,6 @@ class Test(unittest.TestCase):
                                           getNeighbor=Direction.DESCENDING)),
                          'F1')
 
-        # the tonic, whatever has been asked for in between: walking the
-        # scale near another octave used to move it, since nextPitch() was
-        # writing an octave onto a pitch of the cached realization.
         self.assertEqual(str(sc.pitchFromDegree(1)), 'C4')
         # there is no third step in ascending form
         self.assertEqual(str(sc.pitchFromDegree(3)), 'None')
