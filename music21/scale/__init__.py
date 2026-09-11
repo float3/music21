@@ -557,7 +557,7 @@ class AbstractScale(Scale):
             alteredDegrees=self._alteredDegrees,
             equateTermini=equateTermini
         )
-        return copy.deepcopy(post)
+        return post
 
     def realizePitchByDegree(self,
                              pitchReference: _PitchOrStr,
@@ -654,7 +654,7 @@ class AbstractScale(Scale):
             maxPitch=maxPitch,
             alteredDegrees=self._alteredDegrees
         )
-        return copy.deepcopy(post)
+        return post
 
     # --------------------------------------------------------------------------
 

@@ -2707,15 +2707,16 @@ class IntervalNetwork:
                 # environLocal.printDebug(['comparing', realizedNId,
                 #   'nodeTargetId', nodeTargetId])
 
+                # realizedPitch may be a cached realization: hand back a copy
                 if realizedNId == nodeTargetId.id:
-                    return realizedPitch[i]
+                    return copy.deepcopy(realizedPitch[i])
                 # NOTE: this condition may be too generous, and was added to solve
                 # a non-tracked problem.
                 # only match this generously if we are equating termini
                 if equateTermini:
                     if ((realizedNId in (Terminus.HIGH, Terminus.LOW))
                             and (nodeTargetId.id in (Terminus.HIGH, Terminus.LOW))):
-                        return realizedPitch[i]
+                        return copy.deepcopy(realizedPitch[i])
 
             # environLocal.printDebug(['getPitchFromNodeDegree() on trial', trial, ',
             #    failed to find node', nodeTargetId])
