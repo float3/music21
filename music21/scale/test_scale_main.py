@@ -5,7 +5,7 @@
 # Authors:      Christopher Ariza
 #               Michael Scott Asato Cuthbert
 #
-# Copyright:    Copyright © 2010-2024 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2010-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 from __future__ import annotations
@@ -271,6 +271,11 @@ class Test(unittest.TestCase):
         # test default args
         sc2 = scale.CyclicalScale()
         self.assertEqual(self.pitchOut(sc2.getPitches()), '[C4, D-4]')
+
+    def testHarmonicMinorKeepsItsSeventhAfterNextPitch(self):
+        sc = scale.HarmonicMinorScale('g4')
+        sc.nextPitch('a4')
+        self.assertEqual(self.pitchOut(sc.pitches), '[G4, A4, B-4, C5, D5, E-5, F#5, G5]')
 
     def testDeriveByDegree(self):
         sc1 = scale.MajorScale()
