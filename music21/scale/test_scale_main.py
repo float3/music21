@@ -286,6 +286,20 @@ class Test(unittest.TestCase):
         descending = sc.getPitches('c#4', 'g#4', direction=Direction.DESCENDING)
         self.assertEqual(self.pitchOut(descending), '[G-4, F4, E-4, D-4]')
 
+    def testNextPitchOnCycle(self):
+        '''
+        AI-assisted (Claude).
+        '''
+        thirds = scale.CyclicalScale('d3', ['M3'])
+        self.assertEqual(str(thirds.nextPitch('c4')), 'D4')
+        self.assertEqual(str(thirds.nextPitch('g4')), 'A#4')
+        self.assertEqual(str(thirds.nextPitch('g4', Direction.DESCENDING)), 'F#4')
+        self.assertEqual(str(thirds.nextPitch('f#4')), 'A#4')
+
+        fifths = scale.CyclicalScale('c4', ['P5'])
+        self.assertEqual(str(fifths.nextPitch('g4')), 'D5')
+        self.assertEqual(str(fifths.nextPitch('g4', Direction.DESCENDING)), 'C4')
+
     def testDeriveByDegree(self):
         sc1 = scale.MajorScale()
         self.assertEqual(str(sc1.deriveByDegree(7, 'G#')),
