@@ -305,6 +305,10 @@ class Test(unittest.TestCase):
         sc.nextPitch('a4')
         self.assertEqual(self.pitchOut(sc.pitches), '[G4, A4, B-4, C5, D5, E-5, F#5, G5]')
 
+    def testDeriveHarmonicMinor(self):
+        sc = scale.HarmonicMinorScale()
+        self.assertEqual(sc.derive(['C', 'D', 'E-', 'B']).name, 'C harmonic minor')
+
     def testDeriveByDegree(self):
         sc1 = scale.MajorScale()
         self.assertEqual(str(sc1.deriveByDegree(7, 'G#')),
