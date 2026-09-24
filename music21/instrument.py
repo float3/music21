@@ -9,7 +9,7 @@
 #               Ben Houge
 #               Mark Gotham
 #
-# Copyright:    Copyright © 2009-2024 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2009-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 '''
@@ -2544,10 +2544,16 @@ def getAllNamesForInstrument(instrumentClass: Instrument,
     Note that the language string is not case-sensitive, so 'German' is also fine.
     '''
 
+    from music21.languageExcerpts import instrumentLookup
+
     language = language.lower()
     instrumentNameDict = {}
 
-    instrumentClassName = instrumentClass.instrumentName or ''
+    # the lookup tables name classes: the nearest one they know stands for
+    # this instrument, whatever it is called or subclassed as
+    namedClasses = set(instrumentLookup.allToClassName.values())
+    instrumentClassName = next((cls.__name__ for cls in type(instrumentClass).__mro__
+                                if cls.__name__ in namedClasses), '')
 
     if language == SearchLanguage.ALL:
         for lang in SearchLanguage:
@@ -2568,6 +2574,15 @@ class TestExternal(unittest.TestCase):
 
 
 class Test(unittest.TestCase):
+
+    def testGetAllNamesForInstrumentByClass(self):
+        acousticBass = getAllNamesForInstrument(AcousticBass(), SearchLanguage.ENGLISH)
+        self.assertEqual(acousticBass, {'english': ['acoustic bass']})
+
+        firstViolins = Violin()
+        firstViolins.instrumentName = 'Violin I'
+        self.assertEqual(getAllNamesForInstrument(firstViolins, SearchLanguage.ENGLISH),
+                         {'english': ['violin', 'violins']})
 
     def testCopyAndDeepcopy(self):
         from music21.test.commonTest import testCopyAll
