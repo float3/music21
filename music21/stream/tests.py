@@ -1089,6 +1089,14 @@ class Test(unittest.TestCase):
 
         self.assertEqual([repr(x) for x in consec3], expected2 + ['None'] + expected2)
 
+    def testFindConsecutiveNotesChordUnisons(self):
+        ch1 = chord.Chord('C4 E4 G4')
+        ch2 = chord.Chord('C4 E4 G4')
+        ch3 = chord.Chord('C4 E4 A4')
+        s = Stream([ch1, ch2, ch3])
+        self.assertEqual(s.findConsecutiveNotes(), [ch1, ch2, ch3])
+        self.assertEqual(s.findConsecutiveNotes(skipUnisons=True, noNone=True), [ch1, ch3])
+
     def testMelodicIntervals(self):
         c4 = note.Note('C4')
         d5 = note.Note('D5')

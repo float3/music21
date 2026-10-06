@@ -7,7 +7,7 @@
 #               Joséphine Wolf Oberholtzer
 #               Evan Lynch
 #
-# Copyright:    Copyright © 2008-2024 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2008-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # -----------------------------------------------------------------------------
 '''
@@ -10350,9 +10350,6 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
 
         OMIT_FROM_DOCS
 
-        N.B. for chords, currently, only the first pitch is tested for unison.
-        this is a bug TODO: FIX
-
         (\*\*keywords is there so that other methods that pass along dicts to
         findConsecutiveNotes don't have to remove
         their own args; this method is used in melodicIntervals.)
@@ -10424,7 +10421,8 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
                     # if we have a chord
                     elif (not (skipUnisons
                                and len(lastPitches) == len(e.pitches)
-                               and (p.ps for p in e.pitches) == (p.ps for p in lastPitches)
+                               and ([p.ps for p in e.pitches]
+                                    == [p.ps for p in lastPitches])
                                )
                           and (getOverlaps or e.offset >= lastEnd)):
                         returnList.append(e)
