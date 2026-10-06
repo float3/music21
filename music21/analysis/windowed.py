@@ -5,7 +5,7 @@
 # Authors:      Jared Sadoian
 # Authors:      Christopher Ariza
 #
-# Copyright:    Copyright © 2010 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2010-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 '''
@@ -20,6 +20,7 @@ and :class:`music21.analysis.discrete.Ambitus` (for pitch range analysis) classe
 '''
 from __future__ import annotations
 
+import copy
 import unittest
 import warnings
 
@@ -225,7 +226,8 @@ class WindowedAnalysis:
                 for dataStream, participants in overlapped:
                     if i in participants:
                         for m in dataStream:
-                            current.append(m)
+                            # a measure may stand in several windows
+                            current.append(copy.deepcopy(m))
                 try:
                     data[i], color[i] = self.processor.process(current)
                 except DiscreteAnalysisException:
@@ -429,6 +431,22 @@ class Test(unittest.TestCase):
         # window size of 8 gets 1 solutions
         a, unused_b, unused_c = wa2.process(8, 8, 1, includeTotalWindow=False)
         self.assertEqual(len(a[0]), 1)
+
+    def testAdjacentAverage(self):
+        from music21 import note
+        s = stream.Stream()
+        for _ in range(5):
+            s.append(note.Note('C'))
+        wa = WindowedAnalysis(s, MockObjectProcessor())
+
+        # each minimum window gathers every window of the given size holding it
+        data, unused_color = wa.analyze(2, windowType='adjacentAverage')
+        self.assertEqual(data, [2, 4, 4, 4, 2])
+        data, unused_color = wa.analyze(3, windowType='adjacentAverage')
+        self.assertEqual(data, [3, 6, 9, 6, 3])
+        # the windowed stream itself is unchanged
+        self.assertEqual(len(wa._windowedStream), 5)
+        self.assertEqual(len(wa._windowedStream.recurse().notes), 5)
 
 
     def testVariableWindowing(self):
