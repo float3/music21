@@ -30,12 +30,12 @@ import typing as t
 
 from music21 import base
 from music21 import common
+from music21.common.types import OffsetQL
 from music21 import environment
 from music21.exceptions21 import InstrumentException
 from music21 import interval
 from music21 import note
 from music21 import pitch
-from music21.tree.trees import OffsetTree
 
 if t.TYPE_CHECKING:
     from music21 import stream
@@ -1879,8 +1879,11 @@ def deduplicate(s: stream.Stream, inPlace: bool = False) -> stream.Stream:
         substreams = returnObj.getElementsByClass(stream.Stream)
 
     for sub in substreams:
-        oTree = OffsetTree(sub[Instrument].stream())
-        for o in oTree:
+        instrumentsByOffset: dict[OffsetQL, list[Instrument]] = {}
+        for inst in sub[Instrument]:
+            instOffset = inst.getOffsetInHierarchy(sub)
+            instrumentsByOffset.setdefault(instOffset, []).append(inst)
+        for o in instrumentsByOffset.values():
             if len(o) == 1:
                 continue
             notNonePartNames = {i.partName for i in o if i.partName is not None}
@@ -2848,6 +2851,28 @@ class Test(unittest.TestCase):
                           getAllNamesForInstrument,
                           inst,
                           language='finnish')
+
+    def testDeduplicateKeepsInstrumentsAtDifferentOffsets(self):
+        from music21 import stream
+
+        p = stream.Part()
+        m1 = stream.Measure(number=1)
+        m1.insert(0, Instrument())
+        m1.insert(0, Piano())
+        m1.append(note.Note(type='whole'))
+        m2 = stream.Measure(number=2)
+        melody = Instrument()
+        melody.partName = 'Melody'
+        m2.insert(0, melody)
+        m2.append(note.Note(type='whole'))
+        p.append([m1, m2])
+
+        deduplicate(p, inPlace=True)
+        self.assertEqual(
+            [(inst.classes[0], inst.partName, inst.getOffsetInHierarchy(p))
+                for inst in p[Instrument]],
+            [('Piano', None, 0.0), ('Instrument', 'Melody', 4.0)]
+        )
 
 
 # ------------------------------------------------------------------------------
