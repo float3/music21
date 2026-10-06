@@ -1284,9 +1284,23 @@ class NWCObject:
     def restChordMember(self):
         '''
         Rest chord
-        10 bytes
+        10 bytes + n Note objects
+
+        In version 2 files, the 10 bytes are a rest's (duration, five data
+        bytes, vertical offset) and the number of notes, with no stem length.
         '''
-        self.noteChordMember()
+        p = self.parserParent
+        if p.version < 200:
+            self.noteChordMember()
+        else:
+            self.data1 = p.readBytes(8)
+            self.stemLength = 7
+            numberOfNotes = p.readLEShort()
+            self.data2 = []
+            for i in range(numberOfNotes):
+                chordNote = NWCObject(parserParent=p)
+                chordNote.parse()
+                self.data2.append(chordNote)
         self.type = 'RestChordMember'
         rest = NWCObject(parserParent=self.parserParent)
         rest.duration = self.data1[0]
