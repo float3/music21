@@ -4,7 +4,7 @@
 #
 # Authors:      Michael Scott Asato Cuthbert
 #
-# Copyright:    Copyright © 2017 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2017-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 '''
@@ -19,6 +19,7 @@ This module will move to a medren package hopefully by v7.
 from __future__ import annotations
 
 import enum
+import unittest
 
 from music21 import bar
 from music21 import base
@@ -87,6 +88,22 @@ bflatTokens = 'iyz'
 flatTokens = eflatTokens + bflatTokens
 naturalTokens = flatTokens.upper()
 accidentalTokens = flatTokens + naturalTokens
+
+
+def _makeBreak(numBreakTokens, breaksToLayout):
+    '''
+    The break object for a run of `numBreakTokens` '7' tokens:
+    a LineBreak, PageBreak or ColumnBreak, or, if `breaksToLayout` is True,
+    a new SystemLayout, a new PageLayout or a ColumnBreak.
+    '''
+    if not breaksToLayout:  # default
+        breakClass = classByNumBreakTokens[numBreakTokens]
+        return breakClass()  # pylint: disable=not-callable
+
+    breakClass = classByNumBreakTokensLayout[numBreakTokens]
+    if numBreakTokens < 3:
+        return breakClass(isNew=True)  # pylint: disable=not-callable
+    return breakClass()  # pylint: disable=not-callable
 
 
 def toPart(volpianoText, *, breaksToLayout=False):
@@ -207,16 +224,7 @@ def toPart(volpianoText, *, breaksToLayout=False):
             continuousNumberOfBreakTokens += 1
             continue
         elif continuousNumberOfBreakTokens > 0:
-            if not breaksToLayout:  # default
-                breakClass = classByNumBreakTokens[continuousNumberOfBreakTokens]
-                breakToken = breakClass()  # pylint: disable=not-callable
-            else:
-                breakClass = classByNumBreakTokensLayout[continuousNumberOfBreakTokens]
-                if continuousNumberOfBreakTokens < 3:
-                    breakToken = breakClass(isNew=True)  # pylint: disable=not-callable
-                else:
-                    breakToken = breakClass()  # pylint: disable=not-callable
-
+            breakToken = _makeBreak(continuousNumberOfBreakTokens, breaksToLayout)
             currentMeasure.append(breakToken)
 
         continuousNumberOfBreakTokens = 0
@@ -293,8 +301,7 @@ def toPart(volpianoText, *, breaksToLayout=False):
 
 
     if continuousNumberOfBreakTokens > 0:
-        breakClass = classByNumBreakTokens[continuousNumberOfBreakTokens]
-        breakToken = breakClass()
+        breakToken = _makeBreak(continuousNumberOfBreakTokens, breaksToLayout)
         currentMeasure.append(breakToken)
 
     if m:
@@ -456,8 +463,23 @@ def fromStream(s, *, layoutToBreaks=False):
     return ''.join(volpianoTokens)
 
 
+class Test(unittest.TestCase):
+    def testBreaksAtEndToLayout(self):
+        part = toPart('1---e-7', breaksToLayout=True)
+        self.assertEqual(len(part[layout.SystemLayout]), 1)
+        self.assertEqual(len(part[LineBreak]), 0)
+        self.assertTrue(part[layout.SystemLayout].first().isNew)
+
+        part = toPart('1---e-77', breaksToLayout=True)
+        self.assertEqual(len(part[layout.PageLayout]), 1)
+        self.assertTrue(part[layout.PageLayout].first().isNew)
+
+        part = toPart('1---e-77')
+        self.assertEqual(len(part[PageBreak]), 1)
+
+
 if __name__ == '__main__':
     import music21
     # allow things like "fromStream" to be called in doctests as "fromStream"
     # and not just "volpiano.fromStream"
-    music21.mainTest('importPlusRelative')
+    music21.mainTest(Test, 'importPlusRelative')
