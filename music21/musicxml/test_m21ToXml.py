@@ -1004,6 +1004,22 @@ class Test(unittest.TestCase):
                     arpNum = arp.get('number')
                     self.assertEqual(arpNum, '1')
 
+    def testChordWrittenLowestToHighest(self):
+        c1 = chord.Chord(['G4', 'E4', 'C4'])
+        c1.expressions.append(expressions.ArpeggioMark('non-arpeggio'))
+        c2 = chord.Chord(['A4', 'F4', 'D4'])
+        m = stream.Measure([c1, c2])
+        m.insert(0, spanner.Slur([c1, c2]))
+        x = self.getET(stream.Score([stream.Part([m])]))
+
+        mxNotes = x.findall('part/measure/note')
+        self.assertEqual([mxNote.find('pitch/step').text for mxNote in mxNotes],
+                         ['C', 'E', 'G', 'D', 'F', 'A'])
+        self.assertEqual(mxNotes[0].find('notations/non-arpeggiate').get('type'), 'bottom')
+        self.assertEqual(mxNotes[2].find('notations/non-arpeggiate').get('type'), 'top')
+        self.assertEqual(mxNotes[0].find('notations/slur').get('type'), 'start')
+        self.assertEqual(mxNotes[3].find('notations/slur').get('type'), 'stop')
+
 
     def testExportChordSymbolsWithRealizedDurations(self):
 

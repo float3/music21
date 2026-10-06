@@ -4455,6 +4455,23 @@ class Chord(ChordBase):
         if not inPlace:
             return returnObj
 
+    @cacheMethod
+    def isSortedDiatonicAscending(self) -> bool:
+        '''
+        Returns True if the notes stand in the order
+        :meth:`~music21.chord.Chord.sortDiatonicAscending` puts them in:
+        lowest to highest on the staff.
+
+        >>> chord.Chord('C4 E4 G4').isSortedDiatonicAscending()
+        True
+        >>> chord.Chord('E4 C4 G4').isSortedDiatonicAscending()
+        False
+
+        * New in v11.
+        '''
+        sortKeys = [(n.pitch.diatonicNoteNum, n.pitch.ps) for n in self._notes]
+        return all(lower <= higher for lower, higher in zip(sortKeys, sortKeys[1:]))
+
     @overload
     def sortAscending(self, *, inPlace: t.Literal[True]) -> None:
         ...
@@ -4512,15 +4529,13 @@ class Chord(ChordBase):
         * Changed in v6: if inPlace is True do not return anything.
         '''
         if inPlace:
-            if self._cache.get('isSortedAscendingDiatonic', False):
+            if self.isSortedDiatonicAscending():
                 return None
             returnObj = self
             self.clearCache()
         else:
-            # cache is not copied to the new item.
             returnObj = copy.deepcopy(self)
         returnObj._notes.sort(key=lambda x: (x.pitch.diatonicNoteNum, x.pitch.ps))
-        returnObj._cache['isSortedAscendingDiatonic'] = True
 
         if not inPlace:
             return returnObj
