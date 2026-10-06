@@ -841,7 +841,7 @@ class CapellaImporter:
             denominator = 1
             while numerator > denominator * 2:
                 denominator *= 2
-        if 'prolong' in tupletElement.attrib and tupletElement.attrib['count'] == 'true':
+        if 'prolong' in tupletElement.attrib and tupletElement.attrib['prolong'] == 'true':
             denominator *= 2
 
         if 'tripartite' in tupletElement.attrib:
@@ -918,6 +918,15 @@ class Test(unittest.TestCase):
         self.assertGreater(len(partScore.recurse().notes), 20)
         self.assertIn('mass!', text.assembleLyrics(partScore.parts[0], 1))
         self.assertIn('scherz', text.assembleLyrics(partScore.parts[0], 2))
+
+    def testTupletProlong(self):
+        ci = CapellaImporter()
+        tupletTag = ci.domElementFromText('<tuplet count="3" prolong="true"/>')
+        tup = ci.tupletFromTuplet(tupletTag)
+        self.assertEqual((tup.numberNotesActual, tup.numberNotesNormal), (3, 4))
+        tupletTag = ci.domElementFromText('<tuplet count="3" prolong="false"/>')
+        tup = ci.tupletFromTuplet(tupletTag)
+        self.assertEqual((tup.numberNotesActual, tup.numberNotesNormal), (3, 2))
 
 class TestExternal(unittest.TestCase):
     show = True
