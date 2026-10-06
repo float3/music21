@@ -851,7 +851,7 @@ class CapellaImporter:
         tup = duration.Tuplet(numerator, denominator)
         return tup
 
-    barlineMap = {'single': 'normal',
+    barlineMap = {'single': 'regular',
                   'double': 'double',
                   'end': 'final',
                   'repEnd': 'end',
@@ -918,6 +918,13 @@ class Test(unittest.TestCase):
         self.assertGreater(len(partScore.recurse().notes), 20)
         self.assertIn('mass!', text.assembleLyrics(partScore.parts[0], 1))
         self.assertIn('scherz', text.assembleLyrics(partScore.parts[0], 2))
+
+    def testSingleBarline(self):
+        ci = CapellaImporter()
+        barlineTag = ci.domElementFromText('<barline type="single"/>')
+        barlines = ci.barlineListFromBarline(barlineTag)
+        self.assertEqual(len(barlines), 1)
+        self.assertEqual(barlines[0].type, 'regular')
 
 class TestExternal(unittest.TestCase):
     show = True
