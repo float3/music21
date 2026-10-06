@@ -4,7 +4,7 @@
 #
 # Authors:      Michael Scott Asato Cuthbert
 #
-# Copyright:    Copyright © 2006-2013 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2006-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 '''
@@ -1139,6 +1139,7 @@ class NWCObject:
             else:
                 # print('attribute 2:', hex(self.attribute2))
                 self.stemLength = 7
+            numberOfNotes = p.readLEShort()
         else:
             self.stemLength = 7
 
