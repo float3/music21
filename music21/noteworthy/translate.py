@@ -58,6 +58,7 @@ Module to translate Noteworthy Composer's NWCTXT format to music21.
 # |Chord|Dur:8th|Pos:-4,n-3,b-2,#-1,x0,v1,2x|Opts:Stem=Down,Crescendo|Dur2:8th,DblDotted|Pos2:3x
 from __future__ import annotations
 
+import struct
 import unittest
 
 from music21 import bar
@@ -82,6 +83,7 @@ from music21 import stream
 from music21 import tempo
 from music21 import tie
 
+from music21.noteworthy import binaryTranslate
 from music21.noteworthy.dictionaries import dictionaries
 
 environLocal = environment.Environment('noteworthy.translate')
@@ -993,6 +995,26 @@ class Test(unittest.TestCase):
         self.assertEqual(str(myScore[note.Note].first().name), 'E')
         self.assertEqual(str(myScore[clef.Clef].first()),
                          '<music21.clef.BassClef>')
+
+    def testBinaryRestChordVersion2(self):
+        nwcc = binaryTranslate.NWCConverter()
+        nwcc.version = 201
+        # object type 18 (rest chord), visibility, a half rest, five data bytes,
+        # a vertical offset of -2 (high byte 0xff), then the number of notes
+        restChordBytes = struct.pack('<hBB5shh', 18, 0, 1, bytes(5), -2, 1)
+        # object type 8 (note), visibility, a quarter at staff position 0,
+        # no accidental (5) and no stem length
+        restChordBytes += struct.pack('<hB6sbB', 8, 0, bytes([2, 0, 0, 0, 0, 0]), 0, 5)
+        # a treble clef follows
+        restChordBytes += struct.pack('<hBhh', 0, 0, 0, 0)
+        nwcc.fileContents = restChordBytes
+        restChord = binaryTranslate.NWCObject(parserParent=nwcc)
+        restChord.parse()
+        self.assertEqual([d.durationStr for d in restChord.data2], ['4th', 'Half'])
+        nextObject = binaryTranslate.NWCObject(parserParent=nwcc)
+        nextObject.parse()
+        self.assertEqual(nextObject.type, 'Clef')
+        self.assertEqual(nwcc.parsePosition, len(restChordBytes))
 
     def testKeySignatureAtBeginning(self):
         '''
