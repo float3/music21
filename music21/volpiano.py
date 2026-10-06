@@ -91,6 +91,22 @@ naturalTokens = flatTokens.upper()
 accidentalTokens = flatTokens + naturalTokens
 
 
+def _makeBreak(numBreakTokens, breaksToLayout):
+    '''
+    The break object for a run of `numBreakTokens` '7' tokens:
+    a LineBreak, PageBreak or ColumnBreak, or, if `breaksToLayout` is True,
+    a new SystemLayout, a new PageLayout or a ColumnBreak.
+    '''
+    if not breaksToLayout:  # default
+        breakClass = classByNumBreakTokens[numBreakTokens]
+        return breakClass()  # pylint: disable=not-callable
+
+    breakClass = classByNumBreakTokensLayout[numBreakTokens]
+    if numBreakTokens < 3:
+        return breakClass(isNew=True)  # pylint: disable=not-callable
+    return breakClass()  # pylint: disable=not-callable
+
+
 def toPart(volpianoText, *, breaksToLayout=False):
     # noinspection PyShadowingNames
     '''
@@ -209,16 +225,7 @@ def toPart(volpianoText, *, breaksToLayout=False):
             continuousNumberOfBreakTokens += 1
             continue
         elif continuousNumberOfBreakTokens > 0:
-            if not breaksToLayout:  # default
-                breakClass = classByNumBreakTokens[continuousNumberOfBreakTokens]
-                breakToken = breakClass()  # pylint: disable=not-callable
-            else:
-                breakClass = classByNumBreakTokensLayout[continuousNumberOfBreakTokens]
-                if continuousNumberOfBreakTokens < 3:
-                    breakToken = breakClass(isNew=True)  # pylint: disable=not-callable
-                else:
-                    breakToken = breakClass()  # pylint: disable=not-callable
-
+            breakToken = _makeBreak(continuousNumberOfBreakTokens, breaksToLayout)
             m.append(breakToken)
 
         continuousNumberOfBreakTokens = 0
@@ -298,8 +305,7 @@ def toPart(volpianoText, *, breaksToLayout=False):
         m.append(currentNeumeSpanner)
 
     if continuousNumberOfBreakTokens > 0:
-        breakClass = classByNumBreakTokens[continuousNumberOfBreakTokens]
-        breakToken = breakClass()
+        breakToken = _makeBreak(continuousNumberOfBreakTokens, breaksToLayout)
         m.append(breakToken)
 
     if m:
@@ -486,6 +492,19 @@ class Test(unittest.TestCase):
         self.assertEqual([len(neume) for neume in part[Neume]], [2, 2])
         gc.collect()
         self.assertEqual(fromStream(part), '1---ef----3gh-')
+
+    def testBreaksAtEndToLayout(self):
+        part = toPart('1---e-7', breaksToLayout=True)
+        self.assertEqual(len(part[layout.SystemLayout]), 1)
+        self.assertEqual(len(part[LineBreak]), 0)
+        self.assertTrue(part[layout.SystemLayout].first().isNew)
+
+        part = toPart('1---e-77', breaksToLayout=True)
+        self.assertEqual(len(part[layout.PageLayout]), 1)
+        self.assertTrue(part[layout.PageLayout].first().isNew)
+
+        part = toPart('1---e-77')
+        self.assertEqual(len(part[PageBreak]), 1)
 
 
 if __name__ == '__main__':
