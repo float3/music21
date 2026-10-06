@@ -1913,6 +1913,8 @@ class SpineCollection(prebase.ProtoM21Object):
         for thisSpine in self.spines:
             # removeSpines = []
             if thisSpine.parentSpine is not None:
+                if thisSpine.childSpines and thisSpine.parentSpine.parentSpine is None:
+                    self.warnNestedSplit(thisSpine)
                 continue
             if not thisSpine.childSpines:
                 continue
@@ -1945,6 +1947,33 @@ class SpineCollection(prebase.ProtoM21Object):
             # for removeMe in removeSpines:
             #    # needed for some tests
             #    self.removeSpineById(removeMe)
+
+    def warnNestedSplit(self, thisSpine: HumdrumSpine) -> None:
+        '''
+        Warn that the sub-spines of `thisSpine`, itself a sub-spine,
+        and all their own sub-spines are not placed in the score,
+        saying how many notes and rests they hold.  Called by :meth:`performInsertions`.
+
+        AI-assisted (Claude).
+        '''
+        lostSpines: list[HumdrumSpine] = []
+        toVisit = list(thisSpine.childSpines)
+        while toVisit:
+            child = toVisit.pop(0)
+            lostSpines.append(child)
+            toVisit.extend(child.childSpines)
+        numLost = sum(
+            len(s.stream.getElementsByClass(note.GeneralNote)) for s in lostSpines
+        )
+        splitLines = sorted(thisSpine.childSpineInsertPoints)
+        lineLabel = 'line' if len(splitLines) == 1 else 'lines'
+        lineList = ', '.join(str(i) for i in splitLines)
+        spineIds = ', '.join(str(s.id) for s in lostSpines)
+        environLocal.warn(
+            f'Humdrum spine {thisSpine.id} splits again at {lineLabel} {lineList} '
+            f'into spines {spineIds}; nested splits are not supported, '
+            f'so their {numLost} notes or rests are dropped.'
+        )
 
     def performSpineInsertion(
         self,

@@ -17,6 +17,8 @@ for the deep-copy round trip.
 '''
 from __future__ import annotations
 
+import contextlib
+import io
 import re
 import typing as t
 import unittest
@@ -465,6 +467,38 @@ class Test(unittest.TestCase):
             sorted(n.pitch.name for v in m3.voices for n in v.notes),
             ['F', 'G'],
         )
+
+    def testNestedSplitWarns(self):
+        '''
+        A voice spine that splits again is not placed in the score;
+        parsing warns and names the music it leaves out.
+        '''
+        krn = re.sub(r'\s\s\s\s+', '\t', r'''
+**kern
+*M2/4
+=1
+2c
+=2
+*^
+2d    2e
+*^    *
+2f    2g    2a
+*v    *v    *
+*v    *v
+=3
+2b
+*-
+''')
+        hdc = HumdrumDataCollection(krn)
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            hdc.parse()
+        warning = stderr.getvalue()
+        self.assertIn('2 notes or rests', warning)
+        self.assertIn('spine 1', warning)
+        pitchNames = [n.pitch.name for n in hdc.stream.recurse().notes]
+        self.assertNotIn('F', pitchNames)
+        self.assertNotIn('G', pitchNames)
 
     def testDynamAttachedAligned(self):
         '''
