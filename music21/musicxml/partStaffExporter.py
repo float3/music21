@@ -5,7 +5,7 @@
 # Authors:      Jacob Tyler Walls
 #               Michael Scott Asato Cuthbert
 #
-# Copyright:    Copyright © 2020-22 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2020-26 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 '''
@@ -439,6 +439,18 @@ class PartStaffExporterMixin:
                     sourceMeasure = next(sourceMeasures)
                 except StopIteration:
                     return insertions
+                sourceNumber = sourceMeasure.get('number')
+
+            # Gap closed: the next source measure matches this target measure
+            if targetNumber == sourceNumber:
+                self.moveMeasureContents(sourceMeasure, targetMeasure, staffNum)
+                sourceMeasure = None
+                continue
+            # Or, the next source measure comes after this target measure
+            if (sourceNumber is not None
+                    and targetNumber is not None
+                    and helpers.measureNumberComesBefore(targetNumber, sourceNumber)):
+                continue
             raise MusicXMLExportException(
                 'joinPartStaffs() was unable to order the measures '
                 f'{targetNumber}, {sourceNumber}')  # pragma: no cover
@@ -1180,6 +1192,30 @@ class Test(unittest.TestCase):
         self.assertEqual(
             [r.get('direction') for r in root.findall('.//repeat')],
             ['forward', 'backward']
+        )
+
+    def testJoinPartStaffsMeasureMissingFromFirstStaff(self):
+        '''
+        The first PartStaff lacks measure 3: the second PartStaff's measure 3
+        goes in on its own and its measures 4 and 5 join the first's.
+        '''
+        from music21 import layout
+        from music21 import note
+
+        ps1 = stream.PartStaff()
+        ps2 = stream.PartStaff()
+        for ps, numbers in ((ps1, [1, 2, 4, 5]), (ps2, [1, 2, 3, 4, 5])):
+            for number in numbers:
+                ps.append(stream.Measure([note.Note(type='whole')], number=number))
+        sg = layout.StaffGroup([ps1, ps2])
+        s = stream.Score([sg, ps1, ps2])
+
+        root = self.getET(s)
+        measures = root.findall('part/measure')
+        self.assertEqual([m.get('number') for m in measures], ['1', '2', '3', '4', '5'])
+        self.assertEqual(
+            [[n.find('staff').text for n in m.findall('note')] for m in measures],
+            [['1', '2'], ['1', '2'], ['2'], ['1', '2'], ['1', '2']]
         )
 
 
