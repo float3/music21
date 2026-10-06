@@ -350,6 +350,17 @@ class Test(unittest.TestCase):
         self.assertEqual(str(sc.nextPitch('b#3')), 'D4')
         self.assertEqual(str(sc.nextPitch('d-4', Direction.DESCENDING)), 'C4')
 
+    def testNextPitchOnCycleWiderThanOctave(self):
+        ninths = scale.CyclicalScale('c4', ['M9'])
+        self.assertEqual(str(ninths.nextPitch('b3')), 'C4')
+        self.assertEqual(str(ninths.nextPitch('b3', Direction.DESCENDING)), 'B-2')
+        self.assertEqual(str(ninths.nextPitch('d#5')), 'E6')
+        self.assertEqual(str(ninths.nextPitch('d#5', Direction.DESCENDING)), 'D5')
+
+        tenths = scale.CyclicalScale('c4', ['m10'])
+        self.assertEqual(str(tenths.nextPitch('d4')), 'E-5')
+        self.assertEqual(str(tenths.nextPitch('d4', Direction.DESCENDING)), 'C4')
+
     def testDeriveByDegree(self):
         sc1 = scale.MajorScale()
         self.assertEqual(str(sc1.deriveByDegree(7, 'G#')),
