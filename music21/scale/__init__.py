@@ -994,7 +994,8 @@ class AbstractOctaveRepeatingScale(AbstractScale):
     A scale of any size built with an interval list
     that assumes octave completion. An additional
     interval to complete the octave will be added
-    to the provided intervals. This does not guarantee
+    to the provided intervals, unless they already
+    reach the octave. This does not guarantee
     that the octave will be repeated in one octave,
     only the next octave above the last interval will
     be provided.
@@ -1019,7 +1020,8 @@ class AbstractOctaveRepeatingScale(AbstractScale):
 
         intervalSum = interval.add(mode)
         iComplement = intervalSum.complement
-        if iComplement is not None:
+        # steps that already reach the octave need no closing unison
+        if iComplement is not None and iComplement.name != 'P1':
             mode = [*mode, iComplement]  # a copy: mode is the caller's list
 
         # steps wider than an octave complete a pattern spanning several
