@@ -1121,6 +1121,15 @@ class Test(unittest.TestCase):
         intS1 = s1.melodicIntervals()
         self.assertEqual(len(intS1), 2)
 
+    def testMelodicIntervalsInMeasures(self):
+        m1 = Measure([note.Note('C4', type='half'), note.Note('D4', type='half')])
+        m2 = Measure([note.Note('F4', type='half'), note.Note('G4', type='half')])
+        p = Part()
+        p.append([m1, m2])
+        intervals = p.melodicIntervals()
+        self.assertEqual([i.offset for i in intervals], [2.0, 4.0, 6.0])
+        self.assertEqual([i.quarterLength for i in intervals], [0.0, 0.0, 0.0])
+
     def testStripTiesBuiltA(self):
         s1 = Stream()
         n1 = note.Note('D#2')

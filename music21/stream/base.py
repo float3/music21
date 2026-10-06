@@ -7,7 +7,7 @@
 #               Joséphine Wolf Oberholtzer
 #               Evan Lynch
 #
-# Copyright:    Copyright © 2008-2024 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2008-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # -----------------------------------------------------------------------------
 '''
@@ -10523,9 +10523,10 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
                 noteEnd = nextNote
             # Prefer Note objects over Pitch objects so that noteStart is set correctly
             returnInterval = interval.Interval(noteStart, noteEnd)
-            returnInterval.offset = opFrac(thisNote.offset + thisNote.quarterLength)
+            returnInterval.offset = opFrac(
+                thisNote.getOffsetInHierarchy(self) + thisNote.quarterLength)
             returnInterval.duration = duration.Duration(opFrac(
-                nextNote.offset - returnInterval.offset))
+                nextNote.getOffsetInHierarchy(self) - returnInterval.offset))
             returnStream.insert(returnInterval)
 
         return returnStream
