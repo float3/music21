@@ -402,6 +402,17 @@ class Test(unittest.TestCase):
         self.assertEqual(turn.ornamentalPitches[1].accidental, pitch.Accidental('natural'))
         self.assertTrue(turn.ornamentalPitches[1].accidental.displayStatus)
 
+    def testUpdateAccidentalDisplayWithUndecidedAccidental(self):
+        # an accidental with no displayStatus is decided like any other
+        noSharpsOrFlats = key.KeySignature(0)
+        for ornament in (expressions.Trill(), expressions.InvertedMordent()):
+            with self.subTest(ornament=ornament):
+                ornament.accidental = pitch.Accidental('sharp')
+                ornament.resolveOrnamentalPitches(note.Note('G4'), keySig=noSharpsOrFlats)
+                ornament.updateAccidentalDisplay(pitchPast=[])
+                self.assertEqual(ornament.ornamentalPitch.nameWithOctave, 'A#4')
+                self.assertTrue(ornament.ornamentalPitch.accidental.displayStatus)
+
     def testEdgeCases(self):
         # Make sure you can call resolveOrnamentalPitches() on non-Trill/Mordent/Turn Ornaments
         # without raising an exception (or actually doing anything interesting).
