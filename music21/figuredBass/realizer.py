@@ -4,7 +4,7 @@
 #                and figures in a given key.
 # Authors:      Jose Cabal-Ugaz
 #
-# Copyright:    Copyright © 2011 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2011-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 '''
@@ -56,6 +56,7 @@ from music21 import note
 from music21 import pitch
 from music21 import roman
 from music21 import stream
+from music21.common.numberTools import opFrac
 from music21.common.types import OffsetQL
 from music21.figuredBass import checker
 from music21.figuredBass import notation
@@ -380,7 +381,7 @@ class FiguredBassLine:
             for partNumber in range(1, len(currentMapping[k])):
                 upperPitch = t.cast(note.Note, currentMapping[k][partNumber - 1])
                 currentSegment.fbRules._partPitchLimits.append((partNumber, upperPitch))
-            if startTime == previousBassNote.offset + previousBassNote.quarterLength:
+            if startTime == opFrac(previousBassNote.offset + previousBassNote.quarterLength):
                 bassNoteIndex += 1
                 previousBassNote = bassNotes[bassNoteIndex]
                 currentSegment.quarterLength = previousBassNote.quarterLength
@@ -846,6 +847,20 @@ class FiguredBassLineException(exceptions21.Music21Exception):
 
 
 class Test(unittest.TestCase):
+    def testSegmentsAfterTriplet(self) -> None:
+        # a triplet's float end time still meets the next note's Fraction offset
+        from fractions import Fraction
+
+        fbLine = FiguredBassLine(key.Key('C'), meter.TimeSignature('2/4'))
+        third = Fraction(1, 3)
+        fbLine.addElement(note.Note('C3', quarterLength=third))
+        fbLine.addElement(note.Note('D3', quarterLength=third), '6')
+        fbLine.addElement(note.Note('E3', quarterLength=third), '6')
+        fbLine.addElement(note.Note('F3'), '6,4')
+        fbLine.addElement(note.Note('C3', quarterLength=2.0))
+        self.assertEqual([seg.quarterLength for seg in fbLine.retrieveSegments()],
+                         [third, third, third, 1.0, 2.0])
+
     def testMultipleFiguresInLyric(self) -> None:
         from music21 import converter
 
