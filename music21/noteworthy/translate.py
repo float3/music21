@@ -58,6 +58,7 @@ Module to translate Noteworthy Composer's NWCTXT format to music21.
 # |Chord|Dur:8th|Pos:-4,n-3,b-2,#-1,x0,v1,2x|Opts:Stem=Down,Crescendo|Dur2:8th,DblDotted|Pos2:3x
 from __future__ import annotations
 
+import struct
 import unittest
 
 from music21 import bar
@@ -82,6 +83,7 @@ from music21 import stream
 from music21 import tempo
 from music21 import tie
 
+from music21.noteworthy import binaryTranslate
 from music21.noteworthy.dictionaries import dictionaries
 
 environLocal = environment.Environment('noteworthy.translate')
@@ -1030,6 +1032,25 @@ class Test(unittest.TestCase):
         # s.show('text')
         n1 = s.parts[1].getElementsByClass(stream.Measure).first().notes.first()
         self.assertEqual(n1.pitch.accidental.alter, -1.0)
+
+    def testBinaryChordVersion2(self):
+        nwcc = binaryTranslate.NWCConverter()
+        nwcc.version = 201
+        # object type 10 (chord), visibility, eight data bytes (a quarter),
+        # then the number of notes
+        chordBytes = struct.pack('<hB8sh', 10, 0, bytes([2, 0, 0, 0, 0, 0, 0, 0]), 2)
+        for staffPosition in (0, -2):
+            # object type 8 (note), visibility, a quarter at staffPosition,
+            # no accidental (5) and no stem length
+            chordBytes += struct.pack('<hB6sbB', 8, 0, bytes([2, 0, 0, 0, 0, 0]), staffPosition, 5)
+        nwcc.fileContents = chordBytes
+        chordObject = binaryTranslate.NWCObject(parserParent=nwcc)
+        chordObject.parse()
+        dumped = chordObject.dumpMethod(chordObject)
+        self.assertEqual(dumped, '|Chord|Dur:4th|Pos:0,2')
+        s = NoteworthyTranslator().parseList(['|AddStaff|', '|Clef|Type:Treble', dumped])
+        self.assertEqual(s[chord.Chord].first().pitches,
+                         (pitch.Pitch('B4'), pitch.Pitch('D5')))
 
 
 class TestExternal(unittest.TestCase):
