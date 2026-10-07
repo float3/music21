@@ -2041,6 +2041,8 @@ class Test(unittest.TestCase):
         self.assertEqual(Residual(0, 0, neg=True).segment(0, z), z)
         self.assertEqual(Sieve('-0@0', z).segment('exp'), z)
         self.assertEqual(Sieve('-0@0', z).segment('cmp'), z)
+        self.assertEqual(Residual(0, 0).segment(0, z, 'bin'), [0] * 6)
+        self.assertEqual(Sieve('-0@0|3@1', z).segment('exp'), z)
 
     def testSievePitch(self):
         unused_testObj = PitchSieve('-5 | 4 & 4sub3 & 6', 'b3', 'f#4')
