@@ -744,7 +744,7 @@ _DOC_ORDER = [extractHarmonies, getVoiceLeadingMoments,
 
 class Test(unittest.TestCase):
     def testOffsetMappingAfterTriplet(self):
-        # 0.0 + Fraction(1, 3) is a float, which no Fraction offset equals
+        # end times after a triplet
         from fractions import Fraction
 
         part = stream.Part()

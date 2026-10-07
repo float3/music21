@@ -860,6 +860,20 @@ class Test(unittest.TestCase):
         fbLine.addElement(note.Note('C3', quarterLength=2.0))
         self.assertEqual([seg.quarterLength for seg in fbLine.retrieveSegments()],
                          [third, third, third, 1.0, 2.0])
+        self.assertGreater(fbLine.realize().getNumSolutions(), 0)
+
+        # quarter-note triplet
+        fbLine = FiguredBassLine(key.Key('C'), meter.TimeSignature('4/4'))
+        twoThirds = Fraction(2, 3)
+        fbLine.addElement(note.Note('C3', quarterLength=twoThirds))
+        fbLine.addElement(note.Note('D3', quarterLength=twoThirds), '6')
+        fbLine.addElement(note.Note('E3', quarterLength=twoThirds), '6')
+        fbLine.addElement(note.Note('F3', quarterLength=0.5), '6,4')
+        fbLine.addElement(note.Note('G3', quarterLength=0.5), '7')
+        fbLine.addElement(note.Note('C3'))
+        self.assertEqual([seg.quarterLength for seg in fbLine.retrieveSegments()],
+                         [twoThirds, twoThirds, twoThirds, 0.5, 0.5, 1.0])
+        self.assertGreater(fbLine.realize().getNumSolutions(), 0)
 
     def testMultipleFiguresInLyric(self) -> None:
         from music21 import converter
