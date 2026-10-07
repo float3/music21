@@ -5,7 +5,7 @@
 # Authors:      Christopher Ariza
 #               Michael Scott Asato Cuthbert
 #
-# Copyright:    Copyright © 2011-2023 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2011-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 from __future__ import annotations
@@ -871,7 +871,8 @@ class DataSet:
             post.append(True)
         return post
 
-    def getClassPositionLabels(self, includeId: bool = True) -> list[bool|None]:
+    def getClassPositionLabels(self, includeClassLabel: bool = True,
+                               includeId: bool = True) -> list[bool|None]:
         '''
         Return column labels for the presence of a class definition.
 
@@ -881,6 +882,8 @@ class DataSet:
         >>> ds.getClassPositionLabels()
         [None, False, False, False, False, False, False, False, False,
          False, False, False, False, False, True]
+
+        * Changed in v11: added `includeClassLabel`.
         '''
         post: list[bool|None] = []
         if includeId:
@@ -888,8 +891,7 @@ class DataSet:
         for fe in self._instantiatedFeatureExtractors:
             # need as many statements of discrete as there are dimensions
             post += [False] * fe.dimensions
-        # class label is assumed always discrete
-        if self._classLabel is not None:
+        if self._classLabel is not None and includeClassLabel:
             post.append(True)
         return post
 
@@ -1045,6 +1047,9 @@ class DataSet:
         '''
         Get processed data as a list of lists, merging any sub-lists
         in multidimensional features.
+
+        * Changed in v11: always returns one list per data instance, even
+          when `includeClassLabel` and `includeId` are both False.
         '''
         post: list = []
         for i, row in enumerate(self.features):
@@ -1062,10 +1067,7 @@ class DataSet:
             if includeClassLabel:
                 v.append(di.getClassValue())
             post.append(v)
-        if not includeClassLabel and not includeId:
-            return post[0]
-        else:
-            return post
+        return post
 
     def getUniqueClassValues(self) -> list[ClassValue]:
         '''
@@ -1190,8 +1192,7 @@ def allFeaturesAsList(streamInput: DataSource) -> list:
     allData = ds.getFeaturesAsList(includeClassLabel=False,
                                    includeId=False,
                                    concatenateLists=False)
-
-    return allData
+    return allData[0]
 
 
 # ------------------------------------------------------------------------------

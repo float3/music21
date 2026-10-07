@@ -109,7 +109,8 @@ class OutputTabOrange(OutputFormat):
 
         # third row metadata
         row = []
-        for x in self._dataSet.getClassPositionLabels(includeId=includeId):
+        for x in self._dataSet.getClassPositionLabels(
+                includeClassLabel=includeClassLabel, includeId=includeId):
             if x is None:  # the id value
                 row.append('meta')
             elif x is True:  # if True, it is the class column
@@ -130,7 +131,7 @@ class OutputTabOrange(OutputFormat):
         header = self.getHeaderLines(includeClassLabel=includeClassLabel,
                                      includeId=includeId)
         data = header + self._dataSet.getFeaturesAsList(
-            includeClassLabel=includeClassLabel)
+            includeClassLabel=includeClassLabel, includeId=includeId)
         for row in data:
             sub = []
             for e in row:
@@ -226,7 +227,8 @@ class OutputARFF(OutputFormat):
             includeClassLabel=includeClassLabel, includeId=includeId)
         discreteLabels = self._dataSet.getDiscreteLabels(
             includeClassLabel=includeClassLabel, includeId=includeId)
-        classLabels = self._dataSet.getClassPositionLabels(includeId=includeId)
+        classLabels = self._dataSet.getClassPositionLabels(
+            includeClassLabel=includeClassLabel, includeId=includeId)
 
         post.append(f'@RELATION {self._dataSet.getClassLabel()}')
 
@@ -261,7 +263,7 @@ class OutputARFF(OutputFormat):
             msg.append(row)
 
         data = self._dataSet.getFeaturesAsList(
-            includeClassLabel=includeClassLabel)
+            includeClassLabel=includeClassLabel, includeId=includeId)
         # data is separated by commas
         for row in data:
             sub = []
@@ -301,6 +303,50 @@ class Test(unittest.TestCase):
         self.assertEqual(classLines, ['@ATTRIBUTE class {3,4}'])
         # building the full string must not raise either
         self.assertIn('@ATTRIBUTE class {3,4}', of.getString())
+
+    def testIncludeClassLabelAndId(self):
+        '''
+        Every row of each output format leaves out the class and id columns
+        when asked to.
+
+        AI-assisted (Claude).
+        '''
+        from music21 import converter
+        from music21 import features
+
+        ds = features.DataSet(classLabel='Meter')
+        ds.addFeatureExtractors(features.extractorsById(['r31']))
+        s1 = converter.parse('tinynotation: 4/4 c4 d e f')
+        s2 = converter.parse('tinynotation: 3/4 c4 d e')
+        ds.addMultipleData([s1, s2], classValues=['four', 'three'], ids=['a', 'b'])
+        ds.process()
+
+        tab = OutputTabOrange(ds)
+        self.assertEqual(tab.getString(includeId=False).split('\n'), [
+            'Initial_Time_Signature_0\tInitial_Time_Signature_1\tMeter',
+            'discrete\tdiscrete\tdiscrete',
+            '\t\tclass',
+            '4\t4\tfour',
+            '3\t4\tthree',
+        ])
+        self.assertEqual(tab.getString(includeClassLabel=False).split('\n'), [
+            'Identifier\tInitial_Time_Signature_0\tInitial_Time_Signature_1',
+            'string\tdiscrete\tdiscrete',
+            'meta\t\t',
+            'a\t4\t4',
+            'b\t3\t4',
+        ])
+
+        csv = OutputCSV(ds)
+        self.assertEqual(csv.getString(includeClassLabel=False, includeId=False).splitlines(), [
+            'Initial_Time_Signature_0,Initial_Time_Signature_1',
+            '4,4',
+            '3,4',
+        ])
+
+        arff = OutputARFF(ds)
+        self.assertEqual(arff.getString(includeId=False).splitlines()[-2:],
+                         ['4,4,four', '3,4,three'])
 
 
 if __name__ == '__main__':
