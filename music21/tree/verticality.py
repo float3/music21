@@ -1248,6 +1248,18 @@ class Test(unittest.TestCase):
         self.assertEqual([(n.nameWithOctave, list(n.pitch.groups)) for n in c.notes],
                          [('E3', ['Lower']), ('G3', ['Lower']), ('C5', ['Upper'])])
 
+        # a unison between a part's note and a chord's note
+        tenor = stream.Part([note.Note('E3', quarterLength=2)])
+        tenor.id = 'Tenor'
+        bass = stream.Part([chord.Chord(['E3', 'G3'], quarterLength=2)])
+        bass.id = 'Bass'
+        score = stream.Score([tenor, bass])
+
+        verticality = score.asTimespans().getVerticalityAt(0)
+        c = verticality.makeElement(addPartIdAsGroup=True)
+        self.assertEqual([(n.nameWithOctave, set(n.pitch.groups)) for n in c.notes],
+                         [('E3', {'Tenor', 'Bass'}), ('G3', {'Bass'})])
+
 # -----------------------------------------------------------------------------
 
 
