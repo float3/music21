@@ -734,7 +734,8 @@ class Realization:
                 possibA = possibilityProgression[segmentIndex]
                 bassNote = self._segmentList[segmentIndex].bassNote
                 bassLine.append(copy.deepcopy(bassNote))
-                rhPitches = possibA[0:-1]
+                # the score gets its own pitches: makeNotation writes into them
+                rhPitches = [copy.deepcopy(p) for p in possibA[0:-1]]
                 rhChord = chord.Chord(rhPitches)
                 rhChord.quarterLength = self._segmentList[segmentIndex].quarterLength
                 rightHand.append(rhChord)
@@ -761,7 +762,7 @@ class Realization:
                 bassLine.append(copy.deepcopy(bassNote))
 
                 for partNumber in range(len(possibA) - 1):
-                    n1 = note.Note(possibA[partNumber])
+                    n1 = note.Note(copy.deepcopy(possibA[partNumber]))
                     n1.quarterLength = self._segmentList[segmentIndex].quarterLength
                     upperParts[partNumber].append(n1)
 
@@ -874,6 +875,26 @@ class Test(unittest.TestCase):
         self.assertEqual([seg.quarterLength for seg in fbLine.retrieveSegments()],
                          [twoThirds, twoThirds, twoThirds, 0.5, 0.5, 1.0])
         self.assertGreater(fbLine.realize().getNumSolutions(), 0)
+
+    def testRealizationsCopyVoicingPitches(self) -> None:
+        # writing a realization leaves the voicings' pitches as they were
+        fbLine = FiguredBassLine(key.Key('A'), meter.TimeSignature('3/4'))
+        for bassName, notationString in (('A2', ''), ('D3', '6'), ('E3', '7'), ('A2', '')):
+            fbLine.addElement(note.Note(bassName), notationString)
+        fbRealization = fbLine.realize()
+        progressions = fbRealization.getAllPossibilityProgressions()
+
+        fbRealization.generateRealizationFromPossibilityProgression(progressions[0])
+        self.assertEqual(fbRealization.getNumSolutions(), 77)
+
+        # every accidental is in A major's signature, so none is shown
+        fbRealization.keyboardStyleOutput = False
+        for progression in progressions[:4]:
+            realization = fbRealization.generateRealizationFromPossibilityProgression(
+                progression)
+            for n in realization.recurse().notes:
+                if n.pitch.accidental is not None:
+                    self.assertIs(n.pitch.accidental.displayStatus, False)
 
     def testMultipleFiguresInLyric(self) -> None:
         from music21 import converter
