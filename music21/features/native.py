@@ -953,6 +953,25 @@ class Test(unittest.TestCase):
         self.assertEqual(vector[7], 0.5)
         self.assertEqual(sum(vector), 1.0)
 
+    def testChordBassMotionNoChordEdges(self):
+        from music21 import features
+        from music21 import stream
+
+        def motionVector(figures):
+            s = stream.Stream()
+            for figure in figures:
+                if figure == 'NC':
+                    s.append(harmony.NoChord())
+                else:
+                    s.append(harmony.ChordSymbol(figure))
+            return features.native.ChordBassMotionFeature(s).extract().vector
+
+        # C to G is measured whether NoChord comes first or last
+        self.assertEqual(motionVector(['NC', 'C', 'G'])[5], 1.0)
+        self.assertEqual(motionVector(['C', 'G', 'NC'])[5], 1.0)
+        # one real chord gives no motion
+        self.assertEqual(motionVector(['C', 'NC']), [1.0] + [0.0] * 11)
+
     def testIncorrectlySpelledTriadPrevalence(self):
         from music21 import stream
         from music21 import features
