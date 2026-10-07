@@ -3227,8 +3227,7 @@ class RomanNumeral(harmony.Harmony):
             romanNumeralAlone = romanNormalMatch.group(1)
             workingFigure = workingFigure[romanNormalMatch.end():]
             if workingFigure[:1] in ('I', 'V', 'X', 'i', 'v'):
-                raise RomanNumeralException(
-                    f'No roman numeral for a scale degree found in {self.figure!r}')
+                raise RomanNumeralException(f'Invalid figure: {self.figure}')
             self.scaleDegree = common.fromRoman(romanNumeralAlone)
             self.romanNumeralAlone = romanNumeralAlone
 
@@ -4905,7 +4904,7 @@ class Test(unittest.TestCase):
                     RomanNumeral(fig, 'C')
 
     def testNumeralsPastSevenAreNotFigures(self):
-        for fig in ('VIII', 'viii7', 'IX', 'bVIII'):
+        for fig in ('VIII', 'viii7', 'IX', 'bVIII', 'V/VIII', 'Vv'):
             with self.subTest(figure=fig):
                 with self.assertRaises(RomanNumeralException):
                     RomanNumeral(fig, 'C')
