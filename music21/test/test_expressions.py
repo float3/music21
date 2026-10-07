@@ -413,6 +413,26 @@ class Test(unittest.TestCase):
                 self.assertEqual(ornament.ornamentalPitch.nameWithOctave, 'A#4')
                 self.assertTrue(ornament.ornamentalPitch.accidental.displayStatus)
 
+        # an accidental already shown in the measure is not shown again
+        trill = expressions.Trill()
+        trill.accidental = pitch.Accidental('sharp')
+        trill.resolveOrnamentalPitches(note.Note('G4'), keySig=noSharpsOrFlats)
+        trill.updateAccidentalDisplay(pitchPast=[pitch.Pitch('A#4')])
+        self.assertIs(trill.ornamentalPitch.accidental.displayStatus, False)
+
+        # an explicit displayStatus is kept
+        trill = expressions.Trill()
+        trill.accidental = pitch.Accidental('sharp')
+        trill.accidental.displayStatus = False
+        trill.resolveOrnamentalPitches(note.Note('G4'), keySig=noSharpsOrFlats)
+        trill.updateAccidentalDisplay(pitchPast=[])
+        self.assertIs(trill.ornamentalPitch.accidental.displayStatus, False)
+
+        n = note.Note('G4')
+        n.expressions.append(expressions.Trill(accidental=pitch.Accidental('sharp')))
+        raw = m21ToXml.GeneralObjectExporter().parse(stream.Stream([n]))
+        self.assertIn(b'<accidental-mark', raw)
+
     def testEdgeCases(self):
         # Make sure you can call resolveOrnamentalPitches() on non-Trill/Mordent/Turn Ornaments
         # without raising an exception (or actually doing anything interesting).
