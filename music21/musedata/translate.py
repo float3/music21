@@ -393,7 +393,6 @@ class Test(unittest.TestCase):
         # self.assertEqual(len(s.parts[1].recurse().notesAndRests), 293)
 
 
-
     def testStage1PartName(self):
         from music21 import musedata
         from music21.musicxml import m21ToXml
