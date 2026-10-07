@@ -6,7 +6,7 @@
 #               Christopher Ariza
 #               Jacob Tyler Walls
 #
-# Copyright:    Copyright © 2010-22 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2010-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 '''
@@ -4533,8 +4533,15 @@ class MeasureExporter(XMLExporterBase):
         </note>
         '''
         mxNoteList = []
-        if isinstance(c, chord.Chord):
+        if isinstance(c, chord.Chord) and not c.isSortedDiatonicAscending():
+            # fingerings are matched to notes by position, so move them with their notes
+            arts = c.articulations
+            slots = [i for i, a in enumerate(arts) if isinstance(a, articulations.Fingering)]
+            fingeringByNote = {id(n): arts[i] for n, i in zip(c.notes, slots)}
             c.sortAscending(inPlace=True)
+            fingerings = [fingeringByNote[id(n)] for n in c.notes if id(n) in fingeringByNote]
+            for i, fingering in zip(slots, fingerings):
+                arts[i] = fingering
 
         for i, n in enumerate(c):
             if 'Unpitched' in n.classSet:

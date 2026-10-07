@@ -1020,6 +1020,21 @@ class Test(unittest.TestCase):
         self.assertEqual(mxNotes[0].find('notations/slur').get('type'), 'start')
         self.assertEqual(mxNotes[3].find('notations/slur').get('type'), 'stop')
 
+    def testChordFingeringsFollowTheirNotes(self):
+        c = chord.Chord(['G4', 'E4', 'C4'])
+        c.articulations = [articulations.Fingering(5),
+                           articulations.Accent(),
+                           articulations.Fingering(3),
+                           articulations.Fingering(1)]
+        x = self.getET(stream.Score([stream.Part([stream.Measure([c])])]))
+
+        mxNotes = x.findall('part/measure/note')
+        self.assertEqual([(mxNote.find('pitch/step').text,
+                           mxNote.find('notations/technical/fingering').text)
+                          for mxNote in mxNotes],
+                         [('C', '1'), ('E', '3'), ('G', '5')])
+        self.assertIsNotNone(mxNotes[0].find('notations/articulations/accent'))
+
 
     def testExportChordSymbolsWithRealizedDurations(self):
 
