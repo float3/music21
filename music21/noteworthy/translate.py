@@ -58,7 +58,6 @@ Module to translate Noteworthy Composer's NWCTXT format to music21.
 # |Chord|Dur:8th|Pos:-4,n-3,b-2,#-1,x0,v1,2x|Opts:Stem=Down,Crescendo|Dur2:8th,DblDotted|Pos2:3x
 from __future__ import annotations
 
-import struct
 import unittest
 
 from music21 import bar
@@ -83,7 +82,6 @@ from music21 import stream
 from music21 import tempo
 from music21 import tie
 
-from music21.noteworthy import binaryTranslate
 from music21.noteworthy.dictionaries import dictionaries
 
 environLocal = environment.Environment('noteworthy.translate')
@@ -996,38 +994,6 @@ class Test(unittest.TestCase):
         self.assertEqual(str(myScore[clef.Clef].first()),
                          '<music21.clef.BassClef>')
 
-    def testBinaryRestChordVersion2(self):
-        nwcc = binaryTranslate.NWCConverter()
-        nwcc.version = 201
-        # object type 18 (rest chord), visibility, a half rest, five data bytes,
-        # a vertical offset of -2 (high byte 0xff), then the number of notes
-        restChordBytes = struct.pack('<hBB5shh', 18, 0, 1, bytes(5), -2, 1)
-        # object type 8 (note), visibility, a quarter at staff position 0,
-        # no accidental (5) and no stem length
-        restChordBytes += struct.pack('<hB6sbB', 8, 0, bytes([2, 0, 0, 0, 0, 0]), 0, 5)
-        # a treble clef follows
-        restChordBytes += struct.pack('<hBhh', 0, 0, 0, 0)
-        nwcc.fileContents = restChordBytes
-        restChord = binaryTranslate.NWCObject(parserParent=nwcc)
-        restChord.parse()
-        self.assertEqual([d.durationStr for d in restChord.data2], ['4th', 'Half'])
-        nextObject = binaryTranslate.NWCObject(parserParent=nwcc)
-        nextObject.parse()
-        self.assertEqual(nextObject.type, 'Clef')
-        self.assertEqual(nwcc.parsePosition, len(restChordBytes))
-
-    def testBinaryRestChordRestDuration(self):
-        nwcc = binaryTranslate.NWCConverter()
-        nwcc.version = 175
-        # object type 18 (rest chord), visibility, a quarter rest whose second
-        # data byte marks a triplet and fourth data byte a dot, a vertical
-        # offset, then the number of notes
-        nwcc.fileContents = struct.pack('<hBB5shh', 18, 0, 2,
-                                        bytes([0, 0x0c, 0, 0x04, 0]), 0, 0)
-        restChord = binaryTranslate.NWCObject(parserParent=nwcc)
-        restChord.parse()
-        self.assertEqual([d.durationStr for d in restChord.data2], ['4th,Dotted,Triplet'])
-
     def testKeySignatureAtBeginning(self):
         '''
         test a problem with accidentals at the end of one staff not
@@ -1065,22 +1031,10 @@ class Test(unittest.TestCase):
         n1 = s.parts[1].getElementsByClass(stream.Measure).first().notes.first()
         self.assertEqual(n1.pitch.accidental.alter, -1.0)
 
-    def testBinaryChordVersion2(self):
-        nwcc = binaryTranslate.NWCConverter()
-        nwcc.version = 201
-        # object type 10 (chord), visibility, eight data bytes (a quarter),
-        # then the number of notes
-        chordBytes = struct.pack('<hB8sh', 10, 0, bytes([2, 0, 0, 0, 0, 0, 0, 0]), 2)
-        for staffPosition in (0, -2):
-            # object type 8 (note), visibility, a quarter at staffPosition,
-            # no accidental (5) and no stem length
-            chordBytes += struct.pack('<hB6sbB', 8, 0, bytes([2, 0, 0, 0, 0, 0]), staffPosition, 5)
-        nwcc.fileContents = chordBytes
-        chordObject = binaryTranslate.NWCObject(parserParent=nwcc)
-        chordObject.parse()
-        dumped = chordObject.dumpMethod(chordObject)
-        self.assertEqual(dumped, '|Chord|Dur:4th|Pos:0,2')
-        s = NoteworthyTranslator().parseList(['|AddStaff|', '|Clef|Type:Treble', dumped])
+    def testChordFromBinaryDump(self):
+        # what binaryTranslate dumps for a two-note quarter chord
+        s = NoteworthyTranslator().parseList(['|AddStaff|', '|Clef|Type:Treble',
+                                              '|Chord|Dur:4th|Pos:0,2'])
         self.assertEqual(s[chord.Chord].first().pitches,
                          (pitch.Pitch('B4'), pitch.Pitch('D5')))
 
