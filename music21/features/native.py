@@ -108,32 +108,17 @@ class QualityFeature(featuresModule.FeatureExtractor):
             raise ValueError('Cannot process without a data instance or feature.')
 
         allKeys = self.data['flat.getElementsByClass(Key)']
-        if len(allKeys) == 1:
-            k0 = allKeys[0]
-            if k0.mode == 'major':
-                self.feature.vector[0] = 0
-                return
-            elif k0.mode == 'minor':
-                self.feature.vector[0] = 1
-                return
+        # several keys are fine as long as they agree in mode,
+        # as in transposing parts
+        seenModes = {k.mode for k in allKeys}
+        if seenModes == {'major'}:
+            self.feature.vector[0] = 0
+            return
+        elif seenModes == {'minor'}:
+            self.feature.vector[0] = 1
+            return
 
-        useKey = None
-        if len(allKeys) == 1:
-            useKey = allKeys[0]
-        elif len(allKeys) > 1:
-            seen_modes = set()
-            for k in allKeys:
-                seen_modes.add(k.mode)
-            if len(seen_modes) == 1:
-                # there might, for instance be lots of different parts
-                # all giving the same mode.  (maybe not the same key
-                # because of transposition).  It doesn't matter which
-                # key we use for this.
-                useKey = allKeys[0]
-            # else -- back to analysis.
-
-        if useKey is None:
-            useKey = self.data['flat.analyzedKey']
+        useKey = self.data['flat.analyzedKey']
 
         analyzedMode = useKey.mode
         if analyzedMode == 'major':
@@ -1001,6 +986,17 @@ class Test(unittest.TestCase):
         s = converter.parse('tinynotation: 3/4 f#4 e a g2')
         fe = features.native.LandiniCadence(s)
         self.assertEqual(fe.extract().vector[0], 0)
+
+    def testQualityModalKey(self):
+        from music21 import converter
+        from music21 import features
+        from music21 import key
+
+        # a mode other than major or minor is analyzed, here as d minor
+        s = converter.parse("tinynotation: 4/4 d4 f a d' c' b a f e d2.")
+        s.measure(1).insert(0, key.Key('d', 'dorian'))
+        fe = features.native.QualityFeature(s)
+        self.assertEqual(fe.extract().vector, [1])
 
 
 if __name__ == '__main__':
