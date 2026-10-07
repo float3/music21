@@ -1022,6 +1022,22 @@ class Test(unittest.TestCase):
                       for mxNote in mxNotes]
         self.assertEqual(arpNumbers, [None, '1', '1', '1'])
 
+    def testArpeggioOnSingleNoteRoundTrip(self):
+        xmlIn = '''<?xml version="1.0" encoding="UTF-8"?>
+<score-partwise version="4.0">
+  <part-list><score-part id="P1"><part-name/></score-part></part-list>
+  <part id="P1"><measure number="1">
+    <attributes><divisions>1</divisions></attributes>
+    <note><pitch><step>C</step><octave>4</octave></pitch><duration>4</duration>
+      <type>whole</type><notations><arpeggiate number="1"/></notations></note>
+  </measure></part>
+</score-partwise>'''
+        s = converter.parse(xmlIn, format='musicxml')
+        x = self.getET(s)
+        mxArpeggios = x.findall('.//arpeggiate')
+        self.assertEqual(len(mxArpeggios), 1)
+        self.assertIsNone(mxArpeggios[0].get('number'))
+
     def testExportChordSymbolsWithRealizedDurations(self):
 
         def realizeDurationsAndAssertTags(mm: stream.Measure, forwardTag=False, offsetTag=False):
