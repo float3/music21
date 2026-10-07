@@ -4,7 +4,7 @@
 #
 # Authors:      Michael Scott Asato Cuthbert
 #
-# Copyright:    Copyright © 2017 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2017-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 '''
@@ -19,6 +19,7 @@ This module will move to a medren package hopefully by v7.
 from __future__ import annotations
 
 import enum
+import unittest
 
 from music21 import bar
 from music21 import base
@@ -89,6 +90,24 @@ naturalTokens = flatTokens.upper()
 accidentalTokens = flatTokens + naturalTokens
 
 
+def _makeBreak(numBreakTokens: int, breaksToLayout: bool) -> base.Music21Object:
+    '''
+    The break object for a run of `numBreakTokens` '7' tokens:
+    a LineBreak, PageBreak or ColumnBreak, or, if `breaksToLayout` is True,
+    a new SystemLayout, a new PageLayout or a ColumnBreak.
+    '''
+    if not breaksToLayout:  # default
+        breakClass = classByNumBreakTokens[numBreakTokens]
+        assert breakClass is not None
+        return breakClass()
+
+    layoutClass = classByNumBreakTokensLayout[numBreakTokens]
+    assert layoutClass is not None
+    if numBreakTokens < 3:
+        return layoutClass(isNew=True)
+    return layoutClass()
+
+
 def toPart(volpianoText, *, breaksToLayout=False):
     # noinspection PyShadowingNames
     '''
@@ -115,7 +134,8 @@ def toPart(volpianoText, *, breaksToLayout=False):
         {12.0} <music21.note.Note A>
         {13.0} <music21.note.Note G>
         {14.0} <music21.note.Note F>
-        {15.0} <music21.volpiano.Neume <music21.note.Note A><music21.note.Note G>>
+        {15.0} <music21.volpiano.Neume
+                    <music21.note.Note A><music21.note.Note G><music21.note.Note F>>
         {15.0} <music21.note.Note G>
         {16.0} <music21.note.Note A>
 
@@ -188,11 +208,12 @@ def toPart(volpianoText, *, breaksToLayout=False):
     'x'
 
     * Changed in v5.7: corrected spelling of liquescence.
+
+    AI-assisted (Claude).
     '''
     p = stream.Part()
     m = stream.Measure()
 
-    currentMeasure = m
     currentNeumeSpanner = None
     noteThatWouldGoInSpanner = None
     lastClef = clef.TrebleClef()
@@ -207,30 +228,18 @@ def toPart(volpianoText, *, breaksToLayout=False):
             continuousNumberOfBreakTokens += 1
             continue
         elif continuousNumberOfBreakTokens > 0:
-            if not breaksToLayout:  # default
-                breakClass = classByNumBreakTokens[continuousNumberOfBreakTokens]
-                breakToken = breakClass()  # pylint: disable=not-callable
-            else:
-                breakClass = classByNumBreakTokensLayout[continuousNumberOfBreakTokens]
-                if continuousNumberOfBreakTokens < 3:
-                    breakToken = breakClass(isNew=True)  # pylint: disable=not-callable
-                else:
-                    breakToken = breakClass()  # pylint: disable=not-callable
-
-            currentMeasure.append(breakToken)
+            breakToken = _makeBreak(continuousNumberOfBreakTokens, breaksToLayout)
+            m.append(breakToken)
 
         continuousNumberOfBreakTokens = 0
 
-        if token == '-':
+        if token == '-' or token in '1234':
             noteThatWouldGoInSpanner = None
-            if currentNeumeSpanner:
-                currentMeasure.append(currentNeumeSpanner)
+            if currentNeumeSpanner is not None:
+                m.append(currentNeumeSpanner)
                 currentNeumeSpanner = None
-            continue
-
-        if token in '1234':
-            noteThatWouldGoInSpanner = None
-            currentNeumeSpanner = None
+            if token == '-':
+                continue
 
         if token in '12':
             if token == '1':
@@ -272,7 +281,10 @@ def toPart(volpianoText, *, breaksToLayout=False):
 
             m.append(n)
 
-            if noteThatWouldGoInSpanner is not None:
+            # notes with no hyphen between them form one neume
+            if currentNeumeSpanner is not None:
+                currentNeumeSpanner.addSpannedElements(n)
+            elif noteThatWouldGoInSpanner is not None:
                 currentNeumeSpanner = Neume([noteThatWouldGoInSpanner, n])
                 noteThatWouldGoInSpanner = None
             else:
@@ -292,10 +304,12 @@ def toPart(volpianoText, *, breaksToLayout=False):
                     'Unknown accidental: ' + token + ': Should not happen')
 
 
+    if currentNeumeSpanner is not None:
+        m.append(currentNeumeSpanner)
+
     if continuousNumberOfBreakTokens > 0:
-        breakClass = classByNumBreakTokens[continuousNumberOfBreakTokens]
-        breakToken = breakClass()
-        currentMeasure.append(breakToken)
+        breakToken = _makeBreak(continuousNumberOfBreakTokens, breaksToLayout)
+        m.append(breakToken)
 
     if m:
         p.append(m)
@@ -313,7 +327,7 @@ def fromStream(s, *, layoutToBreaks=False):
     >>> volpianoInput = '1--c--d---f--d---ed--c--d---f---g--h--j---hgf--g--h---'
     >>> veniSancti = volpiano.toPart(volpianoInput)
     >>> volpiano.fromStream(veniSancti)
-    '1---c-d-f-d-ed-c-d-f-g-h-j-hg-f-g-h-'
+    '1---c-d-f-d-ed-c-d-f-g-h-j-hgf-g-h-'
 
     >>> breakTest = volpiano.toPart('1---e-E--')
     >>> volpiano.fromStream(breakTest)
@@ -456,8 +470,51 @@ def fromStream(s, *, layoutToBreaks=False):
     return ''.join(volpianoTokens)
 
 
+class Test(unittest.TestCase):
+    def testBreaksAndNeumesAfterBarline(self):
+        # breaks and neumes go in the measure they are read in
+        part = toPart('1---e-3-ef-g-7-e-4-gh--j-77')
+        self.assertEqual(
+            [[type(el).__name__ for el in m.getElementsByClass([Neume, LineBreak, PageBreak])]
+             for m in part.getElementsByClass(stream.Measure)],
+            [[], ['Neume', 'LineBreak'], ['Neume', 'PageBreak']])
+        self.assertEqual(fromStream(part), '1---e----3ef-g7---e----4gh-j77---')
+
+    def testNeumeTakesEveryNoteOfItsRun(self):
+        # one Neume holds the whole run
+        part = toPart('1---cdef-g-')
+        neumes = list(part[Neume])
+        self.assertEqual(len(neumes), 1)
+        self.assertEqual([n.name for n in neumes[0]], ['C', 'D', 'E', 'F'])
+        self.assertEqual(fromStream(part), '1---cdef-g-')
+
+    def testNeumeEndedWithoutHyphen(self):
+        # a neume ended by a barline or by the end of the text is kept
+        part = toPart('1---ef3-gh')
+        self.assertEqual([len(neume) for neume in part[Neume]], [2, 2])
+        self.assertEqual(fromStream(part), '1---ef----3gh-')
+
+    def testBreaksAtEndToLayout(self):
+        part = toPart('1---e-7', breaksToLayout=True)
+        self.assertEqual(len(part[layout.SystemLayout]), 1)
+        self.assertEqual(len(part[LineBreak]), 0)
+        self.assertTrue(part[layout.SystemLayout].first().isNew)
+
+        part = toPart('1---e-77', breaksToLayout=True)
+        self.assertEqual(len(part[layout.PageLayout]), 1)
+        self.assertTrue(part[layout.PageLayout].first().isNew)
+
+        part = toPart('1---e-77')
+        self.assertEqual(len(part[PageBreak]), 1)
+
+        part = toPart('1---ef-3-gh-7', breaksToLayout=True)
+        measures = part.getElementsByClass(stream.Measure)
+        self.assertEqual(len(measures[0][layout.SystemLayout]), 0)
+        self.assertEqual(len(measures[1][layout.SystemLayout]), 1)
+
+
 if __name__ == '__main__':
     import music21
     # allow things like "fromStream" to be called in doctests as "fromStream"
     # and not just "volpiano.fromStream"
-    music21.mainTest('importPlusRelative')
+    music21.mainTest(Test, 'importPlusRelative')
