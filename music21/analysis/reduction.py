@@ -5,7 +5,7 @@
 # Authors:      Christopher Ariza
 #               Michael Scott Asato Cuthbert
 #
-# Copyright:    Copyright © 2011-2013 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2011-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 '''
@@ -697,7 +697,7 @@ class PartReduction:
             summation = 0
             for e in targets:  # a Stream
                 summation += e.volumeScalar  # for dynamics
-            return summation / len(target)
+            return summation / len(targets)
 
         # supply function to convert one or more targets to number
         if targetToWeight is None:
@@ -1132,16 +1132,16 @@ class Test(unittest.TestCase):
         pr = analysis.reduction.PartReduction(s, normalize=False)
         pr.process()
         match = pr.getGraphHorizontalBarWeightedData()
-        target = [(0, [[0.0, 1.0, 0.07857142857142858, '#666666'],
-                       [1.0, 3.0, 0.09999999999999999, '#666666'],
-                       [4.0, 2.0, 0.05, '#666666'],
-                       [6.0, 4.0, 0.12142857142857143, '#666666'],
-                       [10.0, 2.0, 0.07857142857142858, '#666666']]),
-                  (1, [[0.0, 1.0, 0.07857142857142858, '#666666'],
-                       [1.0, 3.0, 0.09999999999999999, '#666666'],
-                       [4.0, 2.0, 0.05, '#666666'],
-                       [6.0, 4.0, 0.12142857142857143, '#666666'],
-                       [10.0, 2.0, 0.07857142857142858, '#666666']])]
+        target = [(0, [[0.0, 1.0, 0.55, '#666666'],
+                       [1.0, 3.0, 0.7, '#666666'],
+                       [4.0, 2.0, 0.35, '#666666'],
+                       [6.0, 4.0, 0.85, '#666666'],
+                       [10.0, 2.0, 0.55, '#666666']]),
+                  (1, [[0.0, 1.0, 0.55, '#666666'],
+                       [1.0, 3.0, 0.7, '#666666'],
+                       [4.0, 2.0, 0.35, '#666666'],
+                       [6.0, 4.0, 0.85, '#666666'],
+                       [10.0, 2.0, 0.55, '#666666']])]
 
         self._matchWeightedData(match, target)
 
@@ -1176,12 +1176,12 @@ class Test(unittest.TestCase):
         pr.process()
         match = pr.getGraphHorizontalBarWeightedData()
 
-        target = [(0, [[0.0, 2.0, 0.05, '#666666'],
-                       [2.0, 4.0, 0.1285714285714286, '#666666'],
-                       [6.0, 2.0, 0.0214285714286, '#666666']]),
-                  (1, [[0.0, 1.0, 0.05, '#666666'],
-                       [1.0, 1.0, 0.1285714285714286, '#666666'],
-                       [2.0, 6.0, 0.0214285714286, '#666666']])]
+        target = [(0, [[0.0, 2.0, 0.35, '#666666'],
+                       [2.0, 4.0, 0.9, '#666666'],
+                       [6.0, 2.0, 0.15, '#666666']]),
+                  (1, [[0.0, 1.0, 0.35, '#666666'],
+                       [1.0, 1.0, 0.9, '#666666'],
+                       [2.0, 6.0, 0.15, '#666666']])]
 
         self._matchWeightedData(match, target)
 
@@ -1259,12 +1259,12 @@ class Test(unittest.TestCase):
                                               segmentByTarget=False, normalize=False)
         pr.process()
         target = pr.getGraphHorizontalBarWeightedData()
-        match = [(0, [[0.0, 4.0, 0.178571428571, '#666666'],
-                      [4.0, 4.0, 0.0214285714286, '#666666'],
-                      [8.0, 4.0, 0.0214285714286, '#666666']]),
-                 (1, [[0.0, 4.0, 0.178571428571, '#666666'],
-                      [4.0, 4.0, 0.07857142857142858, '#666666'],
-                      [8.0, 4.0, 0.07857142857142858, '#666666']])]
+        match = [(0, [[0.0, 4.0, 0.625, '#666666'],
+                      [4.0, 4.0, 0.15, '#666666'],
+                      [8.0, 4.0, 0.15, '#666666']]),
+                 (1, [[0.0, 4.0, 0.625, '#666666'],
+                      [4.0, 4.0, 0.55, '#666666'],
+                      [8.0, 4.0, 0.55, '#666666']])]
 
         self._matchWeightedData(match, target)
 
@@ -1272,14 +1272,14 @@ class Test(unittest.TestCase):
                                               segmentByTarget=True, normalize=False)
         pr.process()
         target = pr.getGraphHorizontalBarWeightedData()
-        match = [(0, [[0.0, 2.0, 0.05, '#666666'],
-                      [2.0, 2.0, 0.1285714285714286, '#666666'],
-                      [6.0, 2.0, 0.0214285714286, '#666666'],
-                      [10.0, 2.0, 0.0214285714286, '#666666']]),
-                 (1, [[0.0, 2.0, 0.07857142857142858, '#666666'],
-                      [2.0, 2.0, 0.1, '#666666'],
-                      [6.0, 2.0, 0.07857142857142858, '#666666'],
-                      [10.0, 2.0, 0.07857142857142858, '#666666']])]
+        match = [(0, [[0.0, 2.0, 0.35, '#666666'],
+                      [2.0, 2.0, 0.9, '#666666'],
+                      [6.0, 2.0, 0.15, '#666666'],
+                      [10.0, 2.0, 0.15, '#666666']]),
+                 (1, [[0.0, 2.0, 0.55, '#666666'],
+                      [2.0, 2.0, 0.7, '#666666'],
+                      [6.0, 2.0, 0.55, '#666666'],
+                      [10.0, 2.0, 0.55, '#666666']])]
         # from pprint import pprint as print
         # print(target)
         self._matchWeightedData(match, target)
@@ -1291,11 +1291,11 @@ class Test(unittest.TestCase):
         target = pr.getGraphHorizontalBarWeightedData()
         # print(target)
         match = [(0, [[0.0, 4.0, 1.0, '#666666'],
-                      [6.0, 2.0, 0.12, '#666666'],
-                      [10.0, 2.0, 0.12, '#666666']]),
+                      [6.0, 2.0, 0.24, '#666666'],
+                      [10.0, 2.0, 0.24, '#666666']]),
                  (1, [[0.0, 4.0, 1.0, '#666666'],
-                      [6.0, 2.0, 0.44, '#666666'],
-                      [10.0, 2.0, 0.44, '#666666']])]
+                      [6.0, 2.0, 0.88, '#666666'],
+                      [10.0, 2.0, 0.88, '#666666']])]
         self._matchWeightedData(match, target)
 
 
@@ -1315,6 +1315,30 @@ class Test(unittest.TestCase):
         # p = graph.PlotDolan(s, title='Dynamics', fillByMeasure=False,
         #                     segmentByTarget=True, normalizeByPart=False)
         # p.process()
+
+    def testPartReductionWeightIsVolume(self):
+        from music21 import analysis
+        from music21 import dynamics
+        p = stream.Part()
+        p.id = 'solo'
+        p.append(note.Note(quarterLength=4))
+        p.insert(0, dynamics.Dynamic('p'))
+        p.insert(2, dynamics.Dynamic('f'))
+        p.makeMeasures(inPlace=True)
+        s = stream.Score([p])
+
+        # one span per measure: the average volume of its dynamics
+        pr = analysis.reduction.PartReduction(s, segmentByTarget=False, normalize=False)
+        pr.process()
+        self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(),
+                                [('solo', [[0.0, 4.0, 0.525, '#666666']])])
+
+        # one span per dynamic: its own volume
+        pr = analysis.reduction.PartReduction(s, segmentByTarget=True, normalize=False)
+        pr.process()
+        self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(),
+                                [('solo', [[0.0, 2.0, 0.35, '#666666'],
+                                           [2.0, 2.0, 0.7, '#666666']])])
 
     def xtestPartReductionSchoenberg(self):
         from music21 import corpus
