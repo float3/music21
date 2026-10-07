@@ -1646,22 +1646,22 @@ class Test(unittest.TestCase):
         '''
         mt = MidiTrack(1)
 
-        def addEvent(ticks: int, eventType, data=None, pitch=None):
+        def addEvent(ticks: int, eventType, data=None, midiPitch=None):
             mt.events.append(DeltaTime(mt, time=ticks, channel=1))
             me = MidiEvent(mt, type=eventType, channel=1)
             if data is not None:
                 me.data = data
-            if pitch is not None:
-                me.pitch = pitch
+            if midiPitch is not None:
+                me.pitch = midiPitch
                 me.velocity = 90
             mt.events.append(me)
 
         addEvent(0, MetaEvents.SEQUENCE_TRACK_NAME, data=b'Melody')
-        addEvent(0, ChannelVoiceMessages.NOTE_ON, pitch=60)
-        addEvent(2048, ChannelVoiceMessages.NOTE_OFF, pitch=60)
+        addEvent(0, ChannelVoiceMessages.NOTE_ON, midiPitch=60)
+        addEvent(2048, ChannelVoiceMessages.NOTE_OFF, midiPitch=60)
         addEvent(0, ChannelVoiceMessages.PROGRAM_CHANGE, data=40)
-        addEvent(0, ChannelVoiceMessages.NOTE_ON, pitch=62)
-        addEvent(2048, ChannelVoiceMessages.NOTE_OFF, pitch=62)
+        addEvent(0, ChannelVoiceMessages.NOTE_ON, midiPitch=62)
+        addEvent(2048, ChannelVoiceMessages.NOTE_OFF, midiPitch=62)
         addEvent(0, MetaEvents.END_OF_TRACK, data=b'')
 
         p = midiTrackToStream(mt, ticksPerQuarter=1024)
