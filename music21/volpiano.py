@@ -19,7 +19,6 @@ This module will move to a medren package hopefully by v7.
 from __future__ import annotations
 
 import enum
-import gc
 import unittest
 
 from music21 import bar
@@ -91,7 +90,7 @@ naturalTokens = flatTokens.upper()
 accidentalTokens = flatTokens + naturalTokens
 
 
-def _makeBreak(numBreakTokens, breaksToLayout):
+def _makeBreak(numBreakTokens: int, breaksToLayout: bool) -> base.Music21Object:
     '''
     The break object for a run of `numBreakTokens` '7' tokens:
     a LineBreak, PageBreak or ColumnBreak, or, if `breaksToLayout` is True,
@@ -99,12 +98,14 @@ def _makeBreak(numBreakTokens, breaksToLayout):
     '''
     if not breaksToLayout:  # default
         breakClass = classByNumBreakTokens[numBreakTokens]
-        return breakClass()  # pylint: disable=not-callable
+        assert breakClass is not None
+        return breakClass()
 
-    breakClass = classByNumBreakTokensLayout[numBreakTokens]
+    layoutClass = classByNumBreakTokensLayout[numBreakTokens]
+    assert layoutClass is not None
     if numBreakTokens < 3:
-        return breakClass(isNew=True)  # pylint: disable=not-callable
-    return breakClass()  # pylint: disable=not-callable
+        return layoutClass(isNew=True)
+    return layoutClass()
 
 
 def toPart(volpianoText, *, breaksToLayout=False):
@@ -207,6 +208,8 @@ def toPart(volpianoText, *, breaksToLayout=False):
     'x'
 
     * Changed in v5.7: corrected spelling of liquescence.
+
+    AI-assisted (Claude).
     '''
     p = stream.Part()
     m = stream.Measure()
@@ -471,26 +474,24 @@ class Test(unittest.TestCase):
     def testBreaksAndNeumesAfterBarline(self):
         # breaks and neumes go in the measure they are read in
         part = toPart('1---e-3-ef-g-7-e-4-gh--j-77')
-        secondMeasure = part.getElementsByClass(stream.Measure)[1]
-        self.assertEqual(len(secondMeasure.getElementsByClass(LineBreak)), 1)
-        self.assertEqual(len(secondMeasure.getElementsByClass(Neume)), 1)
+        self.assertEqual(
+            [[type(el).__name__ for el in m.getElementsByClass([Neume, LineBreak, PageBreak])]
+             for m in part.getElementsByClass(stream.Measure)],
+            [[], ['Neume', 'LineBreak'], ['Neume', 'PageBreak']])
         self.assertEqual(fromStream(part), '1---e----3ef-g7---e----4gh-j77---')
 
     def testNeumeTakesEveryNoteOfItsRun(self):
-        # one Neume holds the whole run, whenever garbage is collected
+        # one Neume holds the whole run
         part = toPart('1---cdef-g-')
         neumes = list(part[Neume])
         self.assertEqual(len(neumes), 1)
         self.assertEqual([n.name for n in neumes[0]], ['C', 'D', 'E', 'F'])
-        self.assertEqual(fromStream(part), '1---cdef-g-')
-        gc.collect()
         self.assertEqual(fromStream(part), '1---cdef-g-')
 
     def testNeumeEndedWithoutHyphen(self):
         # a neume ended by a barline or by the end of the text is kept
         part = toPart('1---ef3-gh')
         self.assertEqual([len(neume) for neume in part[Neume]], [2, 2])
-        gc.collect()
         self.assertEqual(fromStream(part), '1---ef----3gh-')
 
     def testBreaksAtEndToLayout(self):
@@ -505,6 +506,11 @@ class Test(unittest.TestCase):
 
         part = toPart('1---e-77')
         self.assertEqual(len(part[PageBreak]), 1)
+
+        part = toPart('1---ef-3-gh-7', breaksToLayout=True)
+        measures = part.getElementsByClass(stream.Measure)
+        self.assertEqual(len(measures[0][layout.SystemLayout]), 0)
+        self.assertEqual(len(measures[1][layout.SystemLayout]), 1)
 
 
 if __name__ == '__main__':
