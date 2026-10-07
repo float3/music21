@@ -10418,13 +10418,13 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
                             returnList.append(None)
                             lastWasNone = True
                             lastPitches = ()
-                    # if we have a chord
-                    elif (not (skipUnisons
-                               and len(lastPitches) == len(e.pitches)
-                               and ([p.ps for p in e.pitches]
-                                    == [p.ps for p in lastPitches])
-                               )
-                          and (getOverlaps or e.offset >= lastEnd)):
+                    # a repeated chord is skipped, but still sounds until it ends
+                    elif (skipUnisons
+                          and len(lastPitches) == len(e.pitches)
+                          and ([p.ps for p in e.pitches]
+                               == [p.ps for p in lastPitches])):
+                        lastEnd = max(lastEnd, opFrac(e.offset + e.duration.quarterLength))
+                    elif getOverlaps or e.offset >= lastEnd:
                         returnList.append(e)
                         if e.offset < lastEnd:  # is an overlap
                             continue
