@@ -342,7 +342,7 @@ class TieState(State):
 
     def affectTokenAfterParse(self, m21Obj):
         '''
-        Counts only notes and rests towards the two the tie joins.
+        Ties only notes and rests; other tokens pass through.
         '''
         if not isinstance(m21Obj, note.GeneralNote):
             return m21Obj
@@ -380,7 +380,7 @@ class TupletState(State):
 
     def affectTokenAfterParse(self, n):
         '''
-        Puts a tuplet on the note.  Anything that is not a note or rest is left alone.
+        Puts a tuplet on a note or rest.
         '''
         if not isinstance(n, note.GeneralNote):
             return n
@@ -1574,9 +1574,9 @@ class Test(unittest.TestCase):
             c.parse()
 
     def test_close_bracket_after_tie(self):
-        c = Converter('4/4 trip{c8 d e~} e4 f2', makeNotation=False)
+        c = Converter('4/4 trip{c8 d e~} e4 f2')
         c.parse()
-        notes = c.stream.notes
+        notes = list(c.stream.recurse().notes)
         self.assertEqual([n.tie.type if n.tie else None for n in notes],
                          [None, None, 'start', 'stop', None])
         self.assertEqual([n.duration.quarterLength for n in notes],
@@ -1584,14 +1584,20 @@ class Test(unittest.TestCase):
         self.assertEqual(notes[2].duration.tuplets[0].type, 'stop')
 
     def test_state_does_not_affect_time_signature(self):
-        c = Converter('2/4 trip{c8 d 4/4} e4 f4 g2', makeNotation=False)
+        c = Converter('2/4 trip{c8 d 4/4} e4 f4 g2')
         c.parse()
         s = c.stream
         self.assertEqual(s[meter.TimeSignature].last().ratioString, '4/4')
-        notes = s.notes
+        notes = list(s.recurse().notes)
         self.assertEqual([n.duration.quarterLength for n in notes],
                          [fractions.Fraction(1, 3)] * 2 + [1.0, 1.0, 2.0])
         self.assertEqual([n.duration.tuplets[0].type for n in notes[:2]], ['start', 'stop'])
+
+    def test_tie_past_time_signature(self):
+        c = Converter('4/4 c1~ 3/4 c2.')
+        c.parse()
+        notes = list(c.stream.recurse().notes)
+        self.assertEqual([n.tie.type if n.tie else None for n in notes], ['start', 'stop'])
 
 
 class TestExternal(unittest.TestCase):
