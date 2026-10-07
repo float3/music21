@@ -10398,6 +10398,7 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
                             or e.pitch.pitchClass != lastPitches[0].pitchClass
                             or (not skipOctaves
                                 and e.pitch.ps != lastPitches[0].ps)):
+                        lastEnd = max(lastEnd, opFrac(e.offset + e.duration.quarterLength))
                         continue
                     if not getOverlaps and e.offset < lastEnd:
                         continue
