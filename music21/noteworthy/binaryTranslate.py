@@ -4,7 +4,7 @@
 #
 # Authors:      Michael Scott Asato Cuthbert
 #
-# Copyright:    Copyright © 2006-2013 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2006-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 '''
@@ -1289,7 +1289,8 @@ class NWCObject:
         self.type = 'RestChordMember'
         rest = NWCObject(parserParent=self.parserParent)
         rest.duration = self.data1[0]
-        rest.data2 = self.data1
+        # the five data bytes that follow the duration, as in a rest
+        rest.data2 = self.data1[1:6]
         rest.durationStr = rest.setDurationForObject()
         self.data2.append(rest)
 

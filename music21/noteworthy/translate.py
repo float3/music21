@@ -58,6 +58,7 @@ Module to translate Noteworthy Composer's NWCTXT format to music21.
 # |Chord|Dur:8th|Pos:-4,n-3,b-2,#-1,x0,v1,2x|Opts:Stem=Down,Crescendo|Dur2:8th,DblDotted|Pos2:3x
 from __future__ import annotations
 
+import struct
 import unittest
 
 from music21 import bar
@@ -82,6 +83,7 @@ from music21 import stream
 from music21 import tempo
 from music21 import tie
 
+from music21.noteworthy import binaryTranslate
 from music21.noteworthy.dictionaries import dictionaries
 
 environLocal = environment.Environment('noteworthy.translate')
@@ -993,6 +995,18 @@ class Test(unittest.TestCase):
         self.assertEqual(str(myScore[note.Note].first().name), 'E')
         self.assertEqual(str(myScore[clef.Clef].first()),
                          '<music21.clef.BassClef>')
+
+    def testBinaryRestChordRestDuration(self):
+        nwcc = binaryTranslate.NWCConverter()
+        nwcc.version = 175
+        # object type 18 (rest chord), visibility, a quarter rest whose second
+        # data byte marks a triplet and fourth data byte a dot, a vertical
+        # offset, then the number of notes
+        nwcc.fileContents = struct.pack('<hBB5shh', 18, 0, 2,
+                                        bytes([0, 0x0c, 0, 0x04, 0]), 0, 0)
+        restChord = binaryTranslate.NWCObject(parserParent=nwcc)
+        restChord.parse()
+        self.assertEqual([d.durationStr for d in restChord.data2], ['4th,Dotted,Triplet'])
 
     def testKeySignatureAtBeginning(self):
         '''
