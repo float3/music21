@@ -1089,6 +1089,20 @@ class Test(unittest.TestCase):
 
         self.assertEqual([repr(x) for x in consec3], expected2 + ['None'] + expected2)
 
+    def testFindConsecutiveNotesSkippedUnisonKeepsContinuity(self):
+        s = Stream()
+        s.append([note.Note('C4'), note.Note('C4'), note.Note('D4')])
+        consec = s.findConsecutiveNotes(skipUnisons=True)
+        self.assertEqual([repr(x) for x in consec],
+                         ['<music21.note.Note C>', '<music21.note.Note D>'])
+
+        # a rest after a skipped unison still marks a break
+        s2 = Stream()
+        s2.append([note.Note('C4'), note.Note('C4'), note.Rest(), note.Note('D4')])
+        consec2 = s2.findConsecutiveNotes(skipUnisons=True)
+        self.assertEqual([repr(x) for x in consec2],
+                         ['<music21.note.Note C>', 'None', '<music21.note.Note D>'])
+
     def testMelodicIntervals(self):
         c4 = note.Note('C4')
         d5 = note.Note('D5')
