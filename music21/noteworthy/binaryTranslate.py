@@ -1295,20 +1295,11 @@ class NWCObject:
         Version 2 files have no stem length.
         '''
         p = self.parserParent
-        if p.version <= 170:
-            self.data1 = p.readBytes(6 if p.version <= 150 else 8)
-            self.stemLength = 7
-            numberOfNotes = p.readLEShort()
-            self.data2 = []
-            for i in range(numberOfNotes):
-                chordNote = NWCObject(parserParent=p)
-                chordNote.parse()
-                self.data2.append(chordNote)
-        elif p.version < 200:
+        if 170 < p.version < 200:
             self.noteChordMember()
         else:
+            # the rest's duration, five data bytes and vertical offset
             self.data1 = p.readBytes(8)
-            self.stemLength = 7
             self.data2 = self._readChordNotes(p.readLEShort())
         self.type = 'RestChordMember'
         rest = NWCObject(parserParent=self.parserParent)
@@ -1425,6 +1416,24 @@ class Test(unittest.TestCase):
             data += struct.pack('<hBhh', 0, 0, 0, 0)
             restChord, nextObject = self.parseObjects(data, 201, 2)
             self.assertEqual([d.durationStr for d in restChord.data2], [durationStr])
+            self.assertEqual(nextObject.type, 'Clef')
+
+    def testChordsVersion170(self):
+        # object type 8 (note), visibility, a quarter at staff position 0,
+        # no accidental (5), two more data bytes
+        noteBytes = struct.pack('<hB6sbB2s', 8, 0, bytes([2, 0, 0, 0, 0, 0]), 0, 5, bytes(2))
+        clefBytes = struct.pack('<hBhh', 0, 0, 0, 0)
+        # object type 10 (chord), visibility, twelve data bytes (a quarter),
+        # then the number of notes
+        chordBytes = struct.pack('<hB12sh', 10, 0, bytes([2] + [0] * 11), 1)
+        # object type 18 (rest chord), visibility, a half rest, five data bytes,
+        # a vertical offset, then the number of notes
+        restChordBytes = struct.pack('<hBB5shh', 18, 0, 1, bytes(5), 0, 1)
+        for objectBytes, dumped in ((chordBytes, '|Chord|Dur:4th|Pos:0'),
+                                    (restChordBytes, '|Chord|Dur:4th|Pos:0|Dur2:Half|Pos2:0')):
+            data = objectBytes + noteBytes + clefBytes
+            chordObject, nextObject = self.parseObjects(data, 170, 2)
+            self.assertEqual(chordObject.dumpMethod(chordObject), dumped)
             self.assertEqual(nextObject.type, 'Clef')
 
     def testRestChordRestDuration(self):
