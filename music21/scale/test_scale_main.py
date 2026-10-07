@@ -376,6 +376,16 @@ class Test(unittest.TestCase):
         self.assertEqual(str(tenths.nextPitch('d4')), 'E-5')
         self.assertEqual(str(tenths.nextPitch('d4', Direction.DESCENDING)), 'C4')
 
+        ninthsAndSeconds = scale.CyclicalScale('c4', ['M9', 'm2'])
+        self.assertEqual(str(ninthsAndSeconds.nextPitch('e6')), 'F6')
+        self.assertEqual(str(ninthsAndSeconds.nextPitch('e6', Direction.DESCENDING)), 'E-5')
+        self.assertEqual(str(ninthsAndSeconds.nextPitch('d#5')), 'F6')
+
+    def testNeighborNodeIdsWiderThanOctave(self):
+        net = scale.CyclicalScale('c4', ['M9']).abstract._net
+        self.assertEqual(net.getNeighborNodeIds('c4', Terminus.LOW, 'b3'),
+                         (Terminus.LOW, Terminus.LOW))
+
     def testDeriveByDegree(self):
         sc1 = scale.MajorScale()
         self.assertEqual(str(sc1.deriveByDegree(7, 'G#')),
