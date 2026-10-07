@@ -1031,6 +1031,13 @@ class Test(unittest.TestCase):
         n1 = s.parts[1].getElementsByClass(stream.Measure).first().notes.first()
         self.assertEqual(n1.pitch.accidental.alter, -1.0)
 
+    def testChordFromBinaryDump(self):
+        # what binaryTranslate dumps for a two-note quarter chord
+        s = NoteworthyTranslator().parseList(['|AddStaff|', '|Clef|Type:Treble',
+                                              '|Chord|Dur:4th|Pos:0,2'])
+        self.assertEqual(s[chord.Chord].first().pitches,
+                         (pitch.Pitch('B4'), pitch.Pitch('D5')))
+
 
 class TestExternal(unittest.TestCase):
     show = True
