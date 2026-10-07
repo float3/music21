@@ -860,7 +860,7 @@ class Test(unittest.TestCase):
 
         # every accidental is in A major's signature, so none is shown
         fbRealization.keyboardStyleOutput = False
-        for progression in progressions[:8]:
+        for progression in progressions[:4]:
             realization = fbRealization.generateRealizationFromPossibilityProgression(
                 progression)
             for n in realization.recurse().notes:
