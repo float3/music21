@@ -10505,7 +10505,12 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
             return self.cloneEmpty(derivationMethod='melodicIntervals')
 
         returnStream = self.cloneEmpty(derivationMethod='melodicIntervals')
-        offsets = {id(n): n.getOffsetInHierarchy(self) for n in returnList if n is not None}
+        # findConsecutiveNotes leaves each note's activeSite at its container
+        containerOffsets = {id(self): 0.0}
+        for container in self.recurse(streamsOnly=True):
+            containerOffsets[id(container)] = opFrac(
+                containerOffsets[id(container.activeSite)] + container.offset)
+
         for thisNote, nextNote in zip(returnList, returnList[1:]):
             # returnList could contain None to represent a rest
             if thisNote is None or nextNote is None:
@@ -10523,11 +10528,14 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
                 noteEnd = nextNote
             # Prefer Note objects over Pitch objects so that noteStart is set correctly
             returnInterval = interval.Interval(noteStart, noteEnd)
-            returnInterval.offset = opFrac(offsets[id(thisNote)] + thisNote.quarterLength)
+            thisOffset = containerOffsets[id(thisNote.activeSite)] + thisNote.offset
+            nextOffset = containerOffsets[id(nextNote.activeSite)] + nextNote.offset
+            returnInterval.offset = opFrac(thisOffset + thisNote.quarterLength)
             returnInterval.duration = duration.Duration(opFrac(
-                offsets[id(nextNote)] - returnInterval.offset))
-            returnStream.insert(returnInterval)
+                nextOffset - returnInterval.offset))
+            returnStream.coreInsert(returnInterval.offset, returnInterval, ignoreSort=True)
 
+        returnStream.coreElementsChanged()
         return returnStream
 
     # --------------------------------------------------------------------------
