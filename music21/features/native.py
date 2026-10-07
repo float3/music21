@@ -4,7 +4,7 @@
 #
 # Authors:      Christopher Ariza
 #
-# Copyright:    Copyright © 2011 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2011-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 '''
@@ -18,6 +18,7 @@ import unittest
 
 from music21 import environment
 from music21.features import base as featuresModule
+from music21 import harmony
 from music21 import text
 
 environLocal = environment.Environment('features.native')
@@ -763,6 +764,8 @@ class ChordBassMotionFeature(featuresModule.FeatureExtractor):
         lastHarm = None
 
         for thisHarm in harms:
+            if isinstance(thisHarm, harmony.NoChord):
+                continue
             if lastHarm is None:
                 lastHarm = thisHarm
             else:
@@ -933,6 +936,23 @@ featureExtractors = [
 
 # ------------------------------------------------------------------------------
 class Test(unittest.TestCase):
+
+    def testChordBassMotionNoChord(self):
+        from music21 import features
+        from music21 import harmony
+        from music21 import stream
+
+        # NoChord has no bass or root; it is skipped, so C to G to C is measured
+        s = stream.Stream()
+        s.append(harmony.ChordSymbol('C'))
+        s.append(harmony.NoChord())
+        s.append(harmony.ChordSymbol('G'))
+        s.append(harmony.ChordSymbol('C'))
+        fe = features.native.ChordBassMotionFeature(s)
+        vector = fe.extract().vector
+        self.assertEqual(vector[5], 0.5)
+        self.assertEqual(vector[7], 0.5)
+        self.assertEqual(sum(vector), 1.0)
 
     def testIncorrectlySpelledTriadPrevalence(self):
         from music21 import stream
