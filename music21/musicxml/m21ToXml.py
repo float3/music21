@@ -4534,14 +4534,16 @@ class MeasureExporter(XMLExporterBase):
         '''
         mxNoteList = []
         if isinstance(c, chord.Chord) and not c.isSortedDiatonicAscending():
-            # fingerings are matched to notes by position, so move them with their notes
+            # fingerings are matched to notes by position, so move them with their notes;
+            # a chord whose fingered notes would not stay first keeps its order
             arts = c.articulations
             slots = [i for i, a in enumerate(arts) if isinstance(a, articulations.Fingering)]
             fingeringByNote = {id(n): arts[i] for n, i in zip(c.notes, slots)}
-            c.sortAscending(inPlace=True)
-            fingerings = [fingeringByNote[id(n)] for n in c.notes if id(n) in fingeringByNote]
-            for i, fingering in zip(slots, fingerings):
-                arts[i] = fingering
+            sortedNotes = sorted(c.notes, key=lambda n: (n.pitch.diatonicNoteNum, n.pitch.ps))
+            if all(id(n) in fingeringByNote for n in sortedNotes[:len(fingeringByNote)]):
+                c.sortAscending(inPlace=True)
+                for i, n in zip(slots, c.notes):
+                    arts[i] = fingeringByNote[id(n)]
 
         for i, n in enumerate(c):
             if 'Unpitched' in n.classSet:

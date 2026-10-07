@@ -1035,6 +1035,16 @@ class Test(unittest.TestCase):
                          [('C', '1'), ('E', '3'), ('G', '5')])
         self.assertIsNotNone(mxNotes[0].find('notations/articulations/accent'))
 
+        # fewer fingerings than notes: the chord keeps its order
+        c = chord.Chord(['G4', 'E4', 'C4'])
+        c.articulations = [articulations.Fingering(5), articulations.Fingering(3)]
+        x = self.getET(stream.Score([stream.Part([stream.Measure([c])])]))
+        mxNotes = x.findall('part/measure/note')
+        self.assertEqual([(mxNote.find('pitch/step').text,
+                           mxNote.findtext('notations/technical/fingering'))
+                          for mxNote in mxNotes],
+                         [('G', '5'), ('E', '3'), ('C', None)])
+
 
     def testExportChordSymbolsWithRealizedDurations(self):
 
