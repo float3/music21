@@ -1151,16 +1151,11 @@ class NWCObject:
 
         def dump(inner_self):
             build = '|Chord'
-            notes = {}
-            for d in inner_self.data2:
-                if notes.get(d.durationStr) is None:
-                    notes[d.durationStr] = []
-
-                notes[d.durationStr].append(d.alterationStr + str(d.pos) + d.tieInfo)
-
-            for n in notes:
-                build += '|Dur:' + n + '|Pos:' + ','.join(notes[n])
-
+            for i, (durationStr, positions) in enumerate(
+                    inner_self._positionsByDuration(inner_self.data2).items()):
+                # NWC chords have at most two durations: Dur/Pos and Dur2/Pos2
+                suffix = '2' if i else ''
+                build += f'|Dur{suffix}:{durationStr}|Pos{suffix}:{positions}'
             return build
 
         self.dumpMethod = dump
@@ -1172,6 +1167,14 @@ class NWCObject:
             chordNote.parse()
             chordNotes.append(chordNote)
         return chordNotes
+
+    @staticmethod
+    def _positionsByDuration(chordNotes: list[NWCObject]) -> dict[str|None, str]:
+        positions: dict[str|None, list[str]] = {}
+        for d in chordNotes:
+            positions.setdefault(d.durationStr, []).append(
+                d.alterationStr + str(d.pos) + d.tieInfo)
+        return {durationStr: ','.join(p) for durationStr, p in positions.items()}
 
 
 
@@ -1310,22 +1313,13 @@ class NWCObject:
         self.data2.append(rest)
 
         def dump(inner_self):
-            build = '|Chord'
-            notes = {}
-            for d in inner_self.data2:
-                if notes.get(d.durationStr) is None:
-                    notes[d.durationStr] = []
-
-                notes[d.durationStr].append(d.alterationStr + str(d.pos) + d.tieInfo)
-
-            i = 0
-            for n in notes:
-                if i == len(notes) - 1:
-                    build += '|Dur2:' + n + '|Pos2:' + ','.join(notes[n])
-                else:
-                    build += '|Dur:' + n + '|Pos:' + ','.join(notes[n])
-                i += 1
-
+            # the rest is the last of data2
+            *chordNotes, chordRest = inner_self.data2
+            if not chordNotes:
+                return '|Rest|Dur:' + chordRest.durationStr
+            build = '|RestChord|Dur:' + chordRest.durationStr
+            for durationStr, positions in inner_self._positionsByDuration(chordNotes).items():
+                build += f'|Dur2:{durationStr}|Pos2:{positions}'
             return build
 
         self.dumpMethod = dump
@@ -1358,10 +1352,11 @@ class NWCObject:
 class Test(unittest.TestCase):
 
     @staticmethod
-    def chordNoteBytes(staffPosition: int) -> bytes:
-        # object type 8 (note), visibility, a quarter at staffPosition,
-        # no accidental (5) and no stem length
-        return struct.pack('<hB6sbB', 8, 0, bytes([2, 0, 0, 0, 0, 0]), staffPosition, 5)
+    def chordNoteBytes(staffPosition: int, durationIndex: int = 2) -> bytes:
+        # object type 8 (note), visibility, a quarter (or durationIndex) at
+        # staffPosition, no accidental (5) and no stem length
+        return struct.pack('<hB6sbB', 8, 0, bytes([durationIndex, 0, 0, 0, 0, 0]),
+                           staffPosition, 5)
 
     def parseObjects(self, data: bytes, version: int, count: int) -> list[NWCObject]:
         nwcc = NWCConverter()
@@ -1418,6 +1413,34 @@ class Test(unittest.TestCase):
             self.assertEqual([d.durationStr for d in restChord.data2], [durationStr])
             self.assertEqual(nextObject.type, 'Clef')
 
+    def translateDump(self, dumped: str) -> list[tuple[float, float, str]]:
+        from music21.noteworthy import translate
+        s = translate.NoteworthyTranslator().parseList(['|AddStaff|', '|Clef|Type:Treble', dumped])
+        return sorted((float(e.getOffsetInHierarchy(s)), float(e.quarterLength),
+                       ' '.join(p.nameWithOctave for p in e.pitches) or 'rest')
+                      for e in s.recurse().notesAndRests)
+
+    def testChordTwoDurationsDump(self):
+        # a chord of a quarter and a half (duration index 1)
+        data = struct.pack('<hB8sh', 10, 0, bytes([2, 0, 0, 0, 0, 0, 0, 0]), 2)
+        data += self.chordNoteBytes(0) + self.chordNoteBytes(-2, durationIndex=1)
+        (chordObject,) = self.parseObjects(data, 201, 1)
+        dumped = chordObject.dumpMethod(chordObject)
+        self.assertEqual(dumped, '|Chord|Dur:4th|Pos:0|Dur2:Half|Pos2:2')
+        self.assertEqual(self.translateDump(dumped), [(0.0, 1.0, 'B4'), (0.0, 2.0, 'D5')])
+
+    def testRestChordDump(self):
+        # a half rest with a quarter, then a quarter rest with a quarter
+        for restDuration, restLength in ((1, 2.0), (2, 1.0)):
+            data = struct.pack('<hBB5shh', 18, 0, restDuration, bytes(5), 0, 1)
+            data += self.chordNoteBytes(0)
+            (restChord,) = self.parseObjects(data, 201, 1)
+            self.assertEqual(self.translateDump(restChord.dumpMethod(restChord)),
+                             [(0.0, 1.0, 'B4'), (0.0, restLength, 'rest')])
+        # a rest chord with no notes is a rest
+        (restChord,) = self.parseObjects(struct.pack('<hBB5shh', 18, 0, 1, bytes(5), 0, 0), 201, 1)
+        self.assertEqual(restChord.dumpMethod(restChord), '|Rest|Dur:Half')
+
     def testChordsVersion170(self):
         # object type 8 (note), visibility, a quarter at staff position 0,
         # no accidental (5), two more data bytes
@@ -1430,7 +1453,7 @@ class Test(unittest.TestCase):
         # a vertical offset, then the number of notes
         restChordBytes = struct.pack('<hBB5shh', 18, 0, 1, bytes(5), 0, 1)
         for objectBytes, dumped in ((chordBytes, '|Chord|Dur:4th|Pos:0'),
-                                    (restChordBytes, '|Chord|Dur:4th|Pos:0|Dur2:Half|Pos2:0')):
+                                    (restChordBytes, '|RestChord|Dur:Half|Dur2:4th|Pos2:0')):
             data = objectBytes + noteBytes + clefBytes
             chordObject, nextObject = self.parseObjects(data, 170, 2)
             self.assertEqual(chordObject.dumpMethod(chordObject), dumped)
