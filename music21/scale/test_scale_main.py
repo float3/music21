@@ -256,6 +256,14 @@ class Test(unittest.TestCase):
         self.assertEqual(str(sc.nextPitch('c5')), 'E-5')
         self.assertEqual(str(sc.nextPitch('c5', Direction.DESCENDING)), 'B-4')
 
+        fifthAndFourth = scale.OctaveRepeatingScale('c4', ['P5', 'P4'])
+        self.assertEqual(fifthAndFourth.getScaleDegreeFromPitch('c'), 1)
+
+        octaves = scale.OctaveRepeatingScale('c4', ['P8'])
+        self.assertEqual(self.pitchOut(octaves.getPitches('c3', 'c6')), '[C3, C4, C5, C6]')
+        self.assertEqual(str(octaves.nextPitch('c5')), 'C6')
+        self.assertEqual(str(octaves.nextPitch('c5', Direction.DESCENDING)), 'C4')
+
     def testOctatonicModesDoNotSharePitchDegreeCache(self):
         sc1 = scale.OctatonicScale('C', mode=1)
         sc2 = scale.OctatonicScale('C', mode=2)
