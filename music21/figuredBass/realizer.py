@@ -848,7 +848,7 @@ class FiguredBassLineException(exceptions21.Music21Exception):
 
 class Test(unittest.TestCase):
     def testSegmentsAfterTriplet(self) -> None:
-        # a triplet's float end time still meets the next note's Fraction offset
+        # each segment after a triplet starts where the one before it ends
         from fractions import Fraction
 
         fbLine = FiguredBassLine(key.Key('C'), meter.TimeSignature('2/4'))
