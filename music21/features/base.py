@@ -871,8 +871,8 @@ class DataSet:
             post.append(True)
         return post
 
-    def getClassPositionLabels(self, includeClassLabel: bool = True,
-                               includeId: bool = True) -> list[bool|None]:
+    def getClassPositionLabels(self, includeId: bool = True,
+                               includeClassLabel: bool = True) -> list[bool|None]:
         '''
         Return column labels for the presence of a class definition.
 
@@ -1048,8 +1048,7 @@ class DataSet:
         Get processed data as a list of lists, merging any sub-lists
         in multidimensional features.
 
-        * Changed in v11: always returns one list per data instance, even
-          when `includeClassLabel` and `includeId` are both False.
+        * Changed in v11: returns one row per data instance whatever the include flags.
         '''
         post: list = []
         for i, row in enumerate(self.features):
@@ -1490,6 +1489,20 @@ class Test(unittest.TestCase):
 
         for fp in (fp1, fp2, fp3):
             os.remove(fp)
+
+    def testIncludeFlagsOff(self):
+        from music21 import features
+
+        ds = features.DataSet(classLabel='Meter')
+        ds.addFeatureExtractors(features.extractorsById(['r31']))
+        s1 = converter.parse('tinynotation: 4/4 c4 d e f')
+        s2 = converter.parse('tinynotation: 3/4 c4 d e')
+        ds.addMultipleData([s1, s2], classValues=['four', 'three'], ids=['a', 'b'])
+        ds.process()
+        self.assertEqual(ds.getFeaturesAsList(includeClassLabel=False, includeId=False),
+                         [[4, 4], [3, 4]])
+        self.assertEqual(ds.getClassPositionLabels(includeClassLabel=False, includeId=False),
+                         [False, False])
 
     def testFeatureFail(self):
         from music21 import features

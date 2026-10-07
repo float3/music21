@@ -337,8 +337,8 @@ class Test(unittest.TestCase):
             'b\t3\t4',
         ])
 
-        csv = OutputCSV(ds)
-        self.assertEqual(csv.getString(includeClassLabel=False, includeId=False).splitlines(), [
+        csvOut = OutputCSV(ds)
+        self.assertEqual(csvOut.getString(includeClassLabel=False, includeId=False).splitlines(), [
             'Initial_Time_Signature_0,Initial_Time_Signature_1',
             '4,4',
             '3,4',
@@ -347,6 +347,9 @@ class Test(unittest.TestCase):
         arff = OutputARFF(ds)
         self.assertEqual(arff.getString(includeId=False).splitlines()[-2:],
                          ['4,4,four', '3,4,three'])
+        self.assertEqual(
+            arff.getString(includeClassLabel=False, includeId=False).splitlines()[-2:],
+            ['4,4', '3,4'])
 
 
 if __name__ == '__main__':
