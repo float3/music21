@@ -316,6 +316,11 @@ class Test(unittest.TestCase):
         descending = sc.getPitches('c#4', 'g#4', direction=Direction.DESCENDING)
         self.assertEqual(self.pitchOut(descending), '[G-4, F4, E-4, D-4]')
 
+    def testHarmonicMinorKeepsLeadingToneAfterNextPitch(self):
+        sc = scale.HarmonicMinorScale('g4')
+        self.assertEqual(str(sc.nextPitch('a4')), 'B-4')
+        self.assertEqual(str(sc.pitches[6]), 'F#5')
+
     def testDeriveHarmonicMinor(self):
         sc = scale.HarmonicMinorScale()
         self.assertEqual(sc.derive(['C', 'D', 'E-', 'B']).name, 'C harmonic minor')
