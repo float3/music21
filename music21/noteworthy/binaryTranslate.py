@@ -1130,6 +1130,7 @@ class NWCObject:
         numberOfNotes = 0
         if p.version <= 170:
             self.data1 = p.readBytes(12)
+            numberOfNotes = p.readLEShort()
         elif p.version == 175:
             self.data1 = p.readBytes(10)
             numberOfNotes = self.data1[8]
@@ -1294,7 +1295,16 @@ class NWCObject:
         Version 2 files have no stem length.
         '''
         p = self.parserParent
-        if p.version < 200:
+        if p.version <= 170:
+            self.data1 = p.readBytes(6 if p.version <= 150 else 8)
+            self.stemLength = 7
+            numberOfNotes = p.readLEShort()
+            self.data2 = []
+            for i in range(numberOfNotes):
+                chordNote = NWCObject(parserParent=p)
+                chordNote.parse()
+                self.data2.append(chordNote)
+        elif p.version < 200:
             self.noteChordMember()
         else:
             self.data1 = p.readBytes(8)
