@@ -5,7 +5,7 @@
 # Authors:      Christopher Ariza
 #               Michael Scott Asato Cuthbert
 #
-# Copyright:    Copyright © 2011-2013 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2011-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 '''
@@ -141,19 +141,21 @@ class ReductiveNote(prebase.ProtoM21Object):
         '''
         Produce a new note, a deep copy of the supplied note
         and with the specified modifications.
+
+        From a chord, takes the note named by the specification's pitch,
+        or else the highest note.
         '''
         n = None
         if self._note.isChord:
             # need to permit specification by pitch
-            if 'pitch' in self._parameters:
+            if self._parameters['pitch'] is not None:
                 p = pitch.Pitch(self._parameters['pitch'])
                 for sub in self._note:  # iterate over components
                     if p.name.lower() == sub.pitch.name.lower():
                         # copy the component
                         n = copy.deepcopy(sub)
-            else:  # get first, or get entire chord?
-                # n = copy.deepcopy(self._note.pitches[0])
-                n = copy.deepcopy(self._note.pitches[0])
+            else:  # take the highest
+                n = copy.deepcopy(max(self._note, key=lambda sub: sub.pitch.ps))
         else:
             n = copy.deepcopy(self._note)
         # always clear certain parameters
@@ -227,7 +229,7 @@ class ScoreReduction:
     def score(self, value):
         if not isinstance(value, stream.Stream):
             raise ScoreReductionException('cannot set a non Stream')
-        if value.hasPartLikeStreams:
+        if value.hasPartLikeStreams():
             # make a local copy
             self._score = copy.deepcopy(value)
         else:  # assume a single stream, place in a Score
@@ -959,6 +961,30 @@ class Test(unittest.TestCase):
         self.assertEqual(len(match), 3)
         # post.show()
 
+    def testChordWithoutPitchTakesHighest(self):
+        c = chord.Chord(['E4', 'B4', 'G4'], quarterLength=2)
+        rn = ReductiveNote('::/o:5', c, 0, 0.0)
+        n, unused_te = rn.getNoteAndTextExpression()
+        self.assertEqual(n.nameWithOctave, 'B5')
+        self.assertEqual(n.quarterLength, 2)
+
+        rn = ReductiveNote('::/p:g', c, 0, 0.0)
+        n, unused_te = rn.getNoteAndTextExpression()
+        self.assertEqual(n.nameWithOctave, 'G4')
+
+        rn = ReductiveNote('::/tb:x', c, 0, 0.0)
+        n, unused_te = rn.getNoteAndTextExpression()
+        self.assertEqual(n.nameWithOctave, 'B4')
+
+        rn = ReductiveNote('::/p:d', c, 0, 0.0)
+        with self.assertRaises(ReductiveEventException):
+            rn.getNoteAndTextExpression()
+
+        cMajor = chord.Chord(['C4', 'E4', 'G4'])
+        rn = ReductiveNote('::/tb:x', cMajor, 0, 0.0)
+        n, unused_te = rn.getNoteAndTextExpression()
+        self.assertEqual(n.nameWithOctave, 'G4')
+
     # def testExtractionC(self):
     #     from music21 import analysis
     #     from music21 import corpus
@@ -1056,6 +1082,22 @@ class Test(unittest.TestCase):
         sr.score = src
         unused_post = sr.reduce()
         # post.show()
+
+    def testReduceLonePart(self):
+        from music21 import analysis
+        p = stream.Part()
+        p.append(note.Note('C4'))
+        p.append(note.Note('E4'))
+        p.makeMeasures(inPlace=True)
+        p.recurse().notes[1].addLyric('::/o:5')
+
+        sr = analysis.reduction.ScoreReduction()
+        sr.score = p
+        self.assertIsInstance(sr.score, stream.Score)
+        post = sr.reduce()
+        self.assertEqual(len(post.parts), 2)
+        reduced = [n.nameWithOctave for n in post.parts[0].recurse().notes]
+        self.assertEqual(reduced, ['E5'])
 
     def testPartReductionA(self):
         from music21 import analysis
