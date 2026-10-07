@@ -223,11 +223,17 @@ class WindowedAnalysis:
             for i in range(maxWindowCount):
                 # get all participants, combine into a single
                 current = stream.Stream()
+                appendedIds: set[int] = set()
                 for dataStream, participants in overlapped:
-                    if i in participants:
-                        for m in dataStream:
-                            # a measure may stand in several windows
+                    if i not in participants:
+                        continue
+                    for m in dataStream:
+                        # a measure may stand in several windows
+                        if id(m) in appendedIds:
                             current.append(copy.deepcopy(m))
+                        else:
+                            appendedIds.add(id(m))
+                            current.append(m)
                 try:
                     data[i], color[i] = self.processor.process(current)
                 except DiscreteAnalysisException:
@@ -444,6 +450,8 @@ class Test(unittest.TestCase):
         self.assertEqual(data, [2, 4, 4, 4, 2])
         data, unused_color = wa.analyze(3, windowType='adjacentAverage')
         self.assertEqual(data, [3, 6, 9, 6, 3])
+        data, unused_color = wa.analyze(5, windowType='adjacentAverage')
+        self.assertEqual(data, [5, 5, 5, 5, 5])
         # the windowed stream itself is unchanged
         self.assertEqual(len(wa._windowedStream), 5)
         self.assertEqual(len(wa._windowedStream.recurse().notes), 5)
