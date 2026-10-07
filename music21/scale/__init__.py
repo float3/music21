@@ -1010,7 +1010,8 @@ class AbstractOctaveRepeatingScale(AbstractScale):
 
         intervalSum = interval.add(mode)
         iComplement = intervalSum.complement
-        if iComplement is not None:
+        # steps that already reach the octave need no closing unison
+        if iComplement is not None and iComplement.name != 'P1':
             mode = [*mode, iComplement]  # a copy: mode is the caller's list
 
         # steps wider than an octave complete a pattern spanning several
