@@ -939,7 +939,6 @@ class Test(unittest.TestCase):
 
     def testChordBassMotionNoChord(self):
         from music21 import features
-        from music21 import harmony
         from music21 import stream
 
         # NoChord has no bass or root; it is skipped, so C to G to C is measured
