@@ -2483,8 +2483,8 @@ class IntervalNetwork:
 
         If `getNeighbor` is True, or direction, the nearest node will be returned.
 
-        If more than one node defines the same pitch, Node weights are used
-        to select a single node.
+        If more than one node defines the same pitch, the heaviest node is
+        returned, and of equally heavy nodes the one with the lowest degree.
 
         >>> edgeList = ['M2', 'M2', 'm2', 'M2', 'M2', 'M2', 'm2']
         >>> net = scale.intervalNetwork.IntervalNetwork(edgeList)
@@ -2501,8 +2501,6 @@ class IntervalNetwork:
         >>> net.getRelativeNodeId('a', 1, 'b-4') is None
         True
         '''
-        # TODO: this always takes the first: need to add weighted selection
-
         nodeObj: Node
         if nodeId is None:  # assume first
             nodeObj = self.terminusLowNodes[0]
@@ -2554,11 +2552,9 @@ class IntervalNetwork:
             return None
         elif len(post) == 1:
             return post[0]
-        else:  # do a weighted selection
-            # environLocal.printDebug(['getRelativeNodeId()', 'got multiple matches', post])
-            # use node keys stored in post, get node, and collect weights
-            return common.weightedSelection(t.cast('list[int]', post),
-                                            [self.nodes[x].weight for x in post])
+        else:
+            return min(post, key=lambda nId: (-self.nodes[nId].weight,
+                                              self.nodeIdToDegree(nId)))
 
     def getNeighborNodeIds(
         self,
