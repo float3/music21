@@ -320,6 +320,72 @@ class Test(unittest.TestCase):
         sc = scale.HarmonicMinorScale()
         self.assertEqual(sc.derive(['C', 'D', 'E-', 'B']).name, 'C harmonic minor')
 
+    def testNextPitchOnCycle(self):
+        '''
+        AI-assisted (Claude).
+        '''
+        thirds = scale.CyclicalScale('d3', ['M3'])
+        self.assertEqual(str(thirds.nextPitch('c4')), 'D4')
+        self.assertEqual(str(thirds.nextPitch('g4')), 'A#4')
+        self.assertEqual(str(thirds.nextPitch('g4', Direction.DESCENDING)), 'F#4')
+        self.assertEqual(str(thirds.nextPitch('f#4')), 'A#4')
+
+        fifths = scale.CyclicalScale('c4', ['P5'])
+        self.assertEqual(str(fifths.nextPitch('g4')), 'D5')
+        self.assertEqual(str(fifths.nextPitch('g4', Direction.DESCENDING)), 'C4')
+
+        thirdsAndMinorThirds = scale.CyclicalScale('d3', ['M3', 'm3'])
+        self.assertEqual(str(thirdsAndMinorThirds.nextPitch('d4')), 'E4')
+        self.assertEqual(str(thirdsAndMinorThirds.nextPitch('d4', Direction.DESCENDING)), 'C#4')
+        self.assertEqual(str(thirdsAndMinorThirds.nextPitch('a4')), 'B4')
+        self.assertEqual(str(thirdsAndMinorThirds.nextPitch('a4', Direction.DESCENDING)), 'G#4')
+
+    def testNextPitchFromEnharmonic(self):
+        thirds = scale.CyclicalScale('d3', ['M3'])
+        for enharmonicOfD in ('c##4', 'e--4'):
+            self.assertEqual(str(thirds.nextPitch(enharmonicOfD)), 'F#4')
+            self.assertEqual(str(thirds.nextPitch(enharmonicOfD, Direction.DESCENDING)), 'B-3')
+
+        sc = scale.MajorScale('c4')
+        self.assertEqual(str(sc.nextPitch('b#3')), 'D4')
+        self.assertEqual(str(sc.nextPitch('d-4', Direction.DESCENDING)), 'C4')
+
+    def testNextPitchNodeNearOrigin(self):
+        thirds = scale.CyclicalScale('d3', ['M3'])
+        self.assertEqual(str(thirds.nextPitch('d4', stepSize=2)), 'A#4')
+
+        fifths = scale.CyclicalScale('c4', ['P5'])
+        self.assertEqual(str(fifths.nextPitch('f4', Direction.DESCENDING)), 'C4')
+
+        aMinor = scale.HarmonicMinorScale('a4')
+        self.assertEqual(str(aMinor.nextPitch('f##4')), 'G#4')
+        self.assertEqual(str(aMinor.nextPitch('a4', Direction.DESCENDING)), 'G#4')
+
+        gMinor = scale.HarmonicMinorScale('g4')
+        gMinor.nextPitch('a4')
+        self.assertEqual(str(gMinor.pitches[6]), 'F#5')
+
+    def testNextPitchOnCycleWiderThanOctave(self):
+        ninths = scale.CyclicalScale('c4', ['M9'])
+        self.assertEqual(str(ninths.nextPitch('b3')), 'C4')
+        self.assertEqual(str(ninths.nextPitch('b3', Direction.DESCENDING)), 'B-2')
+        self.assertEqual(str(ninths.nextPitch('d#5')), 'E6')
+        self.assertEqual(str(ninths.nextPitch('d#5', Direction.DESCENDING)), 'D5')
+
+        tenths = scale.CyclicalScale('c4', ['m10'])
+        self.assertEqual(str(tenths.nextPitch('d4')), 'E-5')
+        self.assertEqual(str(tenths.nextPitch('d4', Direction.DESCENDING)), 'C4')
+
+        ninthsAndSeconds = scale.CyclicalScale('c4', ['M9', 'm2'])
+        self.assertEqual(str(ninthsAndSeconds.nextPitch('e6')), 'F6')
+        self.assertEqual(str(ninthsAndSeconds.nextPitch('e6', Direction.DESCENDING)), 'E-5')
+        self.assertEqual(str(ninthsAndSeconds.nextPitch('d#5')), 'F6')
+
+    def testNeighborNodeIdsWiderThanOctave(self):
+        net = scale.CyclicalScale('c4', ['M9']).abstract._net
+        self.assertEqual(net.getNeighborNodeIds('c4', Terminus.LOW, 'b3'),
+                         (Terminus.LOW, Terminus.LOW))
+
     def testDeriveByDegree(self):
         sc1 = scale.MajorScale()
         self.assertEqual(str(sc1.deriveByDegree(7, 'G#')),
