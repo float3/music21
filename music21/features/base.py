@@ -5,7 +5,7 @@
 # Authors:      Christopher Ariza
 #               Michael Scott Asato Cuthbert
 #
-# Copyright:    Copyright © 2011-2023 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2011-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 from __future__ import annotations
@@ -871,7 +871,8 @@ class DataSet:
             post.append(True)
         return post
 
-    def getClassPositionLabels(self, includeId: bool = True) -> list[bool|None]:
+    def getClassPositionLabels(self, includeId: bool = True,
+                               includeClassLabel: bool = True) -> list[bool|None]:
         '''
         Return column labels for the presence of a class definition.
 
@@ -881,6 +882,8 @@ class DataSet:
         >>> ds.getClassPositionLabels()
         [None, False, False, False, False, False, False, False, False,
          False, False, False, False, False, True]
+
+        * Changed in v11: added `includeClassLabel`.
         '''
         post: list[bool|None] = []
         if includeId:
@@ -888,8 +891,7 @@ class DataSet:
         for fe in self._instantiatedFeatureExtractors:
             # need as many statements of discrete as there are dimensions
             post += [False] * fe.dimensions
-        # class label is assumed always discrete
-        if self._classLabel is not None:
+        if self._classLabel is not None and includeClassLabel:
             post.append(True)
         return post
 
@@ -1045,6 +1047,8 @@ class DataSet:
         '''
         Get processed data as a list of lists, merging any sub-lists
         in multidimensional features.
+
+        * Changed in v11: returns one row per data instance whatever the include flags.
         '''
         post: list = []
         for i, row in enumerate(self.features):
@@ -1062,10 +1066,7 @@ class DataSet:
             if includeClassLabel:
                 v.append(di.getClassValue())
             post.append(v)
-        if not includeClassLabel and not includeId:
-            return post[0]
-        else:
-            return post
+        return post
 
     def getUniqueClassValues(self) -> list[ClassValue]:
         '''
@@ -1190,8 +1191,7 @@ def allFeaturesAsList(streamInput: DataSource) -> list:
     allData = ds.getFeaturesAsList(includeClassLabel=False,
                                    includeId=False,
                                    concatenateLists=False)
-
-    return allData
+    return allData[0]
 
 
 # ------------------------------------------------------------------------------
@@ -1489,6 +1489,20 @@ class Test(unittest.TestCase):
 
         for fp in (fp1, fp2, fp3):
             os.remove(fp)
+
+    def testIncludeFlagsOff(self):
+        from music21 import features
+
+        ds = features.DataSet(classLabel='Meter')
+        ds.addFeatureExtractors(features.extractorsById(['r31']))
+        s1 = converter.parse('tinynotation: 4/4 c4 d e f')
+        s2 = converter.parse('tinynotation: 3/4 c4 d e')
+        ds.addMultipleData([s1, s2], classValues=['four', 'three'], ids=['a', 'b'])
+        ds.process()
+        self.assertEqual(ds.getFeaturesAsList(includeClassLabel=False, includeId=False),
+                         [[4, 4], [3, 4]])
+        self.assertEqual(ds.getClassPositionLabels(includeClassLabel=False, includeId=False),
+                         [False, False])
 
     def testFeatureFail(self):
         from music21 import features
