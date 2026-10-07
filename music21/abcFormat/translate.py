@@ -701,7 +701,7 @@ def reBar(music21Part: stream.Part, *, inPlace: bool = False) -> stream.Part|Non
             if lastTimeSignature.barDuration.quarterLength != m2.highestTime:
                 try:
                     m2.timeSignature = m2.bestTimeSignature()
-                except (exceptions21.StreamException, meter.MeterException):
+                except meter.MeterException:
                     # no meter fits: keep the overflow as an incomplete measure
                     pass
             if m2.timeSignature is not None:
@@ -1241,6 +1241,13 @@ w:first second third
         self.assertEqual([n.name for n in measures[1].notes], ['E'])
         self.assertEqual(measures[1].highestTime, 0.625)
         self.assertEqual([n.name for n in measures[3].notes], ['E'])
+
+        # a later overflow that does fit a meter is still split off
+        s = converter.parse('M:2/4\nL:1/8\nK:C\nabcd e5/4 | abcd | abcdef |', format='abc')
+        measures = s.parts.first().getElementsByClass(stream.Measure)
+        self.assertEqual([m.number for m in measures], [0, 1, 2, 3, 4])
+        self.assertEqual([n.name for n in measures[4].notes], ['E', 'F'])
+        self.assertEqual(measures[4].timeSignature.ratioString, '1/4')
 
     def xtestMergeScores(self):
         from music21 import corpus
