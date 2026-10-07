@@ -934,6 +934,10 @@ class Test(unittest.TestCase):
         tupletTag = ci.domElementFromText('<tuplet count="3" prolong="false"/>')
         tup = ci.tupletFromTuplet(tupletTag)
         self.assertEqual((tup.numberNotesActual, tup.numberNotesNormal), (3, 2))
+        for count in (5, 6):
+            tupletTag = ci.domElementFromText(f'<tuplet count="{count}" prolong="true"/>')
+            tup = ci.tupletFromTuplet(tupletTag)
+            self.assertEqual((tup.numberNotesActual, tup.numberNotesNormal), (count, 8))
 
 class TestExternal(unittest.TestCase):
     show = True
