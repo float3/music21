@@ -466,6 +466,62 @@ class Test(unittest.TestCase):
             ['F', 'G'],
         )
 
+    def testNestedSplit(self):
+        # https://github.com/cuthbertLab/music21/issues/62
+        krn = re.sub(r'\s\s\s\s+', '\t', r'''
+**kern
+*M2/4
+=1
+2c
+=2
+*^
+2d    2e
+*^    *
+2f    2g    2a
+*v    *v    *
+*v    *v
+=3
+2b
+*-
+''')
+        hdc = HumdrumDataCollection(krn)
+        hdc.parse()
+        m2 = hdc.stream.parts[0].measure(2)
+        # a sub-spine's first sub-spine continues its voice
+        self.assertEqual(
+            [[(n.pitch.name, n.offset) for n in v.notes] for v in m2.voices],
+            [[('D', 0.0), ('F', 2.0)], [('E', 0.0), ('A', 2.0)], [('G', 2.0)]],
+        )
+
+    def testNestedSplitThreeLevels(self):
+        krn = re.sub(r'\s\s\s\s+', '\t', r'''
+**kern
+*M3/4
+=1
+*^
+4d    4e
+*^    *
+4f    4g    4a
+*^    *    *
+4B    4c    4d    4e
+*v    *v    *    *
+*v    *v    *
+*v    *v
+=2
+2.c
+*-
+''')
+        hdc = HumdrumDataCollection(krn)
+        hdc.parse()
+        m1 = hdc.stream.parts[0].measure(1)
+        self.assertEqual(
+            [[(n.pitch.name, n.offset) for n in v.notes] for v in m1.voices],
+            [[('D', 0.0), ('F', 1.0), ('B', 2.0)],
+             [('E', 0.0), ('A', 1.0), ('E', 2.0)],
+             [('G', 1.0), ('D', 2.0)],
+             [('C', 2.0)]],
+        )
+
     def testDynamAttachedAligned(self):
         '''
         ``**dynam`` events on the same line as a kern note attach at that note's
