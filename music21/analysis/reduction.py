@@ -730,7 +730,7 @@ class PartReduction:
                     inRegion = flatRef.getElementsByOffset(
                         offsetStart,
                         offsetEnd,
-                        includeEndBoundary=True,
+                        includeEndBoundary=False,
                         mustFinishInSpan=False,
                         mustBeginInSpan=True,
                     )
@@ -740,6 +740,10 @@ class PartReduction:
                     match = match.extendDuration(target, inPlace=False)
                     # match.show('t')
                     dsFirst = copy.deepcopy(ds)
+                    # a span starts at the last target at or before it
+                    prior = flatRef.getElementAtOrBefore(offsetStart, [target])
+                    if prior is not None:
+                        dsFirst['weight'] = targetToWeight(prior)
                     if not match:
                         # weight is not known
                         finalBundle.append(dsFirst)
@@ -1435,6 +1439,55 @@ class Test(unittest.TestCase):
         self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(),
                                 [('solo', [[0.0, 2.0, 0.35, '#666666'],
                                            [2.0, 2.0, 0.7, '#666666']])])
+
+    def testPartReductionDynamicOnBarline(self):
+        from music21 import analysis
+        from music21 import dynamics
+        p = stream.Part()
+        p.id = 'solo'
+        for unused_i in range(3):
+            p.append(note.Note(quarterLength=4))
+        p.insert(0, dynamics.Dynamic('p'))
+        p.insert(4, dynamics.Dynamic('f'))
+        p.makeMeasures(inPlace=True)
+        s = stream.Score([p])
+
+        pr = analysis.reduction.PartReduction(s, normalize=False)
+        pr.process()
+        self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(),
+                                [('solo', [[0.0, 4.0, 0.35, '#666666'],
+                                           [4.0, 4.0, 0.7, '#666666'],
+                                           [8.0, 4.0, 0.7, '#666666']])])
+
+        pr = analysis.reduction.PartReduction(s, fillByMeasure=False, normalize=False)
+        pr.process()
+        self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(),
+                                [('solo', [[0.0, 4.0, 0.35, '#666666'],
+                                           [4.0, 8.0, 0.7, '#666666']])])
+
+    def testPartReductionDynamicBetweenSpans(self):
+        from music21 import analysis
+        from music21 import dynamics
+        # the f, in the rest measure or on the barline before it,
+        # starts the next span
+        for fOffset in (4, 5):
+            p = stream.Part()
+            p.id = 'solo'
+            p.append(note.Note(quarterLength=4))
+            p.append(note.Rest(quarterLength=4))
+            p.append(note.Note(quarterLength=4))
+            p.insert(0, dynamics.Dynamic('p'))
+            p.insert(fOffset, dynamics.Dynamic('f'))
+            p.makeMeasures(inPlace=True)
+            s = stream.Score([p])
+            target = [('solo', [[0.0, 4.0, 0.35, '#666666'],
+                                [8.0, 4.0, 0.7, '#666666']])]
+            for fillByMeasure in (True, False):
+                pr = analysis.reduction.PartReduction(s,
+                                                      fillByMeasure=fillByMeasure,
+                                                      normalize=False)
+                pr.process()
+                self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(), target)
 
     def xtestPartReductionSchoenberg(self):
         from music21 import corpus
