@@ -1005,6 +1005,23 @@ class Test(unittest.TestCase):
                     self.assertEqual(arpNum, '1')
 
 
+    def testArpeggioMarkSpannersOnNotes(self):
+        # one note alone: no number
+        n1 = note.Note('C4')
+        am1 = expressions.ArpeggioMarkSpanner([n1])
+        # a note and a chord together: shared number
+        n2 = note.Note('D4')
+        c3 = chord.Chord(['E4', 'G4'])
+        am2 = expressions.ArpeggioMarkSpanner([n2, c3])
+        m = stream.Measure([n1, n2, c3])
+        s = stream.Score([am1, am2, stream.Part([m])])
+
+        x = self.getET(s)
+        mxNotes = x.find('part').find('measure').findall('note')
+        arpNumbers = [mxNote.find('notations').find('arpeggiate').get('number')
+                      for mxNote in mxNotes]
+        self.assertEqual(arpNumbers, [None, '1', '1', '1'])
+
     def testExportChordSymbolsWithRealizedDurations(self):
 
         def realizeDurationsAndAssertTags(mm: stream.Measure, forwardTag=False, offsetTag=False):
