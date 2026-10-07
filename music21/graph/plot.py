@@ -6,7 +6,7 @@
 #               Michael Scott Asato Cuthbert
 #               Evan Lynch
 #
-# Copyright:    Copyright © 2009-2023 Michael Scott Asato Cuthbert,
+# Copyright:    Copyright © 2009-2026 Michael Scott Asato Cuthbert,
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 '''
@@ -1329,7 +1329,7 @@ class Dolan(HorizontalBarWeighted):
 
         if self.partGroups:
             return  # keep what the user set
-        if self.streamObj:
+        if self.streamObj is None:
             return None
         instStream = self.streamObj.flatten().getElementsByClass(instrument.Instrument)
         if not instStream:
@@ -2109,6 +2109,39 @@ class Test(unittest.TestCase):
 
         self.assertEqual(b.data[0], (0.5, 52.0, 1, {}))
         # b.write()
+
+    def testDolanPartGroups(self):
+        from music21 import instrument
+        b = Dolan(doneAction=None)
+        b._getPartGroups()
+        self.assertIsNone(b.partGroups)
+
+        b.streamObj = corpus.parse('bach/bwv66.6')
+        b._getPartGroups()
+        self.assertEqual([g['name'] for g in b.partGroups],
+                         ['Soprano', 'Alto', 'Tenor', 'Bass'])
+        b.run()
+        # drawn from the bottom up
+        self.assertEqual([(d[0], d[1][0][3]) for d in b.data],
+                         [('Bass', 'mediumblue'), ('Tenor', 'lightgreen'),
+                          ('Alto', 'orange'), ('Soprano', 'purple')])
+
+        s = stream.Score()
+        for pId, inst in [('Violin 1', instrument.Violin()),
+                          ('Violin 2', instrument.Violin()),
+                          ('Viola', instrument.Viola()),
+                          ('Cello', instrument.Violoncello())]:
+            p = stream.Part([inst, note.Note(type='whole')])
+            p.id = pId
+            s.insert(0, p)
+        b = Dolan(s, doneAction=None)
+        self.assertEqual([g['name'] for g in b.partGroups],
+                         ['1st Violin', '2nd Violin', 'Viola', 'Cello'])
+
+        # groups the user sets are kept
+        groups = [{'name': 'Low', 'color': 'black', 'match': ['cello']}]
+        b = Dolan(s, partGroups=groups, doneAction=None)
+        self.assertIs(b.partGroups, groups)
 
     def testDolanA(self):
         a = corpus.parse('bach/bwv57.8')
