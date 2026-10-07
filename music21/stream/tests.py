@@ -1130,6 +1130,12 @@ class Test(unittest.TestCase):
         self.assertEqual([i.offset for i in intervals], [2.0, 4.0, 6.0])
         self.assertEqual([i.quarterLength for i in intervals], [0.0, 0.0, 0.0])
 
+        # a rest skipped across a barline leaves a gap
+        s = converter.parse('tinynotation: 4/4 c2 r2 f1 g1')
+        withGap = s.melodicIntervals(skipRests=True)
+        self.assertEqual([(i.name, i.offset, i.quarterLength) for i in withGap],
+                         [('P4', 2.0, 2.0), ('M2', 8.0, 0.0)])
+
     def testStripTiesBuiltA(self):
         s1 = Stream()
         n1 = note.Note('D#2')
