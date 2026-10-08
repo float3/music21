@@ -412,6 +412,8 @@ class Test(unittest.TestCase):
         aMinor = scale.HarmonicMinorScale('a4')
         self.assertEqual(str(aMinor.nextPitch('f##4')), 'G#4')
         self.assertEqual(str(aMinor.nextPitch('a4', Direction.DESCENDING)), 'G#4')
+        self.assertEqual(str(aMinor.nextPitch('g4')), 'G#4')
+        self.assertEqual(str(aMinor.nextPitch('g4', Direction.DESCENDING)), 'F4')
 
         gMinor = scale.HarmonicMinorScale('g4')
         gMinor.nextPitch('a4')
@@ -437,6 +439,7 @@ class Test(unittest.TestCase):
         net = scale.CyclicalScale('c4', ['M9']).abstract._net
         self.assertEqual(net.getNeighborNodeIds('c4', Terminus.LOW, 'b3'),
                          (Terminus.LOW, Terminus.LOW))
+
 
     def testHarmonicMinorKeepsItsSeventhAfterNextPitch(self):
         sc = scale.HarmonicMinorScale('g4')
