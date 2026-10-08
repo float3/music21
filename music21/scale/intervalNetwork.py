@@ -82,7 +82,8 @@ class Direction(enum.Enum):
 
 
 type CacheKey = tuple[
-    int|Terminus, str, str|None, str|None, bool, bool|None]
+    int|Terminus, str, str|None, str|None, bool, bool|None,
+    tuple[tuple[int, Direction, int, int|float], ...]]
 
 # node id, start pitch, and (degree, direction, generic, semitones) per altered degree
 type WalkKey = tuple[
@@ -1486,6 +1487,7 @@ class IntervalNetwork:
         *,
         includeFirst: bool,
         reverse: bool|None = None,  # only meaningful for descending
+        alteredDegrees: AlteredDegrees|None = None,
     ) -> CacheKey:
         '''
         Return key for caching based on critical components.
@@ -1499,12 +1501,23 @@ class IntervalNetwork:
             maxKey = maxPitch.nameWithOctave
         else:
             maxKey = None
+
+        # an interval's generic number and semitones say what it is, and are
+        # cheaper to read than its name
+        alteredKey: tuple[tuple[int, Direction, int, int|float], ...] = ()
+        if alteredDegrees:
+            alteredKey = tuple([(degree,
+                                 spec['direction'],
+                                 spec['interval'].generic.directed,
+                                 spec['interval'].semitones)
+                                for degree, spec in alteredDegrees.items()])
         return (nodeObj.id,
                 pitchReference.nameWithOctave,
                 minKey,
                 maxKey,
                 includeFirst,
                 reverse,
+                alteredKey,
                 )
 
     def realizeAscending(
@@ -1578,7 +1591,8 @@ class IntervalNetwork:
                                    pitchReference,
                                    minPitch,
                                    maxPitch,
-                                   includeFirst=False)
+                                   includeFirst=False,
+                                   alteredDegrees=alteredDegrees)
             if ck in self._ascendingCache:
                 return self._ascendingCache[ck]
         else:
@@ -1858,6 +1872,7 @@ class IntervalNetwork:
                                    maxPitch=maxPitchObj,
                                    includeFirst=includeFirst,
                                    reverse=reverse,
+                                   alteredDegrees=alteredDegrees,
                                    )
             if ck in self._descendingCache:
                 return self._descendingCache[ck]
@@ -3035,7 +3050,7 @@ class IntervalNetwork:
                     break
             # environLocal.printDebug(['looking at:', target, p, 'match', match])
             if not match:
-                post.append(target)
+                post.append(copy.deepcopy(target))
         return post
 
 
