@@ -360,10 +360,16 @@ class Test(unittest.TestCase):
         aMinor = scale.HarmonicMinorScale('a4')
         self.assertEqual(str(aMinor.nextPitch('f##4')), 'G#4')
         self.assertEqual(str(aMinor.nextPitch('a4', Direction.DESCENDING)), 'G#4')
+        self.assertEqual(str(aMinor.nextPitch('g4')), 'G#4')
+        self.assertEqual(str(aMinor.nextPitch('g4', Direction.DESCENDING)), 'F4')
 
         gMinor = scale.HarmonicMinorScale('g4')
         gMinor.nextPitch('a4')
         self.assertEqual(str(gMinor.pitches[6]), 'F#5')
+    def testHarmonicMinorKeepsItsSeventhAfterNextPitch(self):
+        sc = scale.HarmonicMinorScale('g4')
+        sc.nextPitch('a4')
+        self.assertEqual(self.pitchOut(sc.pitches), '[G4, A4, B-4, C5, D5, E-5, F#5, G5]')
 
     def testNextPitchOnCycleWiderThanOctave(self):
         ninths = scale.CyclicalScale('c4', ['M9'])
