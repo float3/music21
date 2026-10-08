@@ -1573,7 +1573,7 @@ class Test(unittest.TestCase):
         ):
             c.parse()
 
-    def test_close_bracket_after_tie(self):
+    def testCloseBracketAfterTie(self):
         c = Converter('4/4 trip{c8 d e~} e4 f2')
         c.parse()
         notes = list(c.stream.recurse().notes)
@@ -1583,7 +1583,7 @@ class Test(unittest.TestCase):
                          [fractions.Fraction(1, 3)] * 3 + [1.0, 2.0])
         self.assertEqual(notes[2].duration.tuplets[0].type, 'stop')
 
-    def test_state_does_not_affect_time_signature(self):
+    def testStateDoesNotAffectTimeSignature(self):
         c = Converter('2/4 trip{c8 d 4/4} e4 f4 g2')
         c.parse()
         s = c.stream
@@ -1593,7 +1593,7 @@ class Test(unittest.TestCase):
                          [fractions.Fraction(1, 3)] * 2 + [1.0, 1.0, 2.0])
         self.assertEqual([n.duration.tuplets[0].type for n in notes[:2]], ['start', 'stop'])
 
-    def test_tie_past_time_signature(self):
+    def testTiePastTimeSignature(self):
         c = Converter('4/4 c1~ 3/4 c2.')
         c.parse()
         notes = list(c.stream.recurse().notes)
