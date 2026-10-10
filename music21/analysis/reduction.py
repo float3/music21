@@ -5,7 +5,7 @@
 # Authors:      Christopher Ariza
 #               Michael Scott Asato Cuthbert
 #
-# Copyright:    Copyright © 2011-2013 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2011-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 '''
@@ -479,11 +479,9 @@ class PartReduction:
             raise PartReductionException('provided Stream must be Score')
         self._score = srcScore
         # an ordered list of dictionaries for
-        # part id, part color, and a list of Part objs
+        # part id, part color, a list of Part objs, and their event spans
         # TODO: typed dict
         self._partBundles: list[dict[str, t.Any]] = []
-        # a dictionary of part id to a list of events
-        self._eventSpans: dict[str|int, list[t.Any]] = {}
 
         # define how parts are grouped
         # a list of dictionaries, with keys for name, color, and a match list
@@ -556,14 +554,10 @@ class PartReduction:
 
 
     def _createEventSpans(self):
-        # for each part group id key, store a list of events
-        self._eventSpans = {}
-
+        # for each part bundle, store a list of events
         for partBundle in self._partBundles:
-            pGroupId = partBundle['pGroupId']
             pColor = partBundle['color']
             parts = partBundle['parts']
-            # print(pGroupId)
             dataEvents = []
             # combine multiple streams into a single
             eStart = None
@@ -668,7 +662,7 @@ class PartReduction:
                             eStart = e.getOffsetBySite(eSrc)
                         eLast = e
             # environLocal.printDebug(['dataEvents', dataEvents])
-            self._eventSpans[pGroupId] = dataEvents
+            partBundle['spans'] = dataEvents
 
 
     def _getValueForSpan(
@@ -706,7 +700,7 @@ class PartReduction:
         if not splitSpans:  # this is segmentByTarget
             for partBundle in self._partBundles:
                 flatRef = partBundle['parts.flat']
-                for ds in self._eventSpans[partBundle['pGroupId']]:
+                for ds in partBundle['spans']:
                     # for each event span, find the targeted object
                     offsetStart = ds['eStart']
                     offsetEnd = offsetStart + ds['span']
@@ -728,7 +722,7 @@ class PartReduction:
                 finalBundle = []
                 flatRef = partBundle['parts.flat']
                 # get each span
-                for ds in self._eventSpans[partBundle['pGroupId']]:
+                for ds in partBundle['spans']:
                     offsetStart = ds['eStart']
                     offsetEnd = offsetStart + ds['span']
                     # get all targets within the contiguous region
@@ -792,7 +786,7 @@ class PartReduction:
                             dsNext['weight'] = targetToWeight(tar)
                             finalBundle.append(dsNext)
                 # after iterating all ds spans, reassign
-                self._eventSpans[partBundle['pGroupId']] = finalBundle
+                partBundle['spans'] = finalBundle
 
     def _extendSpans(self):
         '''
@@ -801,13 +795,13 @@ class PartReduction:
         '''
         # environLocal.printDebug(['_extendSpans: pre'])
         # for partBundle in self._partBundles:
-        #     for i, ds in enumerate(self._eventSpans[partBundle['pGroupId']]):
+        #     for i, ds in enumerate(partBundle['spans']):
         #         print(ds)
 
         minValue = 0.01  # for error conditions
         for partBundle in self._partBundles:
             lastWeight = None
-            for i, ds in enumerate(self._eventSpans[partBundle['pGroupId']]):
+            for i, ds in enumerate(partBundle['spans']):
                 if i == 0:  # cannot extend first
                     if ds['weight'] is None:  # this is an error in the rep
                         ds['weight'] = minValue
@@ -827,31 +821,31 @@ class PartReduction:
                         #  'cannot extend a weight: no previous weight defined'])
 #         environLocal.printDebug(['_extendSpans: post'])
 #         for partBundle in self._partBundles:
-#             for i, ds in enumerate(self._eventSpans[partBundle['pGroupId']]):
+#             for i, ds in enumerate(partBundle['spans']):
 #                 print(ds)
 
     def _normalize(self, byPart=False):
         '''
         Normalize, either within each Part, or for all parts
         '''
-        partMaxRef = {}
+        partMaxRef = []
         for partBundle in self._partBundles:
             partMax = 0
-            for ds in self._eventSpans[partBundle['pGroupId']]:
+            for ds in partBundle['spans']:
                 if ds['weight'] > partMax:
                     partMax = ds['weight']
-            partMaxRef[partBundle['pGroupId']] = partMax
+            partMaxRef.append(partMax)
 
         try:
-            maxOfMax = max(partMaxRef.values())
+            maxOfMax = max(partMaxRef)
         except ValueError:  # empty part?
             maxOfMax = 0
 
-        for partBundle in self._partBundles:
-            for ds in self._eventSpans[partBundle['pGroupId']]:
+        for partBundle, partMax in zip(self._partBundles, partMaxRef):
+            for ds in partBundle['spans']:
                 # weight is now fraction of the max for that part
                 if byPart:
-                    bestMax = partMaxRef[partBundle['pGroupId']]
+                    bestMax = partMax
                 else:
                     bestMax = maxOfMax
                 if bestMax != 0:
@@ -885,8 +879,7 @@ class PartReduction:
         for partBundle in self._partBundles:
             # print(partBundle)
             dataList = []
-            groupSpans = partBundle['pGroupId']
-            for ds in self._eventSpans[groupSpans]:
+            for ds in partBundle['spans']:
                 # data format here is set by the graphing routine
                 dataList.append([ds['eStart'], ds['span'], ds['weight'], ds['color']])
             data.append((partBundle['pGroupId'], dataList))
@@ -1184,6 +1177,39 @@ class Test(unittest.TestCase):
                        [2.0, 6.0, 0.0214285714286, '#666666']])]
 
         self._matchWeightedData(match, target)
+
+    def testPartReductionSameIds(self):
+        from music21 import analysis
+        from music21 import dynamics
+        s = stream.Score()
+        for pId, dyn in (('Piano RH', 'mf'), ('Piano LH', 'p')):
+            p = stream.Part()
+            p.id = pId
+            p.append(note.Note(quarterLength=4))
+            p.insert(0, dynamics.Dynamic(dyn))
+            s.insert(0, p)
+
+        # two part groups with one name
+        partGroups = [{'name': 'Piano', 'color': '#666666', 'match': ['rh']},
+                      {'name': 'Piano', 'color': '#666666', 'match': ['lh']}]
+        pr = analysis.reduction.PartReduction(s, partGroups=partGroups)
+        pr.process()
+        target = [('Piano', [[0.0, 4.0, 1.0, '#666666']]),
+                  ('Piano', [[0.0, 4.0, 0.35 / 0.55, '#666666']])]
+        self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(), target)
+
+        # two parts with one id
+        for p in s.parts:
+            p.id = 'Piano'
+        pr = analysis.reduction.PartReduction(s)
+        pr.process()
+        self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(), target)
+
+        pr = analysis.reduction.PartReduction(s, normalizeByPart=True)
+        pr.process()
+        self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(),
+                                [('Piano', [[0.0, 4.0, 1.0, '#666666']]),
+                                 ('Piano', [[0.0, 4.0, 1.0, '#666666']])])
 
 
     def testPartReductionD(self):
