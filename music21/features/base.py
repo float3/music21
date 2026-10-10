@@ -5,7 +5,7 @@
 # Authors:      Christopher Ariza
 #               Michael Scott Asato Cuthbert
 #
-# Copyright:    Copyright © 2011-2023 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2011-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 from __future__ import annotations
@@ -871,7 +871,8 @@ class DataSet:
             post.append(True)
         return post
 
-    def getClassPositionLabels(self, includeId: bool = True) -> list[bool|None]:
+    def getClassPositionLabels(self, includeId: bool = True,
+                               includeClassLabel: bool = True) -> list[bool|None]:
         '''
         Return column labels for the presence of a class definition.
 
@@ -881,6 +882,8 @@ class DataSet:
         >>> ds.getClassPositionLabels()
         [None, False, False, False, False, False, False, False, False,
          False, False, False, False, False, True]
+
+        * Changed in v11: added `includeClassLabel`.
         '''
         post: list[bool|None] = []
         if includeId:
@@ -889,7 +892,7 @@ class DataSet:
             # need as many statements of discrete as there are dimensions
             post += [False] * fe.dimensions
         # class label is assumed always discrete
-        if self._classLabel is not None:
+        if self._classLabel is not None and includeClassLabel:
             post.append(True)
         return post
 
@@ -1489,6 +1492,17 @@ class Test(unittest.TestCase):
 
         for fp in (fp1, fp2, fp3):
             os.remove(fp)
+
+    def testClassPositionLabelsWithoutClassLabel(self):
+        from music21 import features
+
+        ds = features.DataSet(classLabel='Meter')
+        ds.addFeatureExtractors(features.extractorsById(['r31']))
+        self.assertEqual(ds.getClassPositionLabels(), [None, False, False, True])
+        self.assertEqual(ds.getClassPositionLabels(includeClassLabel=False),
+                         [None, False, False])
+        self.assertEqual(ds.getClassPositionLabels(includeId=False, includeClassLabel=False),
+                         [False, False])
 
     def testFeatureFail(self):
         from music21 import features
