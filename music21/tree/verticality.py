@@ -6,7 +6,7 @@
 # Authors:      Joséphine Wolf Oberholtzer
 #               Michael Scott Asato Cuthbert
 #
-# Copyright:    Copyright © 2013-2016 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2013-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ----------------------------------------------------------------------------
 '''
@@ -829,7 +829,8 @@ class Verticality(prebase.ProtoM21Object):
 
             pitchGroup = None
             if addPartIdAsGroup:
-                partContext = n.getContextByClass(stream.Part)
+                # ts.element, not n: a chord's notes are not in any stream
+                partContext = ts.element.getContextByClass(stream.Part)
                 if partContext is not None:
                     pidStr = str(partContext.id)
                     pitchGroup = pidStr.replace(' ', '_')  # spaces are not allowed as group names
@@ -1233,7 +1234,31 @@ class VerticalitySequence(prebase.ProtoM21Object, Sequence[Verticality]):
 # -----------------------------------------------------------------------------
 
 class Test(unittest.TestCase):
-    pass
+    def testMakeElementPartIdGroupsForChordNotes(self):
+        from music21 import stream
+
+        upper = stream.Part([note.Note('C5', quarterLength=2)])
+        upper.id = 'Upper'
+        lower = stream.Part([chord.Chord(['E3', 'G3'], quarterLength=2)])
+        lower.id = 'Lower'
+        score = stream.Score([upper, lower])
+
+        verticality = score.asTimespans().getVerticalityAt(0)
+        c = verticality.makeElement(addPartIdAsGroup=True)
+        self.assertEqual([(n.nameWithOctave, list(n.pitch.groups)) for n in c.notes],
+                         [('E3', ['Lower']), ('G3', ['Lower']), ('C5', ['Upper'])])
+
+        # a unison between a part's note and a chord's note
+        tenor = stream.Part([note.Note('E3', quarterLength=2)])
+        tenor.id = 'Tenor'
+        bass = stream.Part([chord.Chord(['E3', 'G3'], quarterLength=2)])
+        bass.id = 'Bass'
+        score = stream.Score([tenor, bass])
+
+        verticality = score.asTimespans().getVerticalityAt(0)
+        c = verticality.makeElement(addPartIdAsGroup=True)
+        self.assertEqual([(n.nameWithOctave, set(n.pitch.groups)) for n in c.notes],
+                         [('E3', {'Tenor', 'Bass'}), ('G3', {'Bass'})])
 
 # -----------------------------------------------------------------------------
 
