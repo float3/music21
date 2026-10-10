@@ -57,6 +57,17 @@ class Test(unittest.TestCase):
         out += ']'
         return out
 
+    def testIsSortedDiatonicAscending(self):
+        c = chord.Chord(['F4', 'F#4', 'G-4'])
+        self.assertTrue(c.isSortedDiatonicAscending())
+        c.add('C4', runSort=False)
+        self.assertFalse(c.isSortedDiatonicAscending())
+        c.sortDiatonicAscending(inPlace=True)
+        self.assertTrue(c.isSortedDiatonicAscending())
+        c[0].pitch.octave = 6
+        self.assertFalse(c.isSortedDiatonicAscending())
+        self.assertTrue(c.sortAscending().isSortedDiatonicAscending())
+
     def testMoreCopies(self):
         c1 = chord.Chord(['C4', 'E-4', 'G4'])
         c2 = copy.deepcopy(c1)
