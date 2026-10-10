@@ -350,6 +350,19 @@ class Test(unittest.TestCase):
             'b,3,4',
         ])
 
+        csvOut = OutputCSV(ds)
+        self.assertEqual(csvOut.getString(includeClassLabel=False, includeId=False).splitlines(), [
+            'Initial_Time_Signature_0,Initial_Time_Signature_1',
+            '4,4',
+            '3,4',
+        ])
+        self.assertEqual(
+            arff.getString(includeClassLabel=False, includeId=False).splitlines()[-2:],
+            ['4,4', '3,4'])
+        self.assertEqual(
+            tab.getString(includeClassLabel=False, includeId=False).split('\n')[-2:],
+            ['4\t4', '3\t4'])
+
 
 if __name__ == '__main__':
     import music21
