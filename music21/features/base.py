@@ -1048,6 +1048,8 @@ class DataSet:
         '''
         Get processed data as a list of lists, merging any sub-lists
         in multidimensional features.
+
+        * Changed in v11: always returns one row per data instance.
         '''
         post: list = []
         for i, row in enumerate(self.features):
@@ -1065,10 +1067,7 @@ class DataSet:
             if includeClassLabel:
                 v.append(di.getClassValue())
             post.append(v)
-        if not includeClassLabel and not includeId:
-            return post[0]
-        else:
-            return post
+        return post
 
     def getUniqueClassValues(self) -> list[ClassValue]:
         '''
@@ -1194,7 +1193,7 @@ def allFeaturesAsList(streamInput: DataSource) -> list:
                                    includeId=False,
                                    concatenateLists=False)
 
-    return allData
+    return allData[0]
 
 
 # ------------------------------------------------------------------------------
@@ -1503,6 +1502,18 @@ class Test(unittest.TestCase):
                          [None, False, False])
         self.assertEqual(ds.getClassPositionLabels(includeId=False, includeClassLabel=False),
                          [False, False])
+
+    def testFeaturesAsListWithoutClassLabelOrId(self):
+        from music21 import features
+
+        ds = features.DataSet(classLabel='Meter')
+        ds.addFeatureExtractors(features.extractorsById(['r31']))
+        s1 = converter.parse('tinynotation: 4/4 c4 d e f')
+        s2 = converter.parse('tinynotation: 3/4 c4 d e')
+        ds.addMultipleData([s1, s2], classValues=['four', 'three'], ids=['a', 'b'])
+        ds.process()
+        self.assertEqual(ds.getFeaturesAsList(includeClassLabel=False, includeId=False),
+                         [[4, 4], [3, 4]])
 
     def testFeatureFail(self):
         from music21 import features
