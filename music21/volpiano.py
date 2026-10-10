@@ -116,7 +116,8 @@ def toPart(volpianoText, *, breaksToLayout=False):
         {12.0} <music21.note.Note A>
         {13.0} <music21.note.Note G>
         {14.0} <music21.note.Note F>
-        {15.0} <music21.volpiano.Neume <music21.note.Note A><music21.note.Note G>>
+        {15.0} <music21.volpiano.Neume
+                    <music21.note.Note A><music21.note.Note G><music21.note.Note F>>
         {15.0} <music21.note.Note G>
         {16.0} <music21.note.Note A>
 
@@ -221,16 +222,13 @@ def toPart(volpianoText, *, breaksToLayout=False):
 
         continuousNumberOfBreakTokens = 0
 
-        if token == '-':
+        if token == '-' or token in '1234':
             noteThatWouldGoInSpanner = None
-            if currentNeumeSpanner:
+            if currentNeumeSpanner is not None:
                 m.append(currentNeumeSpanner)
                 currentNeumeSpanner = None
-            continue
-
-        if token in '1234':
-            noteThatWouldGoInSpanner = None
-            currentNeumeSpanner = None
+            if token == '-':
+                continue
 
         if token in '12':
             if token == '1':
@@ -272,7 +270,9 @@ def toPart(volpianoText, *, breaksToLayout=False):
 
             m.append(n)
 
-            if noteThatWouldGoInSpanner is not None:
+            if currentNeumeSpanner is not None:
+                currentNeumeSpanner.addSpannedElements(n)
+            elif noteThatWouldGoInSpanner is not None:
                 currentNeumeSpanner = Neume([noteThatWouldGoInSpanner, n])
                 noteThatWouldGoInSpanner = None
             else:
@@ -291,6 +291,9 @@ def toPart(volpianoText, *, breaksToLayout=False):
                 raise VolpianoException(
                     'Unknown accidental: ' + token + ': Should not happen')
 
+
+    if currentNeumeSpanner is not None:
+        m.append(currentNeumeSpanner)
 
     if continuousNumberOfBreakTokens > 0:
         breakClass = classByNumBreakTokens[continuousNumberOfBreakTokens]
@@ -313,7 +316,7 @@ def fromStream(s, *, layoutToBreaks=False):
     >>> volpianoInput = '1--c--d---f--d---ed--c--d---f---g--h--j---hgf--g--h---'
     >>> veniSancti = volpiano.toPart(volpianoInput)
     >>> volpiano.fromStream(veniSancti)
-    '1---c-d-f-d-ed-c-d-f-g-h-j-hg-f-g-h-'
+    '1---c-d-f-d-ed-c-d-f-g-h-j-hgf-g-h-'
 
     >>> breakTest = volpiano.toPart('1---e-E--')
     >>> volpiano.fromStream(breakTest)
@@ -475,6 +478,26 @@ class Test(unittest.TestCase):
             self.assertTrue(fromStream(stream.Stream([clefClass()])).startswith(volpianoClef))
         self.assertEqual(fromStream(stream.Stream([clef.Bass8vbClef(), note.Note('G1')])),
                          fromStream(stream.Stream([clef.BassClef(), note.Note('G2')])))
+
+    def testNeumeTakesEveryNoteOfItsRun(self):
+        '''
+        One Neume holds every note of a run.
+
+        AI-assisted (Claude).
+        '''
+        part = toPart('1---cdef-g-')
+        neumes = list(part[Neume])
+        self.assertEqual(len(neumes), 1)
+        self.assertEqual([n.name for n in neumes[0]], ['C', 'D', 'E', 'F'])
+        self.assertEqual(fromStream(part), '1---cdef-g-')
+
+    def testNeumeEndedWithoutHyphen(self):
+        '''
+        A neume ended by a barline or by the end of the text is kept.
+        '''
+        part = toPart('1---ef3-gh')
+        self.assertEqual([len(neume) for neume in part[Neume]], [2, 2])
+        self.assertEqual(fromStream(part), '1---ef----3gh-')
 
 
 if __name__ == '__main__':
