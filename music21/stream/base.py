@@ -7,7 +7,7 @@
 #               Joséphine Wolf Oberholtzer
 #               Evan Lynch
 #
-# Copyright:    Copyright © 2008-2024 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2008-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # -----------------------------------------------------------------------------
 '''
@@ -10506,6 +10506,13 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
             return self.cloneEmpty(derivationMethod='melodicIntervals')
 
         returnStream = self.cloneEmpty(derivationMethod='melodicIntervals')
+        # each container's offset in self; findConsecutiveNotes leaves
+        # each note's activeSite at its container
+        containerOffsets = {id(self): 0.0}
+        for container in self.recurse(streamsOnly=True):
+            containerOffsets[id(container)] = opFrac(
+                containerOffsets[id(container.activeSite)] + container.offset)
+
         for thisNote, nextNote in zip(returnList, returnList[1:]):
             # returnList could contain None to represent a rest
             if thisNote is None or nextNote is None:
@@ -10523,9 +10530,11 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
                 noteEnd = nextNote
             # Prefer Note objects over Pitch objects so that noteStart is set correctly
             returnInterval = interval.Interval(noteStart, noteEnd)
-            returnInterval.offset = opFrac(thisNote.offset + thisNote.quarterLength)
+            thisOffset = containerOffsets[id(thisNote.activeSite)] + thisNote.offset
+            nextOffset = containerOffsets[id(nextNote.activeSite)] + nextNote.offset
+            returnInterval.offset = opFrac(thisOffset + thisNote.quarterLength)
             returnInterval.duration = duration.Duration(opFrac(
-                nextNote.offset - returnInterval.offset))
+                nextOffset - returnInterval.offset))
             returnStream.insert(returnInterval)
 
         return returnStream
