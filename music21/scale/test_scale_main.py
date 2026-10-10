@@ -604,26 +604,21 @@ class Test(unittest.TestCase):
         self.assertEqual(str(sc.nextPitch('C2', Direction.DESCENDING)), 'D-2')
         self.assertEqual(str(sc.nextPitch('D-2', Direction.ASCENDING)), 'E2')
 
+    def testScaleDegreeOfAPitchNameOnTwoDegrees(self):
+        # C stands on degrees 1 and 5 of each three-octave period
+        sc = scale.OctaveRepeatingScale('c4', ['P5', 'P5', 'P5', 'm3', 'M2', 'M2'])
+        for unused_x in range(20):
+            self.assertEqual(sc.getScaleDegreeFromPitch('c'), 1)
+        sc.getPitches('c2', 'c6')
+        self.assertEqual(sc.getScaleDegreeFromPitch('c'), 1)
+
     def testRagMarwaB(self):
         sc = scale.RagMarwa('c4')
 
-        # for rag marwa, and given only the pitch "A", the scale can move to
-        # either b or c; this selection is determined by weighted random
-        # selection.
-        post = []
-        for unused_x in range(100):
-            post.append(sc.getScaleDegreeFromPitch('A1', Direction.ASCENDING))
-        self.assertGreater(post.count(5), 30)
-        self.assertGreater(post.count(7), 30)
-
-        # for rag marwa, and given only the pitch d-, the scale can move to
-        # either b or c; this selection is determined by weighted random
-        # selection; can be 2 or 7
-        post = []
-        for unused_x in range(100):
-            post.append(sc.getScaleDegreeFromPitch('D-3', Direction.DESCENDING))
-        self.assertGreater(post.count(2), 30)
-        self.assertGreater(post.count(7), 30)
+        # A stands on degrees 5 and 7, and D- on degrees 2 and 7: the lowest is given
+        for unused_x in range(20):
+            self.assertEqual(sc.getScaleDegreeFromPitch('A1', Direction.ASCENDING), 5)
+            self.assertEqual(sc.getScaleDegreeFromPitch('D-3', Direction.DESCENDING), 2)
 
     def testRagMarwaC(self):
         sc = scale.RagMarwa('c4')
@@ -634,12 +629,9 @@ class Test(unittest.TestCase):
         self.assertEqual(sc.abstract._net.realizeMinMax('c1', Terminus.LOW),
                          (pitch.Pitch('C1'), pitch.Pitch('D-2')))
 
-        # descending from d-2, we can either go to c2 or b1
-        post = []
-        for unused_x in range(100):
-            post.append(str(sc.nextPitch('D-2', Direction.DESCENDING)))
-        self.assertGreater(post.count('C2'), 30)
-        self.assertGreater(post.count('B1'), 30)
+        # D-2 stands on degrees 2 and 7; coming down from degree 2 leads to C2
+        for unused_x in range(20):
+            self.assertEqual(str(sc.nextPitch('D-2', Direction.DESCENDING)), 'C2')
 
     def testWeightedHexatonicBluesA(self):
         sc = scale.WeightedHexatonicBlues('c4')
