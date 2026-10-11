@@ -64,6 +64,10 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/score-reduction-lone-part`](https://github.com/float3/music21/tree/pr/score-reduction-lone-part): Wrap a lone Part in a Score in ScoreReduction.score
 - [`pr/dolan-part-groups`](https://github.com/float3/music21/tree/pr/dolan-part-groups): Set Dolan's default part groups when a stream is given
 
+### Audio
+
+- [`pr/autocorrelation-int16-overflow`](https://github.com/float3/music21/tree/pr/autocorrelation-int16-overflow): Find frequencies from sixteen-bit samples without scipy
+
 ### Scales and figured bass
 
 - [`pr/octave-repeating-full-octave`](https://github.com/float3/music21/tree/pr/octave-repeating-full-octave): Close an octave-repeating scale without a zero-width step
