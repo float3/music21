@@ -19,6 +19,7 @@ from music21 import common
 from music21 import converter
 from music21 import corpus
 from music21 import editorial
+from music21 import interval
 from music21 import key
 from music21 import note
 from music21 import pitch
@@ -101,11 +102,11 @@ class Test(unittest.TestCase):
 
         # the setter informs a Note client only when something changed
         n = note.Note('C4')
-        n._cache['junk'] = 1
-        n.pitch.octaveIsImplicit = False
-        self.assertEqual(n._cache, {'junk': 1})
-        n.pitch.octaveIsImplicit = True
-        self.assertEqual(n._cache, {})
+        with mock.patch.object(n, 'pitchChanged') as pitchChanged:
+            n.pitch.octaveIsImplicit = False
+            pitchChanged.assert_not_called()
+            n.pitch.octaveIsImplicit = True
+        pitchChanged.assert_called_once()
 
     def testNameSetting(self):
         with self.assertRaisesRegex(ValueError,
@@ -120,6 +121,48 @@ class Test(unittest.TestCase):
             "Argument to name, 32, must be a string, not <class 'int'>."
         ):
             p.name = 32
+
+    def testNameCache(self):
+        '''
+        A name is parsed once and remembered; names that cannot be parsed are not.
+        '''
+        with mock.patch.dict(pitch._pitchNameCache, clear=True):
+            first = Pitch('E-6')
+            self.assertEqual(pitch._pitchNameCache, {'E-6': ('E', '-', 6)})
+            second = Pitch('E-6')
+            self.assertEqual(second.nameWithOctave, 'E-6')
+            # Accidentals can be changed, so each Pitch gets its own
+            self.assertIsNot(second.accidental, first.accidental)
+
+            # a name that cannot be parsed changes nothing
+            with self.assertRaises(AccidentalException):
+                second.name = 'D$'
+            self.assertEqual(second.nameWithOctave, 'E-6')
+            with self.assertRaisesRegex(ValueError, 'must be a string'):
+                second.name = ['C4']  # not hashable
+            with self.assertRaisesRegex(ValueError, 'at most 100 characters'):
+                second.name = 'C4'.center(101)  # padding counts
+            self.assertEqual(list(pitch._pitchNameCache), ['E-6'])
+            self.assertEqual(Pitch('C4'.center(100)).nameWithOctave, 'C4')
+
+            # cleared when full
+            with mock.patch.object(pitch, '_pitchNameCacheSize', 1):
+                Pitch('F4')
+            self.assertEqual(list(pitch._pitchNameCache), ['F4'])
+
+    def testNameSetterInformsNoteOnce(self):
+        '''
+        Setting a name without an octave, even one not seen before, keeps the
+        octave and the microtone, makes the spelling explicit, and tells the Note once.
+        '''
+        n = note.Note(73)  # C#5, spelling inferred
+        n.pitch.microtone = 20
+        with (mock.patch.dict(pitch._pitchNameCache, clear=True),
+              mock.patch.object(n, 'pitchChanged') as pitchChanged):
+            n.pitch.name = 'B-'
+        pitchChanged.assert_called_once()
+        self.assertEqual(str(n.pitch), 'B-5(+20c)')
+        self.assertFalse(n.pitch.spellingIsInferred)
 
     def testInitShortcutsMatchParsing(self):
         # 'C', 'C4', and step= skip the name and step setters
@@ -800,6 +843,12 @@ class Test(unittest.TestCase):
         lowC = dPitch.transpose('M-23')
         self.assertEqual(lowC.name, 'C')
         self.assertEqual(lowC.octave, -1)
+
+    def testTransposeInPlaceReplacesMicrotone(self):
+        p = Pitch('C4')
+        p.microtone = 50
+        p.transpose(interval.ChromaticInterval(0.5), inPlace=True)
+        self.assertEqual(str(p), 'C#4')
 
     def testQuarterToneA(self):
         p1 = Pitch('D#~')
