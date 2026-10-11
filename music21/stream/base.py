@@ -3321,7 +3321,11 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
             sRight.insert(0, eRight)
 
         for target in targetMove:
-            sRight.insert(target.getOffsetBySite(sLeft) - quarterLength, target)
+            if any(target is e for e in sLeft._endElements):
+                # what the measure keeps at its end, a right barline, ends the second half
+                sRight.storeAtEnd(target)
+            else:
+                sRight.insert(target.getOffsetBySite(sLeft) - quarterLength, target)
             sLeft.remove(target)
 
         return base._SplitTuple([sLeft, sRight])
