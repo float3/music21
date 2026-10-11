@@ -1559,6 +1559,21 @@ class Test(unittest.TestCase):
             sc.insert(0, p)
         sc.sliceByGreatestDivisor(inPlace=True)
         self.assertEqual(len(sc.parts[0].getElementsByClass(Measure)[0].notes), 1)
+    def testSliceAtOffsetsInVoices(self):
+        '''
+        A note cut in a voice leaves its later pieces in the voice.
+        '''
+        m = Measure()
+        upper = Voice([note.Note('C5', type='half'), note.Note('D5', type='half')])
+        lower = Voice([note.Note('C3', type='whole')])
+        m.insert(0, upper)
+        m.insert(0, lower)
+        m.sliceAtOffsets([1.0], inPlace=True)
+        self.assertEqual(len(m.notes), 0)
+        self.assertEqual([(n.offset, n.quarterLength) for n in upper.notes],
+                         [(0.0, 1.0), (1.0, 1.0), (2.0, 2.0)])
+        self.assertEqual([(n.offset, n.quarterLength) for n in lower.notes],
+                         [(0.0, 1.0), (1.0, 3.0)])
 
     def testStripTiesScore(self):
         '''

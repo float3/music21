@@ -9793,20 +9793,30 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
         offsetMap = returnObj.offsetMap()
 
         offsetList = [opFrac(o) for o in offsetList]
+        voices = list(returnObj.voices)
 
         for ob in offsetMap:
             # if target is defined, only modify that object
-            e, oStart, oEnd, unused_voiceCount = ob
+            e, oStart, oEnd, voiceIndex = ob
             if target is not None and id(e) != id(target):
                 continue
+
+            # an element of a voice is cut, and its pieces kept, in the voice
+            if voiceIndex is None:
+                container = returnObj
+                containerOffset = 0.0
+            else:
+                container = voices[voiceIndex]
+                containerOffset = returnObj.elementOffset(container)
 
             cutPoints = []
             oStart = opFrac(oStart)
             oEnd = opFrac(oEnd)
 
             for o in offsetList:
-                if oStart < o < oEnd:
-                    cutPoints.append(o)
+                local = opFrac(o - containerOffset)
+                if oStart < local < oEnd:
+                    cutPoints.append(local)
             # environLocal.printDebug(['cutPoints', cutPoints, 'oStart', oStart, 'oEnd', oEnd])
             if cutPoints:
                 # remove old
@@ -9824,8 +9834,10 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
                     # only need to insert eNext, as eComplete was modified
                     # in place due to retainOrigin option
                     # insert at o, not oCut (duration into element)
-                    returnObj.coreInsert(o, eNext)
+                    container.coreInsert(o, eNext)
                     oStartNext = o
+        for v in voices:
+            v.coreElementsChanged()
         returnObj.coreElementsChanged()
         if not inPlace:
             return returnObj
