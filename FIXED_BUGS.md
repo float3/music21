@@ -34,6 +34,7 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/augment-lazy-tuplets`](https://github.com/float3/music21/tree/pr/augment-lazy-tuplets): Keep tuplets set on a duration that has not worked out its own
 - [`pr/beat-partial-measure-meter`](https://github.com/float3/music21/tree/pr/beat-partial-measure-meter): Count a split measure's second half in the meter its first half opens with
 - [`pr/split-measure-time-signature`](https://github.com/float3/music21/tree/pr/split-measure-time-signature): Give a split measure's second half the clef, key and meter in force where it is split
+- [`pr/split-keeps-right-barline`](https://github.com/float3/music21/tree/pr/split-keeps-right-barline): Keep a split measure's right barline at the end of its second half
 - [`pr/greatest-divisor-grace-notes`](https://github.com/float3/music21/tree/pr/greatest-divisor-grace-notes): Slice by the greatest divisor past grace notes and empty measures
 - [`pr/slice-at-offsets-voices`](https://github.com/float3/music21/tree/pr/slice-at-offsets-voices): Keep the pieces of a note cut in a voice in that voice
 - [`pr/find-consecutive-unisons`](https://github.com/float3/music21/tree/pr/find-consecutive-unisons): Fix findConsecutiveNotes(skipUnisons=True) on repeated notes and chords
