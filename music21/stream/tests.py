@@ -1574,6 +1574,17 @@ class Test(unittest.TestCase):
                          [(0.0, 1.0), (1.0, 1.0), (2.0, 2.0)])
         self.assertEqual([(n.offset, n.quarterLength) for n in lower.notes],
                          [(0.0, 1.0), (1.0, 3.0)])
+    def testSplitMeasureKeepsRightBarline(self):
+        '''
+        The second half of a split measure ends with the measure's right
+        barline.
+        '''
+        m = Measure([meter.TimeSignature('4/4'), note.Note(type='whole')])
+        m.rightBarline = bar.Barline('final')
+        left, right = m.splitAtQuarterLength(1.0)
+        self.assertIsNone(left.rightBarline)
+        self.assertIsNone(right.leftBarline)
+        self.assertEqual(right.rightBarline.type, 'final')
 
     def testStripTiesScore(self):
         '''
