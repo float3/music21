@@ -3004,6 +3004,9 @@ class Duration(prebase.ProtoM21Object, SlottedObjectMixin):
     @tuplets.setter
     def tuplets(self, tupletTuple: Iterable[Tuplet]):
         # environLocal.printDebug(['assigning tuplets in Duration', tupletTuple])
+        if self._componentsNeedUpdating:
+            # work out the old tuplets now, or doing so later overwrites these
+            self._updateComponents()
         self._tuplets = tuple(tupletTuple)
         self._quarterLengthNeedsUpdating = True
         self.informClient()
@@ -3693,6 +3696,24 @@ class Test(unittest.TestCase):
     def testCopyAndDeepcopy(self):
         from music21.test.commonTest import testCopyAll
         testCopyAll(self, globals())
+
+    def testAugmentOrDiminishUnbuiltTuplet(self):
+        '''
+        A duration made from a quarter length has not yet worked out its
+        tuplet; scaling it must not bring the old tuplet back.
+        '''
+        d = Duration(fractions.Fraction(1, 24))
+        scaled = d.augmentOrDiminish(1.5)
+        self.assertEqual(scaled.tuplets, ())
+        self.assertEqual(scaled.quarterLength, 0.0625)
+        self.assertEqual(scaled.type, '64th')
+
+        # the same duration with its tuplet worked out already
+        d = Duration(fractions.Fraction(1, 24))
+        self.assertEqual(len(d.tuplets), 1)
+        scaled = d.augmentOrDiminish(1.5)
+        self.assertEqual(scaled.tuplets, ())
+        self.assertEqual(scaled.quarterLength, 0.0625)
 
     def testTuple(self):
         # create a tuplet with 5 dotted eighths in the place of 3 double-dotted
