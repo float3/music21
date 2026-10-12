@@ -6,7 +6,7 @@
 #               Greg Chapman
 #               Michael Scott Asato Cuthbert
 #
-# Copyright:    Copyright © 2010-2022 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2010-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # -----------------------------------------------------------------------------
 '''
@@ -1228,8 +1228,15 @@ class Metadata(base.Music21Object):
         # look for regex characters
         elif (isinstance(query, str)
               and any(character in query for character in '*.|+?{}')):
-            useRegex = True
-            reQuery = re.compile(query, flags=re.IGNORECASE)
+            try:
+                reQuery = re.compile(query, flags=re.IGNORECASE)
+            except re.error:
+                # The query carries a regular expression's punctuation
+                # without being one: a title with an unbalanced bracket.
+                # Search for it as it stands.
+                pass
+            else:
+                useRegex = True
 
         if useRegex and reQuery is not None:
             for value, innerField in valueFieldPairs:
