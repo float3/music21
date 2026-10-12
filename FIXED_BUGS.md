@@ -79,6 +79,10 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/fb-realizer-own-pitches`](https://github.com/float3/music21/tree/pr/fb-realizer-own-pitches): Give figured-bass realizations their own pitches
 - [`pr/fb-tuplet-offsets`](https://github.com/float3/music21/tree/pr/fb-tuplet-offsets): Realize figured-bass lines holding tuplets
 
+### Metadata
+
+- [`pr/metadata-search-uncompilable`](https://github.com/float3/music21/tree/pr/metadata-search-uncompilable): Search metadata for a query that will not compile as a pattern
+
 ### Formats
 
 - [`pr/abc-rebar-overflow`](https://github.com/float3/music21/tree/pr/abc-rebar-overflow): Keep the overflow of an ABC measure when no time signature fits it
