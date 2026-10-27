@@ -6,10 +6,18 @@
 # where upstream is ahead it opens one pull request asking to merge
 # **`cuthbertLab/music21:master` into this fork's `master`**.
 #
-# The pull request is that, and nothing in between: no branch of this fork's
-# own is pushed, nothing is force-pushed, and nothing has to be cleaned up
-# afterwards. It also keeps itself current -- as upstream advances, the same
-# pull request grows, because its head *is* upstream's branch.
+# What that pull request is made of is worth knowing, because the obvious
+# shape of it is not allowed. A pull request whose *head* is
+# `cuthbertLab:master` cannot be opened by us at all: GitHub answers `Fork
+# collab can't be granted by someone without permission`, wanting write
+# access on the head repository, which is upstream's and not ours. Its own
+# "Sync fork" button is not a pull request for the same reason.
+#
+# So the head is a ref of this fork's -- `from-upstream`, force-pushed to
+# upstream's commit verbatim on every run. A snapshot and not a merge: no
+# bot authors a merge commit here, and the diff is exactly what upstream
+# adds. The direction is still upstream into this fork, which is the
+# direction the work travels.
 #
 # **It never asks anything of upstream.** The pull request's base is this
 # fork, so merging it changes nothing there, and the guard below pins the job
@@ -38,12 +46,16 @@ on:
           request asks to merge into. `master` is what the daily run takes;
           another is for trying this workflow out, since the path that
           matters -- opening the pull request -- is skipped whenever there is
-          nothing to take, which is most days.
+          nothing to take, which is most days. A run against another branch
+          pushes `from-upstream-<branch>`, so it cannot disturb the daily
+          one.
         required: false
         default: master
 
 permissions:
-  contents: read
+  # Write, because the ref the pull request is opened from has to be pushed;
+  # see the note above on why its head cannot be upstream's own.
+  contents: write
   pull-requests: write
 
 concurrency:
@@ -81,6 +93,11 @@ jobs:
             echo "ahead=$ahead"
             echo "head=$(git rev-parse --short upstream/master)"
             echo "base=${{ inputs.base || 'master' }}"
+            if [ "${{ inputs.base || 'master' }}" = "master" ]; then
+              echo "branch=from-upstream"
+            else
+              echo "branch=from-upstream-${{ inputs.base }}"
+            fi
           } >> "$GITHUB_OUTPUT"
 
           if [ "$behind" -eq 0 ]; then
@@ -109,6 +126,18 @@ jobs:
             git log --oneline --no-decorate HEAD..upstream/master | head -40
           } >> "$GITHUB_STEP_SUMMARY"
 
+      # Upstream's commit as it stands, under a name of this fork's, since a
+      # pull request cannot be opened from a ref of upstream's. Forced,
+      # because it is a snapshot: whatever an earlier run left is never what
+      # this one should carry.
+      - name: Push upstream's commit under a name of ours
+        if: steps.survey.outputs.behind != '0'
+        env:
+          SYNC_BRANCH: ${{ steps.survey.outputs.branch }}
+        run: |
+          set -euo pipefail
+          git push --force origin "upstream/master:refs/heads/$SYNC_BRANCH"
+
       - name: Open or update the pull request
         if: steps.survey.outputs.behind != '0'
         env:
@@ -118,12 +147,15 @@ jobs:
           UPSTREAM_HEAD: ${{ steps.survey.outputs.head }}
           CLEAN: ${{ steps.survey.outputs.clean }}
           BASE: ${{ steps.survey.outputs.base }}
+          SYNC_BRANCH: ${{ steps.survey.outputs.branch }}
         run: |
           set -euo pipefail
           {
             echo "\`cuthbertLab/music21\` has **$BEHIND** commits this fork does not, and this fork is $AHEAD ahead of it. Upstream is at \`$UPSTREAM_HEAD\`."
             echo
-            echo "The head of this pull request *is* upstream's \`master\`, so it keeps itself current: as upstream advances this grows, rather than going stale."
+            echo "\`$SYNC_BRANCH\` is upstream's commit verbatim, pushed under a name of this fork's because a pull request cannot be opened from a ref of upstream's. A snapshot and not a merge, so the diff below is exactly what upstream adds."
+            echo
+            echo "**It therefore reads as though this fork's own fixes were being removed.** They are not: merging a pull request merges, so this fork's side is kept."
             echo
             if [ "$CLEAN" = "true" ]; then
               echo "It merges **cleanly**. Check the fork's own fixes still do what they were written to do before merging -- a test file that merges without complaint is not a test that passes."
@@ -143,10 +175,8 @@ jobs:
           title="Take $BEHIND commits from upstream music21"
           # One pull request, found by what it is rather than by a branch name
           # of ours: its head is `master` in `cuthbertLab`.
-          existing="$(gh pr list --base "$BASE" --state open \
-            --json number,headRefName,headRepositoryOwner \
-            --jq '.[] | select(.headRefName == "master" and .headRepositoryOwner.login == "cuthbertLab") | .number' \
-            | head -1)"
+          existing="$(gh pr list --base "$BASE" --head "$SYNC_BRANCH" --state open \
+            --json number --jq '.[0].number // empty')"
           if [ -n "$existing" ]; then
             gh pr edit "$existing" --title "$title" --body-file /tmp/body.md
             echo "Updated #$existing" >> "$GITHUB_STEP_SUMMARY"
@@ -160,20 +190,20 @@ jobs:
           # which says nothing about what to do. Naming the setting is what
           # makes that answer actionable. The run fails rather than going
           # quietly green: a sync that opened nothing has not done its job.
-          if gh pr create --base "$BASE" --head cuthbertLab:master \
+          if gh pr create --base "$BASE" --head "$SYNC_BRANCH" \
               --title "$title" --body-file /tmp/body.md
           then
             echo "Opened a pull request." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
-          compare="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/${BASE}...cuthbertLab:master?expand=1"
+          compare="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/${BASE}...${SYNC_BRANCH}?expand=1"
           {
             echo "### Nothing was opened"
             echo
-            echo "Upstream has $BEHIND commits to take, and opening the pull request was refused."
+            echo "\`$SYNC_BRANCH\` is pushed and holds the $BEHIND commits to take. Opening the pull request was refused."
             echo
             echo "Tick **Settings -> Actions -> General -> Workflow permissions -> \"Allow GitHub Actions to create and approve pull requests\"** and the next run will open it. Until then, [open it by hand]($compare)."
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "::error title=Cannot open the pull request::Upstream has $BEHIND commits to take. Tick Settings -> Actions -> General -> Allow GitHub Actions to create and approve pull requests, or open it by hand: $compare"
+          echo "::error title=Cannot open the pull request::$SYNC_BRANCH is pushed and holds $BEHIND commits. Tick Settings -> Actions -> General -> Allow GitHub Actions to create and approve pull requests, or open it by hand: $compare"
           exit 1
