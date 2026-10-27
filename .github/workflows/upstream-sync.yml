@@ -1,0 +1,135 @@
+# Opens a pull request when cuthbertLab/music21 has commits this fork lacks.
+#
+# This fork carries fixes of its own on master, several of them sent upstream
+# as pull requests, so it drifts behind and has to be caught up by hand every
+# so often. This does the catching up: once a day it fetches upstream, merges
+# it onto a branch of its own and opens one pull request for the result.
+#
+# **It never touches upstream.** Everything it opens is inside this fork,
+# branch into this fork's master, which is also why the guard below pins the
+# repository by name: were this file ever to reach cuthbertLab/music21 -- by a
+# pull request from a branch cut off this master, say -- it must do nothing
+# there.
+#
+# Keep it off any branch sent upstream for that same reason. Cut a
+# contribution's branch from `upstream/master` rather than from this master
+# and neither this file nor anything else of the fork's appears in its diff.
+name: Upstream sync
+
+on:
+  schedule:
+    # Daily, a little after the hour so as not to pile onto the scheduler's
+    # busiest minute. GitHub disables scheduled workflows in a repository with
+    # no activity for sixty days; a run of this one counts as none, so if it
+    # goes quiet, push something or run it by hand from the Actions tab.
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: upstream-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Merge upstream into a branch and open a pull request
+    runs-on: ubuntu-latest
+    if: github.repository == 'float3/music21'
+    steps:
+      - name: Checkout this fork
+        uses: actions/checkout@v7
+        with:
+          # The whole history: a merge needs the commits either side of it.
+          fetch-depth: 0
+          ref: master
+
+      - name: Fetch upstream
+        run: |
+          set -euo pipefail
+          git remote add upstream https://github.com/cuthbertLab/music21.git
+          git fetch --no-tags upstream master
+
+      - name: Say what is new
+        id: survey
+        run: |
+          set -euo pipefail
+          behind="$(git rev-list --count HEAD..upstream/master)"
+          ahead="$(git rev-list --count upstream/master..HEAD)"
+          echo "behind=$behind" >> "$GITHUB_OUTPUT"
+          echo "ahead=$ahead" >> "$GITHUB_OUTPUT"
+          echo "head=$(git rev-parse --short upstream/master)" >> "$GITHUB_OUTPUT"
+          if [ "$behind" -eq 0 ]; then
+            echo "Already up to date with upstream; nothing to open." >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "$behind upstream commits to take; this fork is $ahead ahead." >> "$GITHUB_STEP_SUMMARY"
+            git log --oneline --no-decorate HEAD..upstream/master | head -40 >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Merge upstream onto the sync branch
+        id: merge
+        if: steps.survey.outputs.behind != '0'
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c upstream-sync
+          if git merge --no-edit upstream/master; then
+            echo "clean=true" >> "$GITHUB_OUTPUT"
+          else
+            # A merge that cannot be committed must not be pushed, so the
+            # branch is reset to upstream's own commit instead: the pull
+            # request then holds exactly what is to be taken, GitHub marks it
+            # conflicting, and the files to settle are named in its body.
+            echo "clean=false" >> "$GITHUB_OUTPUT"
+            git diff --diff-filter=U --name-only > /tmp/conflicts.txt
+            git merge --abort
+            git reset --hard upstream/master
+          fi
+          # Force, because the branch is rebuilt from scratch on every run and
+          # an earlier run's merge is never what this one should carry.
+          git push --force origin upstream-sync
+
+      - name: Open or update the pull request
+        if: steps.survey.outputs.behind != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BEHIND: ${{ steps.survey.outputs.behind }}
+          AHEAD: ${{ steps.survey.outputs.ahead }}
+          UPSTREAM_HEAD: ${{ steps.survey.outputs.head }}
+          CLEAN: ${{ steps.merge.outputs.clean }}
+        run: |
+          set -euo pipefail
+          {
+            echo "\`cuthbertLab/music21\` has **$BEHIND** commits this fork does not, and this fork is $AHEAD ahead of it. Upstream is at \`$UPSTREAM_HEAD\`."
+            echo
+            if [ "$CLEAN" = "true" ]; then
+              echo "The merge is **clean** and this branch is it. Check the fork's own fixes are still doing what they were written to do before merging -- a clean merge of a test file is not the same as a passing test."
+            else
+              echo "The merge **conflicts**, so this branch is upstream's commit as it stands rather than a merge that could not be committed. Settle these by hand:"
+              echo
+              while read -r path; do [ -n "$path" ] && echo "- \`$path\`"; done < /tmp/conflicts.txt
+              echo
+              echo "A conflict here is usually one of this fork's fixes meeting an upstream change to the same lines. Where upstream has taken an equivalent fix, prefer upstream's; where the fork's change still stands on its own, keep the fork's and say so in the merge."
+              echo
+              echo "**The diff below reads as though this fork's own fixes were being removed**, because the branch is upstream's commit and does not carry them. They are not: merging a pull request is a merge, so master's side is kept."
+            fi
+            echo
+            echo "**Merge it, never squash it.** Squashing would flatten upstream's commits into one, losing their authorship -- and on the conflicting branch above it would replace this fork's work rather than merge with it."
+            echo
+            echo "Opened by \`.github/workflows/upstream-sync.yml\`, which runs daily."
+          } > /tmp/body.md
+
+          existing="$(gh pr list --head upstream-sync --state open --json number --jq '.[0].number // empty')"
+          if [ -n "$existing" ]; then
+            gh pr edit "$existing" --body-file /tmp/body.md \
+              --title "Take $BEHIND commits from upstream music21"
+            echo "Updated #$existing" >> "$GITHUB_STEP_SUMMARY"
+          else
+            gh pr create --base master --head upstream-sync \
+              --title "Take $BEHIND commits from upstream music21" \
+              --body-file /tmp/body.md
+            echo "Opened a pull request." >> "$GITHUB_STEP_SUMMARY"
+          fi
