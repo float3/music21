@@ -2,14 +2,20 @@
 #
 # This fork carries fixes of its own on master, several of them sent upstream
 # as pull requests, so it drifts behind and has to be caught up by hand every
-# so often. This does the catching up: once a day it fetches upstream, merges
-# it onto a branch of its own and opens one pull request for the result.
+# so often. This does the catching up: once a day it looks at upstream, and
+# where upstream is ahead it opens one pull request asking to merge
+# **`cuthbertLab/music21:master` into this fork's `master`**.
 #
-# **It never touches upstream.** Everything it opens is inside this fork,
-# branch into this fork's master, which is also why the guard below pins the
-# repository by name: were this file ever to reach cuthbertLab/music21 -- by a
-# pull request from a branch cut off this master, say -- it must do nothing
-# there.
+# The pull request is that, and nothing in between: no branch of this fork's
+# own is pushed, nothing is force-pushed, and nothing has to be cleaned up
+# afterwards. It also keeps itself current -- as upstream advances, the same
+# pull request grows, because its head *is* upstream's branch.
+#
+# **It never asks anything of upstream.** The pull request's base is this
+# fork, so merging it changes nothing there, and the guard below pins the job
+# to this repository by name: were this file ever to reach
+# cuthbertLab/music21 -- by a pull request from a branch cut off this master,
+# say -- it must do nothing at all.
 #
 # Keep it off any branch sent upstream for that same reason. Cut a
 # contribution's branch from `upstream/master` rather than from this master
@@ -20,22 +26,24 @@ on:
   schedule:
     # Daily, a little after the hour so as not to pile onto the scheduler's
     # busiest minute. GitHub disables scheduled workflows in a repository with
-    # no activity for sixty days; a run of this one counts as none, so if it
-    # goes quiet, push something or run it by hand from the Actions tab.
+    # no activity for sixty days; a run of this one does not count as
+    # activity, so if it goes quiet, push something or run it by hand from the
+    # Actions tab.
     - cron: "17 6 * * *"
   workflow_dispatch:
     inputs:
       base:
         description: >-
-          The branch to catch up, and the branch the pull request asks to
-          merge into. `master` is the one the daily run takes; another is for
-          trying this workflow out, since the path that matters -- merging
-          and opening -- is skipped whenever there is nothing to take.
+          The branch this fork wants caught up, and the branch the pull
+          request asks to merge into. `master` is what the daily run takes;
+          another is for trying this workflow out, since the path that
+          matters -- opening the pull request -- is skipped whenever there is
+          nothing to take, which is most days.
         required: false
         default: master
 
 permissions:
-  contents: write
+  contents: read
   pull-requests: write
 
 concurrency:
@@ -44,14 +52,15 @@ concurrency:
 
 jobs:
   sync:
-    name: Merge upstream into a branch and open a pull request
+    name: Open a pull request from upstream into this fork
     runs-on: ubuntu-latest
     if: github.repository == 'float3/music21'
     steps:
       - name: Checkout this fork
         uses: actions/checkout@v7
         with:
-          # The whole history: a merge needs the commits either side of it.
+          # The whole history: whether upstream merges cleanly is read off the
+          # commits either side, which a shallow clone has not got.
           fetch-depth: 0
           ref: ${{ inputs.base || 'master' }}
 
@@ -61,56 +70,44 @@ jobs:
           git remote add upstream https://github.com/cuthbertLab/music21.git
           git fetch --no-tags upstream master
 
-      - name: Say what is new
+      - name: Say what is new, and whether it merges
         id: survey
         run: |
           set -euo pipefail
           behind="$(git rev-list --count HEAD..upstream/master)"
           ahead="$(git rev-list --count upstream/master..HEAD)"
-          echo "behind=$behind" >> "$GITHUB_OUTPUT"
-          echo "ahead=$ahead" >> "$GITHUB_OUTPUT"
-          echo "head=$(git rev-parse --short upstream/master)" >> "$GITHUB_OUTPUT"
-          base="${{ inputs.base || 'master' }}"
-          echo "base=$base" >> "$GITHUB_OUTPUT"
-          # Named after what it catches up, so trying this out on another
-          # branch cannot clobber the daily run's.
-          if [ "$base" = "master" ]; then
-            echo "branch=upstream-sync" >> "$GITHUB_OUTPUT"
-          else
-            echo "branch=upstream-sync-$base" >> "$GITHUB_OUTPUT"
-          fi
+          {
+            echo "behind=$behind"
+            echo "ahead=$ahead"
+            echo "head=$(git rev-parse --short upstream/master)"
+            echo "base=${{ inputs.base || 'master' }}"
+          } >> "$GITHUB_OUTPUT"
+
           if [ "$behind" -eq 0 ]; then
             echo "Already up to date with upstream; nothing to open." >> "$GITHUB_STEP_SUMMARY"
-          else
-            echo "$behind upstream commits to take; this fork is $ahead ahead." >> "$GITHUB_STEP_SUMMARY"
-            git log --oneline --no-decorate HEAD..upstream/master | head -40 >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
 
-      - name: Merge upstream onto the sync branch
-        id: merge
-        if: steps.survey.outputs.behind != '0'
-        env:
-          SYNC_BRANCH: ${{ steps.survey.outputs.branch }}
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git switch -c "$SYNC_BRANCH"
-          if git merge --no-edit upstream/master; then
+          # Whether it merges is worked out here and only *said* in the body:
+          # `git merge-tree` tries the merge without a working tree and
+          # without writing anything, and names the paths that clash. Nothing
+          # is committed, nothing is pushed.
+          if git merge-tree --write-tree --name-only HEAD upstream/master > /tmp/merged.txt; then
             echo "clean=true" >> "$GITHUB_OUTPUT"
           else
-            # A merge that cannot be committed must not be pushed, so the
-            # branch is reset to upstream's own commit instead: the pull
-            # request then holds exactly what is to be taken, GitHub marks it
-            # conflicting, and the files to settle are named in its body.
             echo "clean=false" >> "$GITHUB_OUTPUT"
-            git diff --diff-filter=U --name-only > /tmp/conflicts.txt
-            git merge --abort
-            git reset --hard upstream/master
+            # Its output is the merged tree's name, then the clashing
+            # paths, then a blank line and the running commentary -- so the
+            # paths are the lines after the first and before the blank, and
+            # not, as read the first time, the ones after it.
+            awk 'NR > 1 { if (NF == 0) exit; print }' /tmp/merged.txt > /tmp/conflicts.txt
           fi
-          # Force, because the branch is rebuilt from scratch on every run and
-          # an earlier run's merge is never what this one should carry.
-          git push --force origin "$SYNC_BRANCH"
+
+          {
+            echo "$behind upstream commits to take; this fork is $ahead ahead."
+            echo
+            git log --oneline --no-decorate HEAD..upstream/master | head -40
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Open or update the pull request
         if: steps.survey.outputs.behind != '0'
@@ -119,59 +116,64 @@ jobs:
           BEHIND: ${{ steps.survey.outputs.behind }}
           AHEAD: ${{ steps.survey.outputs.ahead }}
           UPSTREAM_HEAD: ${{ steps.survey.outputs.head }}
-          CLEAN: ${{ steps.merge.outputs.clean }}
+          CLEAN: ${{ steps.survey.outputs.clean }}
           BASE: ${{ steps.survey.outputs.base }}
-          SYNC_BRANCH: ${{ steps.survey.outputs.branch }}
         run: |
           set -euo pipefail
           {
             echo "\`cuthbertLab/music21\` has **$BEHIND** commits this fork does not, and this fork is $AHEAD ahead of it. Upstream is at \`$UPSTREAM_HEAD\`."
             echo
+            echo "The head of this pull request *is* upstream's \`master\`, so it keeps itself current: as upstream advances this grows, rather than going stale."
+            echo
             if [ "$CLEAN" = "true" ]; then
-              echo "The merge is **clean** and this branch is it. Check the fork's own fixes are still doing what they were written to do before merging -- a clean merge of a test file is not the same as a passing test."
+              echo "It merges **cleanly**. Check the fork's own fixes still do what they were written to do before merging -- a test file that merges without complaint is not a test that passes."
             else
-              echo "The merge **conflicts**, so this branch is upstream's commit as it stands rather than a merge that could not be committed. Settle these by hand:"
+              echo "It **conflicts**. Settle these by hand:"
               echo
               while read -r path; do [ -n "$path" ] && echo "- \`$path\`"; done < /tmp/conflicts.txt
               echo
               echo "A conflict here is usually one of this fork's fixes meeting an upstream change to the same lines. Where upstream has taken an equivalent fix, prefer upstream's; where the fork's change still stands on its own, keep the fork's and say so in the merge."
-              echo
-              echo "**The diff below reads as though this fork's own fixes were being removed**, because the branch is upstream's commit and does not carry them. They are not: merging a pull request is a merge, so master's side is kept."
             fi
             echo
-            echo "**Merge it, never squash it.** Squashing would flatten upstream's commits into one, losing their authorship -- and on the conflicting branch above it would replace this fork's work rather than merge with it."
+            echo "**Merge it, never squash it.** Squashing would flatten upstream's commits into one and lose their authorship."
             echo
             echo "Opened by \`.github/workflows/upstream-sync.yml\`, which runs daily."
           } > /tmp/body.md
 
-          existing="$(gh pr list --head "$SYNC_BRANCH" --state open --json number --jq '.[0].number // empty')"
+          title="Take $BEHIND commits from upstream music21"
+          # One pull request, found by what it is rather than by a branch name
+          # of ours: its head is `master` in `cuthbertLab`.
+          existing="$(gh pr list --base "$BASE" --state open \
+            --json number,headRefName,headRepositoryOwner \
+            --jq '.[] | select(.headRefName == "master" and .headRepositoryOwner.login == "cuthbertLab") | .number' \
+            | head -1)"
           if [ -n "$existing" ]; then
-            gh pr edit "$existing" --body-file /tmp/body.md               --title "Take $BEHIND commits from upstream music21"
+            gh pr edit "$existing" --title "$title" --body-file /tmp/body.md
             echo "Updated #$existing" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
-          # The branch is pushed either way, so the work is never lost for
-          # want of a permission -- but `GITHUB_TOKEN` can only open a pull
-          # request where **Settings -> Actions -> General -> Workflow
-          # permissions -> "Allow GitHub Actions to create and approve pull
-          # requests"** is ticked, and GitHub answers `Resource not
-          # accessible by integration` where it is not. Naming the setting is
-          # what makes that answer actionable. The run fails rather than going
+          # `GITHUB_TOKEN` may only open a pull request where **Settings ->
+          # Actions -> General -> Workflow permissions -> "Allow GitHub
+          # Actions to create and approve pull requests"** is ticked; where it
+          # is not, GitHub answers `Resource not accessible by integration`,
+          # which says nothing about what to do. Naming the setting is what
+          # makes that answer actionable. The run fails rather than going
           # quietly green: a sync that opened nothing has not done its job.
-          if gh pr create --base "$BASE" --head "$SYNC_BRANCH"               --title "Take $BEHIND commits from upstream music21"               --body-file /tmp/body.md
+          if gh pr create --base "$BASE" --head cuthbertLab:master \
+              --title "$title" --body-file /tmp/body.md
           then
             echo "Opened a pull request." >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
 
-          compare="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/${BASE}...${SYNC_BRANCH}?expand=1"
+          compare="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/${BASE}...cuthbertLab:master?expand=1"
           {
-            echo "### The branch is ready; the pull request is not"
+            echo "### Nothing was opened"
             echo
-            echo "`$SYNC_BRANCH` is pushed and holds the $BEHIND commits to take. Opening the pull request was refused."
+            echo "Upstream has $BEHIND commits to take, and opening the pull request was refused."
             echo
             echo "Tick **Settings -> Actions -> General -> Workflow permissions -> \"Allow GitHub Actions to create and approve pull requests\"** and the next run will open it. Until then, [open it by hand]($compare)."
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "::error title=Cannot open the pull request::$SYNC_BRANCH is pushed. Tick Settings -> Actions -> General -> Allow GitHub Actions to create and approve pull requests, or open it by hand: $compare"
+          echo "::error title=Cannot open the pull request::Upstream has $BEHIND commits to take. Tick Settings -> Actions -> General -> Allow GitHub Actions to create and approve pull requests, or open it by hand: $compare"
           exit 1
