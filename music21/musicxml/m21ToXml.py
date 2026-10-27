@@ -241,6 +241,32 @@ def _setTagTextFromAttribute(
     return subElement
 
 
+def moveOctaveIntoMusicxmlRange(octave: int, name: str) -> int:
+    '''
+    Move an octave into MusicXML's 0-9 range, warning (with `name`) if it had to move.
+
+    >>> musicxml.m21ToXml.moveOctaveIntoMusicxmlRange(4, 'C4')
+    4
+    >>> import warnings
+    >>> with warnings.catch_warnings(record=True) as w:
+    ...     warnings.simplefilter('always')  #_DOCS_HIDE
+    ...     musicxml.m21ToXml.moveOctaveIntoMusicxmlRange(12, 'C12')
+    9
+    >>> w[0].message
+    MusicXMLWarning('C12 is out of MusicXML range; writing octave 9')
+
+    * New in v11.
+    '''
+    if 0 <= octave <= 9:
+        return octave
+    newOctave = min(max(octave, 0), 9)
+    warnings.warn(
+        MusicXMLWarning(f'{name} is out of MusicXML range; writing octave {newOctave}'),
+        stacklevel=3,
+    )
+    return newOctave
+
+
 class GeneralObjectExporter:
     '''
     Packs any `Music21Object` into a well-formed score and exports
@@ -4394,7 +4420,8 @@ class MeasureExporter(XMLExporterBase):
             tempPitch = pitch.Pitch()
             tempPitch.diatonicNoteNum = restObjectPseudoDNN
             mxDisplayStep.text = tempPitch.step
-            mxDisplayOctave.text = str(tempPitch.octave)
+            mxDisplayOctave.text = str(
+                moveOctaveIntoMusicxmlRange(tempPitch.octave, f'{r} display'))
 
         return mxNote
 
@@ -4591,7 +4618,9 @@ class MeasureExporter(XMLExporterBase):
         if p.accidental is not None:
             mxAlter = SubElement(mxPitch, 'alter')
             mxAlter.text = str(common.numToIntOrFloat(p.accidental.alter))
-        _setTagTextFromAttribute(p, mxPitch, 'octave')
+        _setTagTextFromAttribute(
+            p, mxPitch, 'octave',
+            transform=lambda o: moveOctaveIntoMusicxmlRange(o, p.nameWithOctave))
         return mxPitch
 
     def unpitchedToXml(self,
@@ -4648,7 +4677,9 @@ class MeasureExporter(XMLExporterBase):
 
         mxUnpitched = Element('unpitched')
         _setTagTextFromAttribute(up, mxUnpitched, 'display-step')
-        _setTagTextFromAttribute(up, mxUnpitched, 'display-octave')
+        _setTagTextFromAttribute(
+            up, mxUnpitched, 'display-octave',
+            transform=lambda o: moveOctaveIntoMusicxmlRange(o, up.displayName))
 
         # within <note>, only <grace>, <cue>, and <chord> may precede
         # <unpitched>, so insert after those rather than trying to list
