@@ -24,6 +24,15 @@ on:
     # goes quiet, push something or run it by hand from the Actions tab.
     - cron: "17 6 * * *"
   workflow_dispatch:
+    inputs:
+      base:
+        description: >-
+          The branch to catch up, and the branch the pull request asks to
+          merge into. `master` is the one the daily run takes; another is for
+          trying this workflow out, since the path that matters -- merging
+          and opening -- is skipped whenever there is nothing to take.
+        required: false
+        default: master
 
 permissions:
   contents: write
@@ -44,7 +53,7 @@ jobs:
         with:
           # The whole history: a merge needs the commits either side of it.
           fetch-depth: 0
-          ref: master
+          ref: ${{ inputs.base || 'master' }}
 
       - name: Fetch upstream
         run: |
@@ -61,6 +70,15 @@ jobs:
           echo "behind=$behind" >> "$GITHUB_OUTPUT"
           echo "ahead=$ahead" >> "$GITHUB_OUTPUT"
           echo "head=$(git rev-parse --short upstream/master)" >> "$GITHUB_OUTPUT"
+          base="${{ inputs.base || 'master' }}"
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          # Named after what it catches up, so trying this out on another
+          # branch cannot clobber the daily run's.
+          if [ "$base" = "master" ]; then
+            echo "branch=upstream-sync" >> "$GITHUB_OUTPUT"
+          else
+            echo "branch=upstream-sync-$base" >> "$GITHUB_OUTPUT"
+          fi
           if [ "$behind" -eq 0 ]; then
             echo "Already up to date with upstream; nothing to open." >> "$GITHUB_STEP_SUMMARY"
           else
@@ -71,11 +89,13 @@ jobs:
       - name: Merge upstream onto the sync branch
         id: merge
         if: steps.survey.outputs.behind != '0'
+        env:
+          SYNC_BRANCH: ${{ steps.survey.outputs.branch }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git switch -c upstream-sync
+          git switch -c "$SYNC_BRANCH"
           if git merge --no-edit upstream/master; then
             echo "clean=true" >> "$GITHUB_OUTPUT"
           else
@@ -90,7 +110,7 @@ jobs:
           fi
           # Force, because the branch is rebuilt from scratch on every run and
           # an earlier run's merge is never what this one should carry.
-          git push --force origin upstream-sync
+          git push --force origin "$SYNC_BRANCH"
 
       - name: Open or update the pull request
         if: steps.survey.outputs.behind != '0'
@@ -100,6 +120,8 @@ jobs:
           AHEAD: ${{ steps.survey.outputs.ahead }}
           UPSTREAM_HEAD: ${{ steps.survey.outputs.head }}
           CLEAN: ${{ steps.merge.outputs.clean }}
+          BASE: ${{ steps.survey.outputs.base }}
+          SYNC_BRANCH: ${{ steps.survey.outputs.branch }}
         run: |
           set -euo pipefail
           {
@@ -122,13 +144,13 @@ jobs:
             echo "Opened by \`.github/workflows/upstream-sync.yml\`, which runs daily."
           } > /tmp/body.md
 
-          existing="$(gh pr list --head upstream-sync --state open --json number --jq '.[0].number // empty')"
+          existing="$(gh pr list --head "$SYNC_BRANCH" --state open --json number --jq '.[0].number // empty')"
           if [ -n "$existing" ]; then
             gh pr edit "$existing" --body-file /tmp/body.md \
               --title "Take $BEHIND commits from upstream music21"
             echo "Updated #$existing" >> "$GITHUB_STEP_SUMMARY"
           else
-            gh pr create --base master --head upstream-sync \
+            gh pr create --base "$BASE" --head "$SYNC_BRANCH" \
               --title "Take $BEHIND commits from upstream music21" \
               --body-file /tmp/body.md
             echo "Opened a pull request." >> "$GITHUB_STEP_SUMMARY"
