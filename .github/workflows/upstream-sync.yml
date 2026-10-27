@@ -146,12 +146,32 @@ jobs:
 
           existing="$(gh pr list --head "$SYNC_BRANCH" --state open --json number --jq '.[0].number // empty')"
           if [ -n "$existing" ]; then
-            gh pr edit "$existing" --body-file /tmp/body.md \
-              --title "Take $BEHIND commits from upstream music21"
+            gh pr edit "$existing" --body-file /tmp/body.md               --title "Take $BEHIND commits from upstream music21"
             echo "Updated #$existing" >> "$GITHUB_STEP_SUMMARY"
-          else
-            gh pr create --base "$BASE" --head "$SYNC_BRANCH" \
-              --title "Take $BEHIND commits from upstream music21" \
-              --body-file /tmp/body.md
-            echo "Opened a pull request." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
           fi
+
+          # The branch is pushed either way, so the work is never lost for
+          # want of a permission -- but `GITHUB_TOKEN` can only open a pull
+          # request where **Settings -> Actions -> General -> Workflow
+          # permissions -> "Allow GitHub Actions to create and approve pull
+          # requests"** is ticked, and GitHub answers `Resource not
+          # accessible by integration` where it is not. Naming the setting is
+          # what makes that answer actionable. The run fails rather than going
+          # quietly green: a sync that opened nothing has not done its job.
+          if gh pr create --base "$BASE" --head "$SYNC_BRANCH"               --title "Take $BEHIND commits from upstream music21"               --body-file /tmp/body.md
+          then
+            echo "Opened a pull request." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+
+          compare="${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/compare/${BASE}...${SYNC_BRANCH}?expand=1"
+          {
+            echo "### The branch is ready; the pull request is not"
+            echo
+            echo "`$SYNC_BRANCH` is pushed and holds the $BEHIND commits to take. Opening the pull request was refused."
+            echo
+            echo "Tick **Settings -> Actions -> General -> Workflow permissions -> \"Allow GitHub Actions to create and approve pull requests\"** and the next run will open it. Until then, [open it by hand]($compare)."
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::error title=Cannot open the pull request::$SYNC_BRANCH is pushed. Tick Settings -> Actions -> General -> Allow GitHub Actions to create and approve pull requests, or open it by hand: $compare"
+          exit 1
