@@ -951,9 +951,9 @@ class Test(unittest.TestCase):
                     s.append(harmony.ChordSymbol(figure))
             return features.native.ChordBassMotionFeature(s).extract().vector
 
-        # C to G is measured whether NoChord comes first or last
-        self.assertEqual(motionVector(['NC', 'C', 'G'])[5], 1.0)
-        self.assertEqual(motionVector(['C', 'G', 'NC'])[5], 1.0)
+        # C up to G is measured whether NoChord comes first or last
+        self.assertEqual(motionVector(['NC', 'C', 'G'])[7], 1.0)
+        self.assertEqual(motionVector(['C', 'G', 'NC'])[7], 1.0)
         # one real chord gives no motion
         self.assertEqual(motionVector(['C', 'NC']), [1.0] + [0.0] * 11)
 
@@ -973,7 +973,6 @@ class Test(unittest.TestCase):
 
     def testChordBassMotionFeature(self):
         from music21 import features
-        from music21 import harmony
         from music21 import stream
 
         s = stream.Stream()
