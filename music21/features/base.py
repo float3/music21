@@ -1514,6 +1514,8 @@ class Test(unittest.TestCase):
         self.assertEqual(allExtractors, extractorsById('all'))
         self.assertIn(native.ChordBassMotionFeature, allExtractors)
         self.assertIn(jSymbolic.PitchClassDistributionFeature, allExtractors)
+        self.assertEqual(extractorsById('cs12', library='all'),
+                         [native.ChordBassMotionFeature])
 
     def testClassPositionLabelsWithoutClassLabel(self):
         from music21 import features

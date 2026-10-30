@@ -1475,7 +1475,7 @@ class Test(unittest.TestCase):
         s = Stream()
         n = note.Note()
         s.insert(Fraction(5, 6), n)
-        at = 1 / 3 + 0.5  # a hair below 5/6
+        at = 1 / 3 + 0.5  # slightly below 5/6
         self.assertEqual(list(s.getElementsByOffset(at)), [n])
         self.assertEqual(list(s.getElementsByOffset(at, at)), [n])
 
@@ -1490,6 +1490,7 @@ class Test(unittest.TestCase):
         s.extendTies()
         self.assertEqual(first.tie.type, 'start')
         self.assertEqual(second.tie.type, 'stop')
+
     def testBeatAndMeasureFromOffsetPartialAfterNewMeter(self):
         '''
         The second half of a measure split in two counts its beats on in
@@ -1509,6 +1510,7 @@ class Test(unittest.TestCase):
         beat, measure = p.beatAndMeasureFromOffset(5.5)
         self.assertEqual(beat, 2.0)
         self.assertIs(measure, m2)
+
     def testSplitMeasureKeepsItsSettings(self):
         '''
         The second half of a split measure gets the clef, key and meter in
@@ -1531,6 +1533,7 @@ class Test(unittest.TestCase):
         self.assertIsInstance(right.clef, clef.BassClef)
         self.assertEqual(right.keySignature.sharps, 2)
         self.assertEqual(right.timeSignature.ratioString, '3/4')
+
     def testSliceByGreatestDivisorGraceAndEmpty(self):
         '''
         A grace note takes no time to divide, and a measure with no notes
@@ -1559,6 +1562,7 @@ class Test(unittest.TestCase):
             sc.insert(0, p)
         sc.sliceByGreatestDivisor(inPlace=True)
         self.assertEqual(len(sc.parts[0].getElementsByClass(Measure)[0].notes), 1)
+
     def testSliceAtOffsetsInVoices(self):
         '''
         A note cut in a voice leaves its later pieces in the voice.
@@ -1574,6 +1578,7 @@ class Test(unittest.TestCase):
                          [(0.0, 1.0), (1.0, 1.0), (2.0, 2.0)])
         self.assertEqual([(n.offset, n.quarterLength) for n in lower.notes],
                          [(0.0, 1.0), (1.0, 3.0)])
+
     def testSplitMeasureKeepsRightBarline(self):
         '''
         The second half of a split measure ends with the measure's right
