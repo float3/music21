@@ -5,7 +5,7 @@
 # Authors:      Michael Scott Asato Cuthbert
 #               Christopher Ariza
 #
-# Copyright:    Copyright © 2008-2024 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2008-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 '''
@@ -3005,7 +3005,6 @@ class Duration(prebase.ProtoM21Object, SlottedObjectMixin):
     def tuplets(self, tupletTuple: Iterable[Tuplet]):
         # environLocal.printDebug(['assigning tuplets in Duration', tupletTuple])
         if self._componentsNeedUpdating:
-            # work out the old tuplets now, or doing so later overwrites these
             self._updateComponents()
         self._tuplets = tuple(tupletTuple)
         self._quarterLengthNeedsUpdating = True
@@ -3708,7 +3707,6 @@ class Test(unittest.TestCase):
         self.assertEqual(scaled.quarterLength, 0.0625)
         self.assertEqual(scaled.type, '64th')
 
-        # the same duration with its tuplet worked out already
         d = Duration(fractions.Fraction(1, 24))
         self.assertEqual(len(d.tuplets), 1)
         scaled = d.augmentOrDiminish(1.5)
