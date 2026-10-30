@@ -1961,6 +1961,8 @@ class SpineCollection(prebase.ProtoM21Object):
         voices numbers from `nextNumber` on, and return the next unused number.
         The sub-spines of a top-level spine are voices 1, 2, ... at each split;
         the first sub-spine of a sub-spine continues its voice.
+
+        AI-assisted (Claude).
         '''
         afterAll = nextNumber
         for childSpines in thisSpine.childSpineInsertPoints.values():

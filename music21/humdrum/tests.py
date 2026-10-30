@@ -316,13 +316,13 @@ class Test(unittest.TestCase):
 
     def testSplitSpines2(self):
         '''
-        Currently this does not work since a second split on a stream that
-        already resulted from a split does not parse properly.  Shows up also
-        in strangeWTCOpening, below.
+        A spine split a second time after a split.
         '''
         hf1 = HumdrumDataCollection(testFiles.splitLots)
         hf1.parse()
-        unused_masterStream = hf1.stream
+        m2 = hf1.stream.parts[0].measure(2)
+        self.assertEqual(sorted(n.nameWithOctave for n in m2.recurse().notes),
+                         ['A#4', 'B#4', 'F#4'])
 
     def testParseStrangeSplit(self):
         hf1 = HumdrumDataCollection(testFiles.strangeWTCOpening)
