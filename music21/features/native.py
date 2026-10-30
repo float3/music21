@@ -975,7 +975,6 @@ class Test(unittest.TestCase):
 
     def testChordBassMotionFeature(self):
         from music21 import features
-        from music21 import harmony
         from music21 import stream
 
         s = stream.Stream()
