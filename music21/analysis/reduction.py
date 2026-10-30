@@ -154,7 +154,7 @@ class ReductiveNote(prebase.ProtoM21Object):
                     if p.name.lower() == sub.pitch.name.lower():
                         # copy the component
                         n = copy.deepcopy(sub)
-            else:  # take the highest
+            else:
                 n = copy.deepcopy(max(self._note, key=lambda sub: sub.pitch.ps))
         else:
             n = copy.deepcopy(self._note)
