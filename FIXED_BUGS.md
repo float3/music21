@@ -66,7 +66,7 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/floating-key-interpretation-copy`](https://github.com/float3/music21/tree/pr/floating-key-interpretation-copy): Smooth floating key analysis with each neighbour's own interpretations
 - [`pr/chord-reducer-hashable-timespans`](https://github.com/float3/music21/tree/pr/chord-reducer-hashable-timespans): Make ElementTimespan hashable
 - [`pr/verticality-part-id-chord-notes`](https://github.com/float3/music21/tree/pr/verticality-part-id-chord-notes): Give chord notes part id groups in Verticality.makeElement
-- [`pr/most-common-rhythms-chord`](https://github.com/float3/music21/tree/pr/most-common-rhythms-chord): Allow chords and unpitched notes in mostCommonMeasureRhythms
+- [`pr/most-common-rhythms-chord`](https://github.com/float3/music21/tree/pr/most-common-rhythms-chord): Allow chords and unpitched notes in mostCommonMeasureRhythms (open: [#2136](https://github.com/cuthbertLab/music21/pull/2136))
 - [`pr/chord-bass-motion-direction`](https://github.com/float3/music21/tree/pr/chord-bass-motion-direction): Count ChordBassMotionFeature motion upward
 - [`pr/quality-feature-modal-key`](https://github.com/float3/music21/tree/pr/quality-feature-modal-key): Analyze modal keys in QualityFeature
 - [`pr/output-tab-orange-include-id`](https://github.com/float3/music21/tree/pr/output-tab-orange-include-id): Honor includeId and includeClassLabel in Orange and ARFF rows
@@ -83,18 +83,18 @@ fix in an earlier form than its branch, the branch is the one to send.
 
 ### Scales and figured bass
 
-- [`pr/octave-repeating-full-octave`](https://github.com/float3/music21/tree/pr/octave-repeating-full-octave): Close an octave-repeating scale without a zero-width step
+- [`pr/octave-repeating-full-octave`](https://github.com/float3/music21/tree/pr/octave-repeating-full-octave): Close an octave-repeating scale without a zero-width step (open: [#2137](https://github.com/cuthbertLab/music21/pull/2137))
 - [`pr/harmonic-minor-no-altered-degrees`](https://github.com/float3/music21/tree/pr/harmonic-minor-no-altered-degrees): Build harmonic minor from its own intervals
 - [`pr/next-pitch-wide-cycles`](https://github.com/float3/music21/tree/pr/next-pitch-wide-cycles): Find nextPitch neighbors on cycles wider than an octave
 - [`pr/relative-node-id-deterministic`](https://github.com/float3/music21/tree/pr/relative-node-id-deterministic): Choose among nodes sharing a pitch without randomness
-- [`pr/fb-realizer-own-pitches`](https://github.com/float3/music21/tree/pr/fb-realizer-own-pitches): Give figured-bass realizations their own pitches
+- [`pr/fb-realizer-own-pitches-2`](https://github.com/float3/music21/tree/pr/fb-realizer-own-pitches-2): Give figured-bass realizations their own pitches (open: [#2138](https://github.com/cuthbertLab/music21/pull/2138))
 - [`pr/fb-tuplet-offsets`](https://github.com/float3/music21/tree/pr/fb-tuplet-offsets): Realize figured-bass lines holding tuplets
 
 ### Formats
 
 - [`pr/midi-deduplicate-instruments`](https://github.com/float3/music21/tree/pr/midi-deduplicate-instruments): Deduplicate instruments offset by offset
 - [`pr/chord-to-xml-sort-in-place`](https://github.com/float3/music21/tree/pr/chord-to-xml-sort-in-place): Sort a chord in place before exporting it to MusicXML (open: [#2126](https://github.com/cuthbertLab/music21/pull/2126))
-- [`pr/nwctxt-chord-groups`](https://github.com/float3/music21/tree/pr/nwctxt-chord-groups): Read NWC Dur2/Pos2 chord notes and rest chords at the same offset
+- [`pr/nwctxt-chord-groups-2`](https://github.com/float3/music21/tree/pr/nwctxt-chord-groups-2): Read NWC Dur2/Pos2 chord notes and rest chords at the same offset (open: [#2139](https://github.com/cuthbertLab/music21/pull/2139))
 - [`pr/nwc-binary-chords`](https://github.com/float3/music21/tree/pr/nwc-binary-chords): Read chord and rest-chord notes in binary NWC files
 - [`pr/nwc-chord-dump`](https://github.com/float3/music21/tree/pr/nwc-chord-dump): Dump binary NWC chords as Dur2/Pos2 and rest chords as RestChord
 - [`pr/romantext-high-numerals`](https://github.com/float3/music21/tree/pr/romantext-high-numerals): Reject roman numerals past VII
