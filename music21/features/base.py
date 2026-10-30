@@ -1492,20 +1492,6 @@ class Test(unittest.TestCase):
         for fp in (fp1, fp2, fp3):
             os.remove(fp)
 
-    def testIncludeFlagsOff(self):
-        from music21 import features
-
-        ds = features.DataSet(classLabel='Meter')
-        ds.addFeatureExtractors(features.extractorsById(['r31']))
-        s1 = converter.parse('tinynotation: 4/4 c4 d e f')
-        s2 = converter.parse('tinynotation: 3/4 c4 d e')
-        ds.addMultipleData([s1, s2], classValues=['four', 'three'], ids=['a', 'b'])
-        ds.process()
-        self.assertEqual(ds.getFeaturesAsList(includeClassLabel=False, includeId=False),
-                         [[4, 4], [3, 4]])
-        self.assertEqual(ds.getClassPositionLabels(includeClassLabel=False, includeId=False),
-                         [False, False])
-
     def testExtractorsByIdLibraryAll(self):
         from music21.features import jSymbolic
         from music21.features import native

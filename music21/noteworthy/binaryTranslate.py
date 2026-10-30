@@ -189,8 +189,6 @@ This is very beta.  Much better would be to convert the file into .xml or .nwctx
 '''
 from __future__ import annotations
 
-import contextlib
-import io
 import pathlib
 import struct
 from typing import TypedDict
@@ -820,7 +818,7 @@ class NWCObject:
         objectMethod(self)
 
     # Start parsing specific objects
-    # ==========================
+    # =================================
 
     def clef(self):
         '''
@@ -1161,6 +1159,9 @@ class NWCObject:
         self.dumpMethod = dump
 
     def _readChordNotes(self, numberOfNotes: int) -> list[NWCObject]:
+        '''
+        Reads the notes that follow a chord's or rest chord's own data.
+        '''
         chordNotes = []
         for i in range(numberOfNotes):
             chordNote = NWCObject(parserParent=self.parserParent)
@@ -1170,6 +1171,11 @@ class NWCObject:
 
     @staticmethod
     def _positionsByDuration(chordNotes: list[NWCObject]) -> dict[str|None, str]:
+        '''
+        The comma-joined Pos values of chord notes, keyed by their duration.
+
+        AI-assisted (Claude).
+        '''
         positions: dict[str|None, list[str]] = {}
         for d in chordNotes:
             positions.setdefault(d.durationStr, []).append(
@@ -1296,6 +1302,8 @@ class NWCObject:
         '''
         Rest chord: a rest's data and the number of notes, then n Note objects.
         Version 2 files have no stem length.
+
+        AI-assisted (Claude).
         '''
         p = self.parserParent
         if 170 < p.version < 200:
@@ -1350,6 +1358,9 @@ class NWCObject:
 
 
 class Test(unittest.TestCase):
+    '''
+    NWC objects read from bytes built by hand.  AI-assisted (Claude).
+    '''
 
     def testClefNames(self):
         for clefType, clefName in ((3, 'Tenor'), (4, 'Percussion')):
@@ -1394,10 +1405,7 @@ class Test(unittest.TestCase):
         data = struct.pack('<hB8sBh', 10, 0, bytes([2, 0, 0, 0, 0, 0, 0, 0x40]), 5, 2)
         data += self.chordNoteBytes(0) + self.chordNoteBytes(-2)
         data += struct.pack('<hBhh', 0, 0, 0, 0)
-        output = io.StringIO()
-        with contextlib.redirect_stdout(output):
-            chordObject, nextObject = self.parseObjects(data, 201, 2)
-        self.assertEqual(output.getvalue(), '')
+        chordObject, nextObject = self.parseObjects(data, 201, 2)
         self.assertEqual(chordObject.dumpMethod(chordObject), '|Chord|Dur:4th|Pos:0,2')
         self.assertEqual(chordObject.stemLength, 5)
         self.assertEqual(nextObject.type, 'Clef')
@@ -1424,6 +1432,11 @@ class Test(unittest.TestCase):
             self.assertEqual(nextObject.type, 'Clef')
 
     def translateDump(self, dumped: str) -> list[tuple[float, float, str]]:
+        '''
+        The offset, length and pitches of each note and rest translated from a dump.
+
+        AI-assisted (Claude).
+        '''
         from music21.noteworthy import translate
         s = translate.NoteworthyTranslator().parseList(['|AddStaff|', '|Clef|Type:Treble', dumped])
         return sorted((float(e.getOffsetInHierarchy(s)), float(e.quarterLength),

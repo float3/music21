@@ -1187,6 +1187,8 @@ class Test(unittest.TestCase):
         '''
         A measure missing from the first PartStaff holds only the second staff;
         the measures after it join both staves.
+
+        AI-assisted (Claude).
         '''
         from music21 import layout
         from music21 import note

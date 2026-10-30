@@ -1697,6 +1697,8 @@ class Test(unittest.TestCase):
         '''
         A program change after the start of a track adds an instrument there
         and leaves the one named by the track at the start.
+
+        AI-assisted (Claude).
         '''
         mt = MidiTrack(1)
 

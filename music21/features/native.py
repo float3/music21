@@ -994,9 +994,15 @@ class Test(unittest.TestCase):
 
         # a mode other than major or minor is analyzed, here as d minor
         s = converter.parse("tinynotation: 4/4 d4 f a d' c' b a f e d2.")
-        s.measure(1).insert(0, key.Key('d', 'dorian'))
+        dorian = key.Key('d', 'dorian')
+        s.measure(1).insert(0, dorian)
         fe = features.native.QualityFeature(s)
         self.assertEqual(fe.extract().vector, [1])
+
+        # a major key is used as stated
+        s.measure(1).replace(dorian, key.Key('F'))
+        fe = features.native.QualityFeature(s)
+        self.assertEqual(fe.extract().vector, [0])
 
 
 if __name__ == '__main__':

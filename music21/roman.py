@@ -4934,12 +4934,6 @@ class Test(unittest.TestCase):
                 with self.assertRaises(RomanNumeralException):
                     RomanNumeral(fig, 'C')
 
-    def testNumeralsPastSevenAreNotFigures(self):
-        for fig in ('VIII', 'viii7', 'IX', 'bVIII', 'V/VIII', 'Vv'):
-            with self.subTest(figure=fig):
-                with self.assertRaises(RomanNumeralException):
-                    RomanNumeral(fig, 'C')
-
     def testPreferSecondaryDominantsSkipsDiatonicChords(self):
         # https://github.com/cuthbertLab/music21/issues/2053
         # in minor, the raised sixth and seventh count as diatonic
@@ -4958,6 +4952,12 @@ class Test(unittest.TestCase):
                                                   keyString,
                                                   preferSecondaryDominants=True)
                 self.assertEqual(preferred.figure, preferredFigure)
+
+    def testNumeralsPastSevenAreNotFigures(self):
+        for fig in ('VIII', 'viii7', 'IX', 'bVIII', 'V/VIII', 'Vv'):
+            with self.subTest(figure=fig):
+                with self.assertRaises(RomanNumeralException):
+                    RomanNumeral(fig, 'C')
 
 
 class TestExternal(unittest.TestCase):

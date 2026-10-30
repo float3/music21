@@ -223,12 +223,12 @@ class WindowedAnalysis:
             for i in range(maxWindowCount):
                 # get all participants, combine into a single
                 current = stream.Stream()
-                appendedIds: set[int] = set()
+                appendedIds = set()
                 for dataStream, participants in overlapped:
                     if i not in participants:
                         continue
                     for m in dataStream:
-                        # a measure may stand in several windows
+                        # a stream holds an object once; repeats from other windows are copies
                         if id(m) in appendedIds:
                             current.append(copy.deepcopy(m))
                         else:

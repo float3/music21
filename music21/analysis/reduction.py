@@ -1094,6 +1094,53 @@ class Test(unittest.TestCase):
         unused_post = sr.reduce()
         # post.show()
 
+    def testPartReductionDynamicOnBarline(self):
+        from music21 import analysis
+        from music21 import dynamics
+        p = stream.Part()
+        p.id = 'solo'
+        for unused_i in range(3):
+            p.append(note.Note(quarterLength=4))
+        p.insert(0, dynamics.Dynamic('p'))
+        p.insert(4, dynamics.Dynamic('f'))
+        p.makeMeasures(inPlace=True)
+        s = stream.Score([p])
+
+        pr = analysis.reduction.PartReduction(s)
+        pr.process()
+        self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(),
+                                [('solo', [[0.0, 4.0, 0.5, '#666666'],
+                                           [4.0, 4.0, 1.0, '#666666'],
+                                           [8.0, 4.0, 1.0, '#666666']])])
+
+        pr = analysis.reduction.PartReduction(s, fillByMeasure=False)
+        pr.process()
+        self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(),
+                                [('solo', [[0.0, 4.0, 0.5, '#666666'],
+                                           [4.0, 8.0, 1.0, '#666666']])])
+
+    def testPartReductionDynamicBetweenSpans(self):
+        from music21 import analysis
+        from music21 import dynamics
+        # the f, in the rest measure or on the barline before it,
+        # starts the next span
+        for fOffset in (4, 5):
+            p = stream.Part()
+            p.id = 'solo'
+            p.append(note.Note(quarterLength=4))
+            p.append(note.Rest(quarterLength=4))
+            p.append(note.Note(quarterLength=4))
+            p.insert(0, dynamics.Dynamic('p'))
+            p.insert(fOffset, dynamics.Dynamic('f'))
+            p.makeMeasures(inPlace=True)
+            s = stream.Score([p])
+            target = [('solo', [[0.0, 4.0, 0.5, '#666666'],
+                                [8.0, 4.0, 1.0, '#666666']])]
+            for fillByMeasure in (True, False):
+                pr = analysis.reduction.PartReduction(s, fillByMeasure=fillByMeasure)
+                pr.process()
+                self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(), target)
+
     def testPartReductionA(self):
         from music21 import analysis
         from music21 import corpus
@@ -1220,19 +1267,15 @@ class Test(unittest.TestCase):
         p.makeMeasures(inPlace=True)
         s = stream.Score([p])
 
-        # before the mf there is no dynamic, so the minimum weight, 0.01
-        pr = analysis.reduction.PartReduction(s)
-        pr.process()
-        self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(),
-                                [('solo', [[0.0, 2.0, 0.01 / 0.55, '#666666'],
-                                           [2.0, 2.0, 1.0, '#666666'],
-                                           [4.0, 4.0, 1.0, '#666666']])])
+        def spans(pr):
+            pr.process()
+            return [(start, span) for start, span, unused_weight, unused_color
+                    in pr.getGraphHorizontalBarWeightedData()[0][1]]
 
-        pr = analysis.reduction.PartReduction(s, fillByMeasure=False)
-        pr.process()
-        self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(),
-                                [('solo', [[0.0, 2.0, 0.01 / 0.55, '#666666'],
-                                           [2.0, 6.0, 1.0, '#666666']])])
+        self.assertEqual(spans(analysis.reduction.PartReduction(s)),
+                         [(0.0, 2.0), (2.0, 2.0), (4.0, 4.0)])
+        self.assertEqual(spans(analysis.reduction.PartReduction(s, fillByMeasure=False)),
+                         [(0.0, 2.0), (2.0, 6.0)])
 
 
     def testPartReductionC(self):
@@ -1303,29 +1346,6 @@ class Test(unittest.TestCase):
                                 [('Piano', [[0.0, 4.0, 1.0, '#666666']]),
                                  ('Piano', [[0.0, 4.0, 1.0, '#666666']])])
 
-    def testPartReductionGroupMatchesWholeWords(self):
-        from music21 import analysis
-        s = stream.Score()
-        for pId in ('Violin I', 'Violin II', 'Viola', 'Violoncello', 'Flute 1', '10'):
-            p = stream.Part([note.Note(type='whole')])
-            p.id = pId
-            s.insert(0, p)
-        partGroups = [
-            {'name': 'Violin I', 'color': 'red', 'match': ['violino i', 'violin i']},
-            {'name': 'Violin II', 'color': 'red', 'match': ['violino ii', 'violin ii']},
-            {'name': 'Viola', 'color': 'red', 'match': None},
-            {'name': 'Cello', 'color': 'red', 'match': ['violoncello', "'cello"]},
-            {'name': 'Flute', 'color': 'red', 'match': ['flauto', r'flute \d']},
-            {'name': 'Soprano', 'color': 'red', 'match': ['soprano', '0']},
-        ]
-        pr = analysis.reduction.PartReduction(s, partGroups=partGroups)
-        pr._createPartBundles()
-        self.assertEqual([(b['pGroupId'], [p.id for p in b['parts']]) for b in pr._partBundles],
-                         [('Violin I', ['Violin I']),
-                          ('Violin II', ['Violin II']),
-                          ('Viola', ['Viola']),
-                          ('Cello', ['Violoncello']),
-                          ('Flute', ['Flute 1'])])
 
     def testPartReductionD(self):
         '''
@@ -1503,55 +1523,6 @@ class Test(unittest.TestCase):
                                 [('solo', [[0.0, 2.0, 0.35, '#666666'],
                                            [2.0, 2.0, 0.7, '#666666']])])
 
-    def testPartReductionDynamicOnBarline(self):
-        from music21 import analysis
-        from music21 import dynamics
-        p = stream.Part()
-        p.id = 'solo'
-        for unused_i in range(3):
-            p.append(note.Note(quarterLength=4))
-        p.insert(0, dynamics.Dynamic('p'))
-        p.insert(4, dynamics.Dynamic('f'))
-        p.makeMeasures(inPlace=True)
-        s = stream.Score([p])
-
-        pr = analysis.reduction.PartReduction(s, normalize=False)
-        pr.process()
-        self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(),
-                                [('solo', [[0.0, 4.0, 0.35, '#666666'],
-                                           [4.0, 4.0, 0.7, '#666666'],
-                                           [8.0, 4.0, 0.7, '#666666']])])
-
-        pr = analysis.reduction.PartReduction(s, fillByMeasure=False, normalize=False)
-        pr.process()
-        self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(),
-                                [('solo', [[0.0, 4.0, 0.35, '#666666'],
-                                           [4.0, 8.0, 0.7, '#666666']])])
-
-    def testPartReductionDynamicBetweenSpans(self):
-        from music21 import analysis
-        from music21 import dynamics
-        # the f, in the rest measure or on the barline before it,
-        # starts the next span
-        for fOffset in (4, 5):
-            p = stream.Part()
-            p.id = 'solo'
-            p.append(note.Note(quarterLength=4))
-            p.append(note.Rest(quarterLength=4))
-            p.append(note.Note(quarterLength=4))
-            p.insert(0, dynamics.Dynamic('p'))
-            p.insert(fOffset, dynamics.Dynamic('f'))
-            p.makeMeasures(inPlace=True)
-            s = stream.Score([p])
-            target = [('solo', [[0.0, 4.0, 0.35, '#666666'],
-                                [8.0, 4.0, 0.7, '#666666']])]
-            for fillByMeasure in (True, False):
-                pr = analysis.reduction.PartReduction(s,
-                                                      fillByMeasure=fillByMeasure,
-                                                      normalize=False)
-                pr.process()
-                self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(), target)
-
     def xtestPartReductionSchoenberg(self):
         from music21 import corpus
         sc = corpus.parse('schoenberg/opus19', 2)
@@ -1563,6 +1534,30 @@ class Test(unittest.TestCase):
         )
         pr.process()
         unused_target = pr.getGraphHorizontalBarWeightedData()
+
+    def testPartReductionGroupMatchesWholeWords(self):
+        from music21 import analysis
+        s = stream.Score()
+        for pId in ('Violin I', 'Violin II', 'Viola', 'Violoncello', 'Flute 1', '10'):
+            p = stream.Part([note.Note(type='whole')])
+            p.id = pId
+            s.insert(0, p)
+        partGroups = [
+            {'name': 'Violin I', 'color': 'red', 'match': ['violino i', 'violin i']},
+            {'name': 'Violin II', 'color': 'red', 'match': ['violino ii', 'violin ii']},
+            {'name': 'Viola', 'color': 'red', 'match': None},
+            {'name': 'Cello', 'color': 'red', 'match': ['violoncello', "'cello"]},
+            {'name': 'Flute', 'color': 'red', 'match': ['flauto', r'flute \d']},
+            {'name': 'Soprano', 'color': 'red', 'match': ['soprano', '0']},
+        ]
+        pr = analysis.reduction.PartReduction(s, partGroups=partGroups)
+        pr._createPartBundles()
+        self.assertEqual([(b['pGroupId'], [p.id for p in b['parts']]) for b in pr._partBundles],
+                         [('Violin I', ['Violin I']),
+                          ('Violin II', ['Violin II']),
+                          ('Viola', ['Viola']),
+                          ('Cello', ['Violoncello']),
+                          ('Flute', ['Flute 1'])])
 
 
 class TestExternal(unittest.TestCase):

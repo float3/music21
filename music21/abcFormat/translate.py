@@ -702,7 +702,6 @@ def reBar(music21Part: stream.Part, *, inPlace: bool = False) -> stream.Part|Non
                 try:
                     m2.timeSignature = m2.bestTimeSignature()
                 except meter.MeterException:
-                    # no meter fits: keep the overflow as an incomplete measure
                     pass
             if m2.timeSignature is not None:
                 if measureIndex != len(allMeasures) - 1:
@@ -1234,7 +1233,6 @@ w:first second third
 
     def testReBarKeepsOverflowWithNoBestTimeSignature(self):
         from music21 import converter
-        # the overflow, 5/8 of a quarter, has no time signature of its own
         s = converter.parse('M:2/4\nL:1/8\nK:C\nabcd e5/4 | abcd e5/4 |', format='abc')
         measures = s.parts.first().getElementsByClass(stream.Measure)
         self.assertEqual([m.number for m in measures], [0, 1, 2, 3])
@@ -1242,7 +1240,6 @@ w:first second third
         self.assertEqual(measures[1].highestTime, 0.625)
         self.assertEqual([n.name for n in measures[3].notes], ['E'])
 
-        # a later overflow that does fit a meter is still split off
         s = converter.parse('M:2/4\nL:1/8\nK:C\nabcd e5/4 | abcd | abcdef |', format='abc')
         measures = s.parts.first().getElementsByClass(stream.Measure)
         self.assertEqual([m.number for m in measures], [0, 1, 2, 3, 4])

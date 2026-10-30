@@ -1511,28 +1511,38 @@ class Test(unittest.TestCase):
         self.assertEqual(beat, 2.0)
         self.assertIs(measure, m2)
 
-    def testSplitMeasureKeepsItsSettings(self):
+    def testBeatAndMeasureFromOffsetPartialAfterMeterChangeAtSplit(self):
         '''
-        The second half of a split measure gets the clef, key and meter in
-        force where it is split, its own measure's included.
+        Where the meter changes at the split, the first half counts its
+        beats in the old meter and the second half in the new one.
         '''
         p = Part()
         m1 = Measure(number=1)
-        m1.append([clef.BassClef(), key.KeySignature(2), meter.TimeSignature('3/4')])
-        m1.append(note.Note(quarterLength=3))
+        m1.append(meter.TimeSignature('4/4'))
+        m1.append(note.Note(type='whole'))
         m2 = Measure(number=2)
-        m2.append(note.Note(quarterLength=3))
-        p.append([m1, m2])
+        m2.append(note.Note(type='half'))
+        m2.insert(2, meter.TimeSignature('12/16'))
+        m3 = Measure(number=2)
+        m3.numberSuffix = 'X1'
+        m3.append(note.Note(quarterLength=0.75))
+        m3.append(note.Note(quarterLength=0.75))
+        p.append([m1, m2, m3])
+        self.assertEqual([p.beatAndMeasureFromOffset(offset)[0] for offset in (5, 6, 6.75)],
+                         [2.0, 3.0, 4.0])
+        self.assertIs(p.beatAndMeasureFromOffset(6.75)[1], m2)
 
-        unused_left, right = m1.splitAtQuarterLength(1.0)
-        self.assertIsInstance(right.clef, clef.BassClef)
-        self.assertEqual(right.keySignature.sharps, 2)
-        self.assertEqual(right.timeSignature.ratioString, '3/4')
-
-        unused_left, right = m2.splitAtQuarterLength(1.0)
-        self.assertIsInstance(right.clef, clef.BassClef)
-        self.assertEqual(right.keySignature.sharps, 2)
-        self.assertEqual(right.timeSignature.ratioString, '3/4')
+    def testSplitMeasureKeepsRightBarline(self):
+        '''
+        The second half of a split measure ends with the measure's right
+        barline.
+        '''
+        m = Measure([meter.TimeSignature('4/4'), note.Note(type='whole')])
+        m.rightBarline = bar.Barline('final')
+        left, right = m.splitAtQuarterLength(1.0)
+        self.assertIsNone(left.rightBarline)
+        self.assertIsNone(right.leftBarline)
+        self.assertEqual(right.rightBarline.type, 'final')
 
     def testSliceByGreatestDivisorGraceAndEmpty(self):
         '''
@@ -1579,38 +1589,28 @@ class Test(unittest.TestCase):
         self.assertEqual([(n.offset, n.quarterLength) for n in lower.notes],
                          [(0.0, 1.0), (1.0, 3.0)])
 
-    def testBeatAndMeasureFromOffsetPartialAfterMeterChangeAtSplit(self):
+    def testSplitMeasureKeepsItsSettings(self):
         '''
-        Where the meter changes at the split, the first half counts its
-        beats in the old meter and the second half in the new one.
+        The second half of a split measure gets the clef, key and meter in
+        force where it is split, its own measure's included.
         '''
         p = Part()
         m1 = Measure(number=1)
-        m1.append(meter.TimeSignature('4/4'))
-        m1.append(note.Note(type='whole'))
+        m1.append([clef.BassClef(), key.KeySignature(2), meter.TimeSignature('3/4')])
+        m1.append(note.Note(quarterLength=3))
         m2 = Measure(number=2)
-        m2.append(note.Note(type='half'))
-        m2.insert(2, meter.TimeSignature('12/16'))
-        m3 = Measure(number=2)
-        m3.numberSuffix = 'X1'
-        m3.append(note.Note(quarterLength=0.75))
-        m3.append(note.Note(quarterLength=0.75))
-        p.append([m1, m2, m3])
-        self.assertEqual([p.beatAndMeasureFromOffset(offset)[0] for offset in (5, 6, 6.75)],
-                         [2.0, 3.0, 4.0])
-        self.assertIs(p.beatAndMeasureFromOffset(6.75)[1], m2)
+        m2.append(note.Note(quarterLength=3))
+        p.append([m1, m2])
 
-    def testSplitMeasureKeepsRightBarline(self):
-        '''
-        The second half of a split measure ends with the measure's right
-        barline.
-        '''
-        m = Measure([meter.TimeSignature('4/4'), note.Note(type='whole')])
-        m.rightBarline = bar.Barline('final')
-        left, right = m.splitAtQuarterLength(1.0)
-        self.assertIsNone(left.rightBarline)
-        self.assertIsNone(right.leftBarline)
-        self.assertEqual(right.rightBarline.type, 'final')
+        unused_left, right = m1.splitAtQuarterLength(1.0)
+        self.assertIsInstance(right.clef, clef.BassClef)
+        self.assertEqual(right.keySignature.sharps, 2)
+        self.assertEqual(right.timeSignature.ratioString, '3/4')
+
+        unused_left, right = m2.splitAtQuarterLength(1.0)
+        self.assertIsInstance(right.clef, clef.BassClef)
+        self.assertEqual(right.keySignature.sharps, 2)
+        self.assertEqual(right.timeSignature.ratioString, '3/4')
 
     def testStripTiesScore(self):
         '''

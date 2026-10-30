@@ -37,8 +37,10 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [#2119](https://github.com/cuthbertLab/music21/pull/2119) MuseData files with Windows line endings keeping a carriage return on every line
 - [#2120](https://github.com/cuthbertLab/music21/pull/2120) path doctests failing on Windows
 - [#2121](https://github.com/cuthbertLab/music21/pull/2121) `ScoreReduction` failing on a lone part
+- [#2122](https://github.com/cuthbertLab/music21/pull/2122) a Humdrum spine split a second time being dropped
 - [#2123](https://github.com/cuthbertLab/music21/pull/2123) Capella single barlines failing to import and prolonged tuplets read as 3:2
 - [#2124](https://github.com/cuthbertLab/music21/pull/2124) `ChordBassMotionFeature` failing on a `NoChord`
+- [#2125](https://github.com/cuthbertLab/music21/pull/2125) an ABC measure's overflow being lost when no time signature fits it
 - [#2127](https://github.com/cuthbertLab/music21/pull/2127) a `ReductiveNote` on a chord looking for a C instead of taking its highest note
 - [#2128](https://github.com/cuthbertLab/music21/pull/2128) tuplets set on a duration that had not worked out its own components being lost
 - [#2129](https://github.com/cuthbertLab/music21/pull/2129) `PartReduction` lengthening the score's own dynamics
@@ -90,10 +92,8 @@ fix in an earlier form than its branch, the branch is the one to send.
 
 ### Formats
 
-- [`pr/abc-rebar-overflow`](https://github.com/float3/music21/tree/pr/abc-rebar-overflow): Keep the overflow of an ABC measure when no time signature fits it (open: [#2125](https://github.com/cuthbertLab/music21/pull/2125))
-- [`pr/humdrum-nested-split`](https://github.com/float3/music21/tree/pr/humdrum-nested-split): Insert nested Humdrum sub-spines bottom-up (open: [#2122](https://github.com/cuthbertLab/music21/pull/2122))
 - [`pr/midi-deduplicate-instruments`](https://github.com/float3/music21/tree/pr/midi-deduplicate-instruments): Deduplicate instruments offset by offset
-- [`pr/chord-to-xml-sort-in-place`](https://github.com/float3/music21/tree/pr/chord-to-xml-sort-in-place): Sort a chord in place before exporting it to MusicXML (open: [#2126](https://github.com/cuthbertLab/music21/pull/2126); `pr/chord-to-xml-sorted` is the earlier form, with `Chord.isSortedDiatonicAscending()`)
+- [`pr/chord-to-xml-sort-in-place`](https://github.com/float3/music21/tree/pr/chord-to-xml-sort-in-place): Sort a chord in place before exporting it to MusicXML (open: [#2126](https://github.com/cuthbertLab/music21/pull/2126))
 - [`pr/nwctxt-chord-groups`](https://github.com/float3/music21/tree/pr/nwctxt-chord-groups): Read NWC Dur2/Pos2 chord notes and rest chords at the same offset
 - [`pr/nwc-binary-chords`](https://github.com/float3/music21/tree/pr/nwc-binary-chords): Read chord and rest-chord notes in binary NWC files
 - [`pr/nwc-chord-dump`](https://github.com/float3/music21/tree/pr/nwc-chord-dump): Dump binary NWC chords as Dur2/Pos2 and rest chords as RestChord

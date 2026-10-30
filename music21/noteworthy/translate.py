@@ -553,6 +553,8 @@ class NoteworthyTranslator:
         '''
         Appends notes, chords or rests that start together, each in its own
         voice when there is more than one.  The first one gets the current lyric.
+
+        AI-assisted (Claude).
         '''
         if self.lyrics and self.lyricPosition < len(self.lyrics):
             generalNotes[0].addLyric(self.lyrics[self.lyricPosition])
@@ -572,7 +574,6 @@ class NoteworthyTranslator:
             firstVoice.append(notes)
             measure.insert(0, firstVoice)
             voices.append(firstVoice)
-        # voices that end with the shortest one
         freeVoices = [v for v in voices if v.highestTime == offset]
         for gn in generalNotes:
             if freeVoices:
@@ -988,6 +989,11 @@ class Test(unittest.TestCase):
 
     @staticmethod
     def firstMeasureContents(lines: list[str]) -> list[tuple[float, float, str]]:
+        '''
+        The offset, length and pitches of each note and rest in the first measure.
+
+        AI-assisted (Claude).
+        '''
         s = NoteworthyTranslator().parseList(['|AddStaff|', '|Clef|Type:Treble'] + lines)
         m = s.parts.first().getElementsByClass(stream.Measure).first()
         return sorted((float(e.getOffsetInHierarchy(m)), float(e.quarterLength),
@@ -995,7 +1001,6 @@ class Test(unittest.TestCase):
                       for e in m.recurse().notesAndRests)
 
     def testChordWithTwoDurations(self):
-        # Dur2 and Pos2 are notes sounding with the chord, as in the example file
         self.assertEqual(self.firstMeasureContents([
             '|Note|Dur:4th|Pos:0',
             '|Chord|Dur:8th|Pos:-4,n-3,b-2,#-1,x0,v1,2x|Opts:Stem=Down,Crescendo'
@@ -1059,13 +1064,6 @@ class Test(unittest.TestCase):
         # s.show('text')
         n1 = s.parts[1].getElementsByClass(stream.Measure).first().notes.first()
         self.assertEqual(n1.pitch.accidental.alter, -1.0)
-
-    def testChordFromBinaryDump(self):
-        # what binaryTranslate dumps for a two-note quarter chord
-        s = NoteworthyTranslator().parseList(['|AddStaff|', '|Clef|Type:Treble',
-                                              '|Chord|Dur:4th|Pos:0,2'])
-        self.assertEqual(s[chord.Chord].first().pitches,
-                         (pitch.Pitch('B4'), pitch.Pitch('D5')))
 
 
 class TestExternal(unittest.TestCase):

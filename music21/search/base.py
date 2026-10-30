@@ -1306,7 +1306,6 @@ def mostCommonMeasureRhythms(
             }
             for measureNote in thisMeasure.notes:
                 if isinstance(measureNote, (note.Note, chord.Chord)):
-                    # a chord's lowest pitch moves to C5
                     referencePs = min(p.ps for p in measureNote.pitches)
                     distanceToTranspose = 72 - referencePs
                     thisMeasureCopy = copy.deepcopy(thisMeasure)

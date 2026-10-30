@@ -734,7 +734,6 @@ class Realization:
                 possibA = possibilityProgression[segmentIndex]
                 bassNote = self._segmentList[segmentIndex].bassNote
                 bassLine.append(copy.deepcopy(bassNote))
-                # the score gets its own pitches: makeNotation writes into them
                 rhPitches = [copy.deepcopy(p) for p in possibA[0:-1]]
                 rhChord = chord.Chord(rhPitches)
                 rhChord.quarterLength = self._segmentList[segmentIndex].quarterLength
@@ -848,36 +847,7 @@ class FiguredBassLineException(exceptions21.Music21Exception):
 
 
 class Test(unittest.TestCase):
-    def testSegmentsAfterTriplet(self) -> None:
-        # each segment after a triplet starts where the one before it ends
-        from fractions import Fraction
-
-        fbLine = FiguredBassLine(key.Key('C'), meter.TimeSignature('2/4'))
-        third = Fraction(1, 3)
-        fbLine.addElement(note.Note('C3', quarterLength=third))
-        fbLine.addElement(note.Note('D3', quarterLength=third), '6')
-        fbLine.addElement(note.Note('E3', quarterLength=third), '6')
-        fbLine.addElement(note.Note('F3'), '6,4')
-        fbLine.addElement(note.Note('C3', quarterLength=2.0))
-        self.assertEqual([seg.quarterLength for seg in fbLine.retrieveSegments()],
-                         [third, third, third, 1.0, 2.0])
-        self.assertGreater(fbLine.realize().getNumSolutions(), 0)
-
-        # quarter-note triplet
-        fbLine = FiguredBassLine(key.Key('C'), meter.TimeSignature('4/4'))
-        twoThirds = Fraction(2, 3)
-        fbLine.addElement(note.Note('C3', quarterLength=twoThirds))
-        fbLine.addElement(note.Note('D3', quarterLength=twoThirds), '6')
-        fbLine.addElement(note.Note('E3', quarterLength=twoThirds), '6')
-        fbLine.addElement(note.Note('F3', quarterLength=0.5), '6,4')
-        fbLine.addElement(note.Note('G3', quarterLength=0.5), '7')
-        fbLine.addElement(note.Note('C3'))
-        self.assertEqual([seg.quarterLength for seg in fbLine.retrieveSegments()],
-                         [twoThirds, twoThirds, twoThirds, 0.5, 0.5, 1.0])
-        self.assertGreater(fbLine.realize().getNumSolutions(), 0)
-
     def testRealizationsCopyVoicingPitches(self) -> None:
-        # writing a realization leaves the voicings' pitches as they were
         fbLine = FiguredBassLine(key.Key('A'), meter.TimeSignature('3/4'))
         for bassName, notationString in (('A2', ''), ('D3', '6'), ('E3', '7'), ('A2', '')):
             fbLine.addElement(note.Note(bassName), notationString)
@@ -887,7 +857,6 @@ class Test(unittest.TestCase):
         fbRealization.generateRealizationFromPossibilityProgression(progressions[0])
         self.assertEqual(fbRealization.getNumSolutions(), 77)
 
-        # every accidental is in A major's signature, so none is shown
         fbRealization.keyboardStyleOutput = False
         for progression in progressions[:4]:
             realization = fbRealization.generateRealizationFromPossibilityProgression(
@@ -924,6 +893,34 @@ class Test(unittest.TestCase):
                 third_note.lyric = single_symbol
                 unused_fb = figuredBassFromStream(s)
                 self.assertEqual(third_note.editorial.notationString, single_symbol)
+
+    def testSegmentsAfterTriplet(self) -> None:
+        # each segment after a triplet starts where the one before it ends
+        from fractions import Fraction
+
+        fbLine = FiguredBassLine(key.Key('C'), meter.TimeSignature('2/4'))
+        third = Fraction(1, 3)
+        fbLine.addElement(note.Note('C3', quarterLength=third))
+        fbLine.addElement(note.Note('D3', quarterLength=third), '6')
+        fbLine.addElement(note.Note('E3', quarterLength=third), '6')
+        fbLine.addElement(note.Note('F3'), '6,4')
+        fbLine.addElement(note.Note('C3', quarterLength=2.0))
+        self.assertEqual([seg.quarterLength for seg in fbLine.retrieveSegments()],
+                         [third, third, third, 1.0, 2.0])
+        self.assertGreater(fbLine.realize().getNumSolutions(), 0)
+
+        # quarter-note triplet
+        fbLine = FiguredBassLine(key.Key('C'), meter.TimeSignature('4/4'))
+        twoThirds = Fraction(2, 3)
+        fbLine.addElement(note.Note('C3', quarterLength=twoThirds))
+        fbLine.addElement(note.Note('D3', quarterLength=twoThirds), '6')
+        fbLine.addElement(note.Note('E3', quarterLength=twoThirds), '6')
+        fbLine.addElement(note.Note('F3', quarterLength=0.5), '6,4')
+        fbLine.addElement(note.Note('G3', quarterLength=0.5), '7')
+        fbLine.addElement(note.Note('C3'))
+        self.assertEqual([seg.quarterLength for seg in fbLine.retrieveSegments()],
+                         [twoThirds, twoThirds, twoThirds, 0.5, 0.5, 1.0])
+        self.assertGreater(fbLine.realize().getNumSolutions(), 0)
 
 
 if __name__ == '__main__':

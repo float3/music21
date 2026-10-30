@@ -10541,7 +10541,8 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
             return self.cloneEmpty(derivationMethod='melodicIntervals')
 
         returnStream = self.cloneEmpty(derivationMethod='melodicIntervals')
-        # findConsecutiveNotes leaves each note's activeSite at its container
+        # each container's offset in self; findConsecutiveNotes leaves
+        # each note's activeSite at its container
         containerOffsets = {id(self): 0.0}
         for container in self.recurse(streamsOnly=True):
             containerOffsets[id(container)] = opFrac(
@@ -10569,9 +10570,8 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
             returnInterval.offset = opFrac(thisOffset + thisNote.quarterLength)
             returnInterval.duration = duration.Duration(opFrac(
                 nextOffset - returnInterval.offset))
-            returnStream.coreInsert(returnInterval.offset, returnInterval, ignoreSort=True)
+            returnStream.insert(returnInterval)
 
-        returnStream.coreElementsChanged()
         return returnStream
 
     # --------------------------------------------------------------------------

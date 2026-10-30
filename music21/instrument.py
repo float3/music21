@@ -3166,6 +3166,9 @@ class Test(unittest.TestCase):
                           language='finnish')
 
     def testDeduplicateKeepsInstrumentsAtDifferentOffsets(self):
+        '''
+        AI-assisted (Claude).
+        '''
         from music21 import stream
 
         p = stream.Part()

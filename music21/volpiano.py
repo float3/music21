@@ -208,8 +208,6 @@ def toPart(volpianoText, *, breaksToLayout=False):
     'x'
 
     * Changed in v5.7: corrected spelling of liquescence.
-
-    AI-assisted (Claude).
     '''
     p = stream.Part()
     m = stream.Measure()
