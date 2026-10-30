@@ -25,6 +25,8 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [#2054](https://github.com/cuthbertLab/music21/pull/2054) a realization cached without its altered degrees
 - [#2056](https://github.com/cuthbertLab/music21/pull/2056) `getAllNamesForInstrument` finding names only for some instruments
 - [#2057](https://github.com/cuthbertLab/music21/pull/2057) `nextPitch` on a cyclical network answering below the pitch given
+- [#2110](https://github.com/cuthbertLab/music21/pull/2110) a missing comma that merged the NoteWorthy tenor and percussion clef names
+- [#2111](https://github.com/cuthbertLab/music21/pull/2111) MusicXML export failing on an arpeggio mark over a single note
 
 ## Fixed here, not yet upstream
 
@@ -90,10 +92,8 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/humdrum-nested-split`](https://github.com/float3/music21/tree/pr/humdrum-nested-split): Insert nested Humdrum sub-spines bottom-up
 - [`pr/midi-deduplicate-instruments`](https://github.com/float3/music21/tree/pr/midi-deduplicate-instruments): Deduplicate instruments offset by offset
 - [`pr/musedata-stage1-part-name`](https://github.com/float3/music21/tree/pr/musedata-stage1-part-name): Leave a stage-1 MuseData part without a name
-- [`pr/musicxml-arpeggio-single-note`](https://github.com/float3/music21/tree/pr/musicxml-arpeggio-single-note): Write an arpeggio mark on a single note to MusicXML
 - [`pr/chord-to-xml-sorted`](https://github.com/float3/music21/tree/pr/chord-to-xml-sorted): Sort chords in place before MusicXML export
 - [`pr/trill-accidental-display`](https://github.com/float3/music21/tree/pr/trill-accidental-display): Decide a trill's undecided ornamental accidental
-- [`pr/noteworthy-clef-names`](https://github.com/float3/music21/tree/pr/noteworthy-clef-names): Separate Tenor and Percussion in noteworthy ClefNames
 - [`pr/nwctxt-chord-groups`](https://github.com/float3/music21/tree/pr/nwctxt-chord-groups): Read NWC Dur2/Pos2 chord notes and rest chords at the same offset
 - [`pr/nwc-binary-chords`](https://github.com/float3/music21/tree/pr/nwc-binary-chords): Read chord and rest-chord notes in binary NWC files
 - [`pr/nwc-chord-dump`](https://github.com/float3/music21/tree/pr/nwc-chord-dump): Dump binary NWC chords as Dur2/Pos2 and rest chords as RestChord
