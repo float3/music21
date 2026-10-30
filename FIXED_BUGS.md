@@ -31,6 +31,9 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [#2113](https://github.com/cuthbertLab/music21/pull/2113) `extractorsById(library='all')` leaving out the native extractors
 - [#2114](https://github.com/cuthbertLab/music21/pull/2114) a one-offset search missing a float slightly off an element's fractional offset
 - [#2115](https://github.com/cuthbertLab/music21/pull/2115) pitch detection without scipy overflowing on sixteen-bit samples
+- [#2116](https://github.com/cuthbertLab/music21/pull/2116) a metadata search failing on a query that will not compile as a regular expression
+- [#2117](https://github.com/cuthbertLab/music21/pull/2117) the complement of an empty residual class in sieve
+- [#2118](https://github.com/cuthbertLab/music21/pull/2118) a stage-1 MuseData part getting a name it does not have
 
 ## Fixed here, not yet upstream
 
@@ -77,13 +80,8 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/harmonic-minor-no-altered-degrees`](https://github.com/float3/music21/tree/pr/harmonic-minor-no-altered-degrees): Build harmonic minor from its own intervals
 - [`pr/next-pitch-wide-cycles`](https://github.com/float3/music21/tree/pr/next-pitch-wide-cycles): Find nextPitch neighbors on cycles wider than an octave
 - [`pr/relative-node-id-deterministic`](https://github.com/float3/music21/tree/pr/relative-node-id-deterministic): Choose among nodes sharing a pitch without randomness
-- [`pr/sieve-complement-empty`](https://github.com/float3/music21/tree/pr/sieve-complement-empty): Take the complement of an empty residual class in sieve
 - [`pr/fb-realizer-own-pitches`](https://github.com/float3/music21/tree/pr/fb-realizer-own-pitches): Give figured-bass realizations their own pitches
 - [`pr/fb-tuplet-offsets`](https://github.com/float3/music21/tree/pr/fb-tuplet-offsets): Realize figured-bass lines holding tuplets
-
-### Metadata
-
-- [`pr/metadata-search-uncompilable`](https://github.com/float3/music21/tree/pr/metadata-search-uncompilable): Search metadata for a query that will not compile as a pattern
 
 ### Formats
 
@@ -91,7 +89,7 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/capella-barline-tuplet`](https://github.com/float3/music21/tree/pr/capella-barline-tuplet): Read Capella single barlines and prolonged tuplets
 - [`pr/humdrum-nested-split`](https://github.com/float3/music21/tree/pr/humdrum-nested-split): Insert nested Humdrum sub-spines bottom-up
 - [`pr/midi-deduplicate-instruments`](https://github.com/float3/music21/tree/pr/midi-deduplicate-instruments): Deduplicate instruments offset by offset
-- [`pr/musedata-stage1-part-name`](https://github.com/float3/music21/tree/pr/musedata-stage1-part-name): Leave a stage-1 MuseData part without a name
+- [`pr/musedata-crlf`](https://github.com/float3/music21/tree/pr/musedata-crlf): Read MuseData files with Windows line endings
 - [`pr/chord-to-xml-sorted`](https://github.com/float3/music21/tree/pr/chord-to-xml-sorted): Sort chords in place before MusicXML export
 - [`pr/trill-accidental-display`](https://github.com/float3/music21/tree/pr/trill-accidental-display): Decide a trill's undecided ornamental accidental
 - [`pr/nwctxt-chord-groups`](https://github.com/float3/music21/tree/pr/nwctxt-chord-groups): Read NWC Dur2/Pos2 chord notes and rest chords at the same offset
@@ -102,3 +100,7 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/volpiano-current-measure`](https://github.com/float3/music21/tree/pr/volpiano-current-measure): Put volpiano breaks and neumes in the measure being read
 - [`pr/volpiano-end-breaks-layout`](https://github.com/float3/music21/tree/pr/volpiano-end-breaks-layout): Make volpiano breaks at the end of the text follow breaksToLayout
 - [`pr/volpiano-neumes`](https://github.com/float3/music21/tree/pr/volpiano-neumes): Make a volpiano neume hold every note of its run
+
+### Tests
+
+- [`pr/windows-path-doctests`](https://github.com/float3/music21/tree/pr/windows-path-doctests): Run path doctests on Windows
