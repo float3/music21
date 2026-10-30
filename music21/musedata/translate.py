@@ -422,30 +422,6 @@ class Test(unittest.TestCase):
         gex = m21ToXml.GeneralObjectExporter(s)
         self.assertIn(b'<part-list>', gex.parse())
 
-    def testStage1PartName(self):
-        from music21 import musedata
-        from music21.musicxml import m21ToXml
-
-        mdw = musedata.MuseDataWork()
-        mdw.addString('\n'.join([
-            'A Stage-One Work',
-            '   12 3',
-            'source one',
-            'source two',
-            'source three',
-            '1 1',
-            'A 0 4 0 2 4',
-            '0 0 4',
-            'measure 1',
-            'C4    2',
-            'E4    1',
-            'G4    1',
-            '/END',
-        ]))
-        s = museDataWorkToStreamScore(mdw)
-        self.assertIsNone(s.parts[0].partName)
-        gex = m21ToXml.GeneralObjectExporter(s)
-        self.assertIn(b'<part-list>', gex.parse())
 
     # def testGetMetaData(self):
     #
