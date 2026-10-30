@@ -39,15 +39,19 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [#2121](https://github.com/cuthbertLab/music21/pull/2121) `ScoreReduction` failing on a lone part
 - [#2123](https://github.com/cuthbertLab/music21/pull/2123) Capella single barlines failing to import and prolonged tuplets read as 3:2
 - [#2124](https://github.com/cuthbertLab/music21/pull/2124) `ChordBassMotionFeature` failing on a `NoChord`
+- [#2127](https://github.com/cuthbertLab/music21/pull/2127) a `ReductiveNote` on a chord looking for a C instead of taking its highest note
+- [#2128](https://github.com/cuthbertLab/music21/pull/2128) tuplets set on a duration that had not worked out its own components being lost
+- [#2129](https://github.com/cuthbertLab/music21/pull/2129) `PartReduction` lengthening the score's own dynamics
+- [#2130](https://github.com/cuthbertLab/music21/pull/2130) TinyNotation `}` closing a tie instead of its bracket, and states counting time signatures as notes
+- [#2132](https://github.com/cuthbertLab/music21/pull/2132) a trill with an accidental exporting no `accidental-mark`
+- [#2133](https://github.com/cuthbertLab/music21/pull/2133) `beatAndMeasureFromOffset` counting a split measure's second half in the wrong meter
+- [#2134](https://github.com/cuthbertLab/music21/pull/2134) a split measure's right barline becoming its second half's left barline
 
 ## Fixed here, not yet upstream
 
 ### Streams
 
-- [`pr/augment-lazy-tuplets`](https://github.com/float3/music21/tree/pr/augment-lazy-tuplets): Keep tuplets set on a duration that has not worked out its own (open: [#2128](https://github.com/cuthbertLab/music21/pull/2128))
-- [`pr/beat-partial-measure-meter`](https://github.com/float3/music21/tree/pr/beat-partial-measure-meter): Count a split measure's second half in the meter its first half opens with
 - [`pr/split-measure-time-signature`](https://github.com/float3/music21/tree/pr/split-measure-time-signature): Give a split measure's second half the clef, key and meter in force where it is split
-- [`pr/split-keeps-right-barline`](https://github.com/float3/music21/tree/pr/split-keeps-right-barline): Keep a split measure's right barline at the end of its second half
 - [`pr/greatest-divisor-grace-notes`](https://github.com/float3/music21/tree/pr/greatest-divisor-grace-notes): Slice by the greatest divisor past grace notes and empty measures
 - [`pr/slice-at-offsets-voices`](https://github.com/float3/music21/tree/pr/slice-at-offsets-voices): Keep the pieces of a note cut in a voice in that voice
 - [`pr/find-consecutive-unisons`](https://github.com/float3/music21/tree/pr/find-consecutive-unisons): Fix findConsecutiveNotes(skipUnisons=True) on repeated notes and chords
@@ -67,11 +71,9 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/features-as-list-rows`](https://github.com/float3/music21/tree/pr/features-as-list-rows): Return one row per instance from getFeaturesAsList
 - [`pr/part-reduction-span-start`](https://github.com/float3/music21/tree/pr/part-reduction-span-start): Keep the stretch before a span's first dynamic in PartReduction
 - [`pr/part-reduction-same-ids`](https://github.com/float3/music21/tree/pr/part-reduction-same-ids): Keep each part's spans apart in PartReduction when ids repeat
-- [`pr/part-reduction-leave-dynamics`](https://github.com/float3/music21/tree/pr/part-reduction-leave-dynamics): Leave the score's dynamics unchanged in PartReduction (open: [#2129](https://github.com/cuthbertLab/music21/pull/2129))
 - [`pr/part-reduction-dynamic-on-barline`](https://github.com/float3/music21/tree/pr/part-reduction-dynamic-on-barline): Start each PartReduction span at the last dynamic before it
 - [`pr/part-reduction-average-weight`](https://github.com/float3/music21/tree/pr/part-reduction-average-weight): Average dynamics in PartReduction weights
 - [`pr/part-reduction-whole-word-groups`](https://github.com/float3/music21/tree/pr/part-reduction-whole-word-groups): Match PartReduction part groups on whole words of the part id
-- [`pr/reductive-note-chord-highest`](https://github.com/float3/music21/tree/pr/reductive-note-chord-highest): Take a chord's highest note when a ReductiveNote names no pitch (open: [#2127](https://github.com/cuthbertLab/music21/pull/2127))
 - [`pr/dolan-part-groups`](https://github.com/float3/music21/tree/pr/dolan-part-groups): Set Dolan's default part groups when a stream is given
 
 ### Audio
@@ -92,12 +94,10 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/humdrum-nested-split`](https://github.com/float3/music21/tree/pr/humdrum-nested-split): Insert nested Humdrum sub-spines bottom-up (open: [#2122](https://github.com/cuthbertLab/music21/pull/2122))
 - [`pr/midi-deduplicate-instruments`](https://github.com/float3/music21/tree/pr/midi-deduplicate-instruments): Deduplicate instruments offset by offset
 - [`pr/chord-to-xml-sort-in-place`](https://github.com/float3/music21/tree/pr/chord-to-xml-sort-in-place): Sort a chord in place before exporting it to MusicXML (open: [#2126](https://github.com/cuthbertLab/music21/pull/2126); `pr/chord-to-xml-sorted` is the earlier form, with `Chord.isSortedDiatonicAscending()`)
-- [`pr/trill-accidental-display`](https://github.com/float3/music21/tree/pr/trill-accidental-display): Decide a trill's undecided ornamental accidental
 - [`pr/nwctxt-chord-groups`](https://github.com/float3/music21/tree/pr/nwctxt-chord-groups): Read NWC Dur2/Pos2 chord notes and rest chords at the same offset
 - [`pr/nwc-binary-chords`](https://github.com/float3/music21/tree/pr/nwc-binary-chords): Read chord and rest-chord notes in binary NWC files
 - [`pr/nwc-chord-dump`](https://github.com/float3/music21/tree/pr/nwc-chord-dump): Dump binary NWC chords as Dur2/Pos2 and rest chords as RestChord
 - [`pr/romantext-high-numerals`](https://github.com/float3/music21/tree/pr/romantext-high-numerals): Reject roman numerals past VII
-- [`pr/tinynotation-close-states`](https://github.com/float3/music21/tree/pr/tinynotation-close-states): Close TinyNotation brackets past ties and time signatures (open: [#2130](https://github.com/cuthbertLab/music21/pull/2130))
 - [`pr/volpiano-current-measure`](https://github.com/float3/music21/tree/pr/volpiano-current-measure): Put volpiano breaks and neumes in the measure being read
 - [`pr/volpiano-end-breaks-layout`](https://github.com/float3/music21/tree/pr/volpiano-end-breaks-layout): Make volpiano breaks at the end of the text follow breaksToLayout
 - [`pr/volpiano-neumes`](https://github.com/float3/music21/tree/pr/volpiano-neumes): Make a volpiano neume hold every note of its run
