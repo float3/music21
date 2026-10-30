@@ -350,6 +350,15 @@ class Test(unittest.TestCase):
         self.assertEqual(
             arff.getString(includeClassLabel=False, includeId=False).splitlines()[-2:],
             ['4,4', '3,4'])
+        self.assertEqual(arff.getString(includeClassLabel=False).splitlines(), [
+            '@RELATION Meter',
+            '@ATTRIBUTE Identifier STRING',
+            '@ATTRIBUTE Initial_Time_Signature_0 NUMERIC',
+            '@ATTRIBUTE Initial_Time_Signature_1 NUMERIC',
+            '@DATA',
+            'a,4,4',
+            'b,3,4',
+        ])
 
 
 if __name__ == '__main__':

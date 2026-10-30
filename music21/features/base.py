@@ -891,6 +891,7 @@ class DataSet:
         for fe in self._instantiatedFeatureExtractors:
             # need as many statements of discrete as there are dimensions
             post += [False] * fe.dimensions
+        # class label is assumed always discrete
         if self._classLabel is not None and includeClassLabel:
             post.append(True)
         return post
@@ -1512,6 +1513,17 @@ class Test(unittest.TestCase):
         self.assertEqual(allExtractors, extractorsById('all'))
         self.assertIn(native.ChordBassMotionFeature, allExtractors)
         self.assertIn(jSymbolic.PitchClassDistributionFeature, allExtractors)
+
+    def testClassPositionLabelsWithoutClassLabel(self):
+        from music21 import features
+
+        ds = features.DataSet(classLabel='Meter')
+        ds.addFeatureExtractors(features.extractorsById(['r31']))
+        self.assertEqual(ds.getClassPositionLabels(), [None, False, False, True])
+        self.assertEqual(ds.getClassPositionLabels(includeClassLabel=False),
+                         [None, False, False])
+        self.assertEqual(ds.getClassPositionLabels(includeId=False, includeClassLabel=False),
+                         [False, False])
 
     def testFeatureFail(self):
         from music21 import features
