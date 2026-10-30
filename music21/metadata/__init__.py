@@ -1231,9 +1231,6 @@ class Metadata(base.Music21Object):
             try:
                 reQuery = re.compile(query, flags=re.IGNORECASE)
             except re.error:
-                # The query carries a regular expression's punctuation
-                # without being one: a title with an unbalanced bracket.
-                # Search for it as it stands.
                 pass
             else:
                 useRegex = True

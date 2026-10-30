@@ -583,7 +583,7 @@ class Residual:
             segmentFormat = self._segmentFormat
 
         subset = []
-        if self._m != 0:  # modulus 0 is the empty class
+        if self._m != 0:
             n = (n + self._shift) % self._m  # check for n >= m
             for value in z:
                 if n == value % self._m:

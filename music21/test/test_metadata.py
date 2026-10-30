@@ -188,9 +188,6 @@ class Test(unittest.TestCase):
         )
 
     def testMetadataSearchUncompilablePattern(self):
-        # A title can carry a regular expression's punctuation without being
-        # one: ten of the Essen collections' titles do. Searching for such a
-        # title finds it.
         md = metadata.Metadata()
         md['title'] = metadata.Text('Der Fisch(?) Concelebrant (4-5), S. 7')
         self.assertEqual(
@@ -198,7 +195,6 @@ class Test(unittest.TestCase):
             (True, 'title'),
         )
         self.assertEqual(md.search('Runckelstube(?)', field='title'), (False, None))
-        # An opus looks a score up by its title the same way.
         o = stream.Opus()
         for title in ('Der Fisch(?) Concelebrant (4-5), S. 7', 'Mai cai  vgl. Kopie)'):
             s = stream.Score()
