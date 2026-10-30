@@ -1037,6 +1037,9 @@ class Test(unittest.TestCase):
         self.assertEqual(mxNotes[3].find('notations/slur').get('type'), 'stop')
 
     def testChordFingeringsFollowTheirNotes(self):
+        '''
+        AI-assisted (Claude).
+        '''
         c = chord.Chord(['G4', 'E4', 'C4'])
         c.articulations = [articulations.Fingering(5),
                            articulations.Accent(),
@@ -1051,7 +1054,6 @@ class Test(unittest.TestCase):
                          [('C', '1'), ('E', '3'), ('G', '5')])
         self.assertIsNotNone(mxNotes[0].find('notations/articulations/accent'))
 
-        # fewer fingerings than notes: the chord keeps its order
         c = chord.Chord(['G4', 'E4', 'C4'])
         c.articulations = [articulations.Fingering(5), articulations.Fingering(3)]
         x = self.getET(stream.Score([stream.Part([stream.Measure([c])])]))

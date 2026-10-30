@@ -4562,9 +4562,7 @@ class MeasureExporter(XMLExporterBase):
         </note>
         '''
         mxNoteList = []
-        if isinstance(c, chord.Chord) and not c.isSortedDiatonicAscending():
-            # fingerings are matched to notes by position, so move them with their notes;
-            # a chord whose fingered notes would not stay first keeps its order
+        if isinstance(c, chord.Chord):
             arts = c.articulations
             slots = [i for i, a in enumerate(arts) if isinstance(a, articulations.Fingering)]
             fingeringByNote = {id(n): arts[i] for n, i in zip(c.notes, slots)}
