@@ -5,7 +5,7 @@
 # Authors:      Christopher Ariza
 #               Michael Scott Asato Cuthbert
 #
-# Copyright:    Copyright © 2011-2013 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2011-2026 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 '''
@@ -141,19 +141,21 @@ class ReductiveNote(prebase.ProtoM21Object):
         '''
         Produce a new note, a deep copy of the supplied note
         and with the specified modifications.
+
+        From a chord, takes the note named by the specification's pitch,
+        or else the highest note.
         '''
         n = None
         if self._note.isChord:
             # need to permit specification by pitch
-            if 'pitch' in self._parameters:
+            if self._parameters['pitch'] is not None:
                 p = pitch.Pitch(self._parameters['pitch'])
                 for sub in self._note:  # iterate over components
                     if p.name.lower() == sub.pitch.name.lower():
                         # copy the component
                         n = copy.deepcopy(sub)
-            else:  # get first, or get entire chord?
-                # n = copy.deepcopy(self._note.pitches[0])
-                n = copy.deepcopy(self._note.pitches[0])
+            else:
+                n = copy.deepcopy(max(self._note, key=lambda sub: sub.pitch.ps))
         else:
             n = copy.deepcopy(self._note)
         # always clear certain parameters
@@ -227,7 +229,7 @@ class ScoreReduction:
     def score(self, value):
         if not isinstance(value, stream.Stream):
             raise ScoreReductionException('cannot set a non Stream')
-        if value.hasPartLikeStreams:
+        if value.hasPartLikeStreams():
             # make a local copy
             self._score = copy.deepcopy(value)
         else:  # assume a single stream, place in a Score
@@ -742,8 +744,8 @@ class PartReduction:
                     )
                     match = inRegion.getElementsByClass(target).stream()
                     # environLocal.printDebug(['matched elements', target, match])
-                    # extend duration of all found dynamics
-                    match.extendDuration(target, inPlace=True)
+                    # extend duration of copies of all found dynamics
+                    match = match.extendDuration(target, inPlace=False)
                     # match.show('t')
                     dsFirst = copy.deepcopy(ds)
                     if not match:
@@ -752,7 +754,7 @@ class PartReduction:
                         continue
                     # create new spans for each target in this segment
                     for i, tar in enumerate(match):
-                        targetStart = tar.getOffsetBySite(flatRef)
+                        targetStart = match.elementOffset(tar)
                         # can use extended duration
                         targetSpan = tar.duration.quarterLength
                         # if dur of target is greater tn this span
@@ -959,6 +961,30 @@ class Test(unittest.TestCase):
         self.assertEqual(len(match), 3)
         # post.show()
 
+    def testChordWithoutPitchTakesHighest(self):
+        c = chord.Chord(['E4', 'B4', 'G4'], quarterLength=2)
+        rn = ReductiveNote('::/o:5', c, 0, 0.0)
+        n, unused_te = rn.getNoteAndTextExpression()
+        self.assertEqual(n.nameWithOctave, 'B5')
+        self.assertEqual(n.quarterLength, 2)
+
+        rn = ReductiveNote('::/p:g', c, 0, 0.0)
+        n, unused_te = rn.getNoteAndTextExpression()
+        self.assertEqual(n.nameWithOctave, 'G4')
+
+        rn = ReductiveNote('::/tb:x', c, 0, 0.0)
+        n, unused_te = rn.getNoteAndTextExpression()
+        self.assertEqual(n.nameWithOctave, 'B4')
+
+        rn = ReductiveNote('::/p:d', c, 0, 0.0)
+        with self.assertRaises(ReductiveEventException):
+            rn.getNoteAndTextExpression()
+
+        cMajor = chord.Chord(['C4', 'E4', 'G4'])
+        rn = ReductiveNote('::/tb:x', cMajor, 0, 0.0)
+        n, unused_te = rn.getNoteAndTextExpression()
+        self.assertEqual(n.nameWithOctave, 'G4')
+
     # def testExtractionC(self):
     #     from music21 import analysis
     #     from music21 import corpus
@@ -1042,6 +1068,22 @@ class Test(unittest.TestCase):
         sr.score = src
         unused_post = sr.reduce()
         # post.show()
+
+    def testReduceLonePart(self):
+        from music21 import analysis
+        p = stream.Part()
+        p.append(note.Note('C4'))
+        p.append(note.Note('E4'))
+        p.makeMeasures(inPlace=True)
+        p.recurse().notes[1].addLyric('::/o:5')
+
+        sr = analysis.reduction.ScoreReduction()
+        sr.score = p
+        self.assertIsInstance(sr.score, stream.Score)
+        post = sr.reduce()
+        self.assertEqual(len(post.parts), 2)
+        reduced = [n.nameWithOctave for n in post.parts[0].recurse().notes]
+        self.assertEqual(reduced, ['E5'])
 
     def testExtractionE(self):
         from music21 import analysis
@@ -1226,6 +1268,26 @@ class Test(unittest.TestCase):
         self._matchWeightedData(match, target)
         # p = graph.PlotDolan(s, title='Dynamics')
         # p.process()
+
+    def testPartReductionLeavesScore(self):
+        from music21 import analysis
+        from music21 import dynamics
+        p = stream.Part()
+        p.id = 'solo'
+        p.append(note.Note(quarterLength=4))
+        p.insert(0, dynamics.Dynamic('p'))
+        p.insert(2, dynamics.Dynamic('f'))
+        s = stream.Score([p])
+
+        pr = analysis.reduction.PartReduction(s)
+        pr.process()
+        self.assertEqual([d.quarterLength for d in p[dynamics.Dynamic]], [0.0, 0.0])
+        target = [('solo', [[0.0, 2.0, 0.5, '#666666'],
+                            [2.0, 2.0, 1.0, '#666666']])]
+        self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(), target)
+
+        pr.process()
+        self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(), target)
 
 
     def testPartReductionE(self):

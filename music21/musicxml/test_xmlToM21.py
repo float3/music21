@@ -510,6 +510,14 @@ class Test(unittest.TestCase):
         self.assertEqual(str(i1.transposition), '<music21.interval.Interval M-2>')
         self.assertEqual(str(i2.transposition), '<music21.interval.Interval M-6>')
 
+    def testTransposeOctaveChangeWithoutDiatonic(self):
+        # https://github.com/cuthbertLab/music21/issues/2082
+        MP = MeasureParser()
+        mxTranspose = self.EL('<transpose><chromatic>0</chromatic>'
+                              '<octave-change>-1</octave-change></transpose>')
+        self.assertEqual(str(MP.xmlTransposeToInterval(mxTranspose)),
+                         '<music21.interval.Interval P-8>')
+
     def testInstrumentTranspositionB(self):
         from music21.musicxml import testPrimitive
         from music21 import converter
@@ -1729,17 +1737,17 @@ class Test(unittest.TestCase):
         self.assertIsInstance(tmb, instrument.Tambourine)
         self.assertEqual(tmb.percMapPitch, 54)  # 1-indexed
 
-        # An instrument music21 doesn't have yet (Cabasa):
-        scorePart = scorePart.replace('Tambourine', 'Cabasa')
-        scorePart = scorePart.replace('Tamb.', 'Cab.')
-        scorePart = scorePart.replace('55', '70')  # 1-indexed
+        # A number outside the GM percussion map:
+        scorePart = scorePart.replace('Tambourine', 'Hi-Hat Rim')
+        scorePart = scorePart.replace('Tamb.', 'HH Rim')
+        scorePart = scorePart.replace('55', '23')  # 1-indexed
         pp = PartParser()
         mxScorePart = EL(scorePart)
-        msg = '69 does not map to a valid instrument!'
+        msg = '22 does not map to a valid instrument!'
         with self.assertWarnsRegex(MusicXMLWarning, msg):
             unp = pp.getDefaultInstrument(mxScorePart)
         self.assertIsInstance(unp, instrument.UnpitchedPercussion)
-        self.assertEqual(unp.percMapPitch, 69)
+        self.assertEqual(unp.percMapPitch, 22)
 
     def testImportImplicitMeasureNumber(self):
         from music21 import converter
@@ -1823,6 +1831,42 @@ class Test(unittest.TestCase):
             p_expanded = repeat.Expander[stream.Part](p).process()
             p_notes2 = [n.name for n in p_expanded[note.Note]]
             self.assertEqual(p_notes2, ['G', 'A', 'G', 'B'])
+
+    def testSegnoAndCodaInBarline(self):
+        '''
+        MusicXML allows <segno/> and <coda/> inside a <barline>, not only in a
+        <direction>.  They should be imported, so that a later D.S. can find the segno.
+        '''
+        from music21 import converter
+
+        def measure(number, step, before='', after=''):
+            return (f'<measure number="{number}">{before}<note><pitch><step>{step}</step>'
+                    f'<octave>4</octave></pitch><duration>4</duration>'
+                    f'<type>whole</type></note>{after}</measure>')
+
+        def score(*measures):
+            return ('<score-partwise version="4.0"><part-list><score-part id="P1">'
+                    '<part-name>Music</part-name></score-part></part-list><part id="P1">'
+                    + ''.join(measures) + '</part></score-partwise>')
+
+        attributes = '<attributes><divisions>1</divisions></attributes>'
+        ds = '<direction><direction-type><words>D.S.</words></direction-type></direction>'
+        s = converter.parse(score(measure(1, 'C', attributes),
+                                  measure(2, 'D', '<barline location="left"><segno/></barline>'),
+                                  measure(3, 'E', after=ds)),
+                            format='musicxml')
+        segnos = s.parts.first().measure(2)[repeat.Segno]
+        self.assertEqual(len(segnos), 1)
+        self.assertEqual(segnos.first().offset, 0.0)
+        expanded = s.expandRepeats()
+        self.assertEqual([n.name for n in expanded[note.Note]], ['C', 'D', 'E', 'D', 'E'])
+
+        s = converter.parse(score(measure(1, 'C', attributes),
+                                  measure(2, 'D', '<barline location="left"><coda/></barline>')),
+                            format='musicxml')
+        codas = s.parts.first().measure(2)[repeat.Coda]
+        self.assertEqual(len(codas), 1)
+        self.assertEqual(codas.first().offset, 0.0)
 
 
 if __name__ == '__main__':
