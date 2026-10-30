@@ -1282,7 +1282,6 @@ class Converter:
             numberOfStatesToEnd = len(self.activeStates)
 
         for i in range(numberOfStatesToEnd):
-            # a closing bracket ends the last bracketed state, not a tie
             stateIndex = len(self.activeStates) - 1
             while stateIndex > 0 and self.activeStates[stateIndex].autoExpires is not False:
                 stateIndex -= 1
