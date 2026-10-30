@@ -27,12 +27,15 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [#2057](https://github.com/cuthbertLab/music21/pull/2057) `nextPitch` on a cyclical network answering below the pitch given
 - [#2110](https://github.com/cuthbertLab/music21/pull/2110) a missing comma that merged the NoteWorthy tenor and percussion clef names
 - [#2111](https://github.com/cuthbertLab/music21/pull/2111) MusicXML export failing on an arpeggio mark over a single note
+- [#2112](https://github.com/cuthbertLab/music21/pull/2112) an empty `TimespanTree` yielding a verticality at `-inf`
+- [#2113](https://github.com/cuthbertLab/music21/pull/2113) `extractorsById(library='all')` leaving out the native extractors
+- [#2114](https://github.com/cuthbertLab/music21/pull/2114) a one-offset search missing a float slightly off an element's fractional offset
+- [#2115](https://github.com/cuthbertLab/music21/pull/2115) pitch detection without scipy overflowing on sixteen-bit samples
 
 ## Fixed here, not yet upstream
 
 ### Streams
 
-- [`pr/offset-filter-snapped-end`](https://github.com/float3/music21/tree/pr/offset-filter-snapped-end): Snap the end of a one-offset search as its start is snapped
 - [`pr/augment-lazy-tuplets`](https://github.com/float3/music21/tree/pr/augment-lazy-tuplets): Keep tuplets set on a duration that has not worked out its own
 - [`pr/beat-partial-measure-meter`](https://github.com/float3/music21/tree/pr/beat-partial-measure-meter): Count a split measure's second half in the meter its first half opens with
 - [`pr/split-measure-time-signature`](https://github.com/float3/music21/tree/pr/split-measure-time-signature): Give a split measure's second half the clef, key and meter in force where it is split
@@ -47,14 +50,12 @@ fix in an earlier form than its branch, the branch is the one to send.
 
 - [`pr/windowed-adjacent-average`](https://github.com/float3/music21/tree/pr/windowed-adjacent-average): Allow adjacentAverage windowed analysis with windows above size one
 - [`pr/floating-key-interpretation-copy`](https://github.com/float3/music21/tree/pr/floating-key-interpretation-copy): Smooth floating key analysis with each neighbour's own interpretations
-- [`pr/empty-tree-verticalities`](https://github.com/float3/music21/tree/pr/empty-tree-verticalities): Yield no verticalities from an empty TimespanTree
 - [`pr/chord-reducer-hashable-timespans`](https://github.com/float3/music21/tree/pr/chord-reducer-hashable-timespans): Make ElementTimespan hashable
 - [`pr/verticality-part-id-chord-notes`](https://github.com/float3/music21/tree/pr/verticality-part-id-chord-notes): Give chord notes part id groups in Verticality.makeElement
 - [`pr/most-common-rhythms-chord`](https://github.com/float3/music21/tree/pr/most-common-rhythms-chord): Allow chords and unpitched notes in mostCommonMeasureRhythms
 - [`pr/chord-bass-motion-no-chord`](https://github.com/float3/music21/tree/pr/chord-bass-motion-no-chord): Skip NoChord in ChordBassMotionFeature
 - [`pr/chord-bass-motion-direction`](https://github.com/float3/music21/tree/pr/chord-bass-motion-direction): Count ChordBassMotionFeature motion upward
 - [`pr/quality-feature-modal-key`](https://github.com/float3/music21/tree/pr/quality-feature-modal-key): Analyze modal keys in QualityFeature
-- [`pr/extractors-by-id-all`](https://github.com/float3/music21/tree/pr/extractors-by-id-all): Include native extractors in extractorsById(library='all')
 - [`pr/output-tab-orange-include-id`](https://github.com/float3/music21/tree/pr/output-tab-orange-include-id): Honor includeId and includeClassLabel in Orange and ARFF rows
 - [`pr/features-as-list-rows`](https://github.com/float3/music21/tree/pr/features-as-list-rows): Return one row per instance from getFeaturesAsList
 - [`pr/part-reduction-span-start`](https://github.com/float3/music21/tree/pr/part-reduction-span-start): Keep the stretch before a span's first dynamic in PartReduction
@@ -69,7 +70,6 @@ fix in an earlier form than its branch, the branch is the one to send.
 
 ### Audio
 
-- [`pr/autocorrelation-int16-overflow`](https://github.com/float3/music21/tree/pr/autocorrelation-int16-overflow): Find frequencies from sixteen-bit samples without scipy
 
 ### Scales and figured bass
 
