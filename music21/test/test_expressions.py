@@ -403,7 +403,6 @@ class Test(unittest.TestCase):
         self.assertTrue(turn.ornamentalPitches[1].accidental.displayStatus)
 
     def testUpdateAccidentalDisplayWithUndecidedAccidental(self):
-        # an accidental with no displayStatus is decided like any other
         noSharpsOrFlats = key.KeySignature(0)
         for ornament in (expressions.Trill(), expressions.InvertedMordent()):
             with self.subTest(ornament=ornament):
@@ -413,14 +412,12 @@ class Test(unittest.TestCase):
                 self.assertEqual(ornament.ornamentalPitch.nameWithOctave, 'A#4')
                 self.assertTrue(ornament.ornamentalPitch.accidental.displayStatus)
 
-        # an accidental already shown in the measure is not shown again
         trill = expressions.Trill()
         trill.accidental = pitch.Accidental('sharp')
         trill.resolveOrnamentalPitches(note.Note('G4'), keySig=noSharpsOrFlats)
         trill.updateAccidentalDisplay(pitchPast=[pitch.Pitch('A#4')])
         self.assertIs(trill.ornamentalPitch.accidental.displayStatus, False)
 
-        # an explicit displayStatus is kept
         trill = expressions.Trill()
         trill.accidental = pitch.Accidental('sharp')
         trill.accidental.displayStatus = False
