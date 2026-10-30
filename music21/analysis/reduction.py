@@ -1064,6 +1064,22 @@ class Test(unittest.TestCase):
         unused_post = sr.reduce()
         # post.show()
 
+    def testReduceLonePart(self):
+        from music21 import analysis
+        p = stream.Part()
+        p.append(note.Note('C4'))
+        p.append(note.Note('E4'))
+        p.makeMeasures(inPlace=True)
+        p.recurse().notes[1].addLyric('::/o:5')
+
+        sr = analysis.reduction.ScoreReduction()
+        sr.score = p
+        self.assertIsInstance(sr.score, stream.Score)
+        post = sr.reduce()
+        self.assertEqual(len(post.parts), 2)
+        reduced = [n.nameWithOctave for n in post.parts[0].recurse().notes]
+        self.assertEqual(reduced, ['E5'])
+
     def testExtractionE(self):
         from music21 import analysis
         from music21 import corpus
