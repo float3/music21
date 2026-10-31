@@ -85,7 +85,7 @@ fix in an earlier form than its branch, the branch is the one to send.
 
 ### Scales and figured bass
 
-- [`pr/harmonic-minor-no-altered-degrees`](https://github.com/float3/music21/tree/pr/harmonic-minor-no-altered-degrees): Build harmonic minor from its own intervals
+- [`pr/harmonic-minor-no-altered-degrees-2`](https://github.com/float3/music21/tree/pr/harmonic-minor-no-altered-degrees-2): Build harmonic minor from its own intervals (open: [#2140](https://github.com/cuthbertLab/music21/pull/2140))
 - [`pr/next-pitch-wide-cycles`](https://github.com/float3/music21/tree/pr/next-pitch-wide-cycles): Find nextPitch neighbors on cycles wider than an octave
 - [`pr/relative-node-id-deterministic`](https://github.com/float3/music21/tree/pr/relative-node-id-deterministic): Choose among nodes sharing a pitch without randomness
 - [`pr/fb-tuplet-offsets`](https://github.com/float3/music21/tree/pr/fb-tuplet-offsets): Realize figured-bass lines holding tuplets
@@ -98,6 +98,6 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/nwc-binary-chords`](https://github.com/float3/music21/tree/pr/nwc-binary-chords): Read chord and rest-chord notes in binary NWC files
 - [`pr/nwc-chord-dump`](https://github.com/float3/music21/tree/pr/nwc-chord-dump): Dump binary NWC chords as Dur2/Pos2 and rest chords as RestChord
 - [`pr/romantext-high-numerals`](https://github.com/float3/music21/tree/pr/romantext-high-numerals): Reject roman numerals past VII
-- [`pr/volpiano-current-measure`](https://github.com/float3/music21/tree/pr/volpiano-current-measure): Put volpiano breaks and neumes in the measure being read
+- [`pr/volpiano-current-measure-2`](https://github.com/float3/music21/tree/pr/volpiano-current-measure-2): Put volpiano breaks and neumes in the measure being read (open: [#2141](https://github.com/cuthbertLab/music21/pull/2141))
 - [`pr/volpiano-end-breaks-layout`](https://github.com/float3/music21/tree/pr/volpiano-end-breaks-layout): Make volpiano breaks at the end of the text follow breaksToLayout
 - [`pr/volpiano-neumes`](https://github.com/float3/music21/tree/pr/volpiano-neumes): Make a volpiano neume hold every note of its run
