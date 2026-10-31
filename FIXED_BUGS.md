@@ -62,6 +62,8 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/find-consecutive-unisons`](https://github.com/float3/music21/tree/pr/find-consecutive-unisons): Fix findConsecutiveNotes(skipUnisons=True) on repeated notes and chords
 - [`pr/melodic-intervals-offsets`](https://github.com/float3/music21/tree/pr/melodic-intervals-offsets): Place melodicIntervals at offsets in the stream analysed
 - [`pr/partstaff-measure-gap`](https://github.com/float3/music21/tree/pr/partstaff-measure-gap): Join PartStaffs after a measure missing from the first staff
+- [`pr/make-ties-new-measure-once`](https://github.com/float3/music21/tree/pr/make-ties-new-measure-once): Add a measure made by makeTies to the stream once (open: [#2142](https://github.com/cuthbertLab/music21/pull/2142))
+- [`pr/make-ties-new-voices-kept`](https://github.com/float3/music21/tree/pr/make-ties-new-voices-kept): Keep each voice tied into a measure without voices (open: [#2144](https://github.com/cuthbertLab/music21/pull/2144), issue [#2143](https://github.com/cuthbertLab/music21/issues/2143))
 
 ### Analysis and features
 
