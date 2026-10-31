@@ -1047,12 +1047,14 @@ class BrailleSegment(text.BrailleText):
             if (isinstance(artic, (articulations.Staccato, articulations.Tenuto))
                     and music21NoteStart.tie is not None):
                 if music21NoteStart.tie.type == 'stop':
-                    allNotes[noteIndexStart - 1].tie = None
-                    allNotes[noteIndexStart - 1].shortSlur = True
-                else:
+                    if noteIndexStart > 0:
+                        allNotes[noteIndexStart - 1].tie = None
+                        allNotes[noteIndexStart - 1].shortSlur = True
+                        music21NoteStart.tie = None
+                elif noteIndexStart + 1 < len(allNotes):
                     allNotes[noteIndexStart + 1].tie = None
                     music21NoteStart.shortSlur = True
-                music21NoteStart.tie = None
+                    music21NoteStart.tie = None
             numSequential = 0
             for noteIndexContinue in range(noteIndexStart + 1, len(allNotes)):
                 music21NoteContinue = allNotes[noteIndexContinue]
@@ -2460,6 +2462,47 @@ class Test(unittest.TestCase):
             seg[SegmentKey(1, 0, Affinity.NOTEGROUP, None)].append(clefClass())
             seg.addGroupingAttributes()
             self.assertEqual(seg.descendingChords, descending)
+
+    def testFixArticulationsTieAcrossSegments(self):
+        '''
+        A staccato note tied to a note in the same segment is slurred to it
+        instead; a staccato note tied across a segment break keeps its tie.
+
+        AI-assisted (Claude).
+        '''
+        from music21 import articulations
+        from music21 import tie
+        from music21.braille.objects import BrailleSegmentDivision
+
+        def tiedNote(pitchName, tieType, staccato=False, quarterLength=1.0):
+            n = note.Note(pitchName, quarterLength=quarterLength)
+            n.tie = tie.Tie(tieType)
+            if staccato:
+                n.articulations.append(articulations.Staccato())
+            return n
+
+        def tieTypes(part):
+            return [n.tie.type if n.tie is not None else None
+                    for n in part.flatten().notes]
+
+        for staccatoOnStop in (True, False):
+            m1 = stream.Measure(number=1)
+            m1.append([note.Note('D4'), note.Note('E4'), note.Note('F4'),
+                       tiedNote('C4', 'start', staccato=not staccatoOnStop)])
+            m2 = stream.Measure(number=2)
+            m2.append(BrailleSegmentDivision())
+            m2.append([tiedNote('C4', 'stop', staccato=staccatoOnStop),
+                       note.Note('D4'), note.Note('E4'),
+                       tiedNote('G4', 'start', staccato=True)])
+            m3 = stream.Measure(number=3)
+            m3.append(tiedNote('G4', 'stop', quarterLength=4.0))
+            part = stream.Part([m1, m2, m3])
+            self.assertEqual(len(findSegments(part)), 2)
+            self.assertEqual(tieTypes(part),
+                             [None, None, None, 'start', 'stop', None, None, None, None])
+            notes = list(part.flatten().notes)
+            self.assertTrue(notes[7].shortSlur)
+            self.assertFalse(getattr(notes[3], 'shortSlur', False))
 
 
 if __name__ == '__main__':
