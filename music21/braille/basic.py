@@ -39,6 +39,7 @@ This is so that a transcription of a :class:`~music21.stream.Stream` in
 
 from __future__ import annotations
 
+import copy
 import typing as t
 import unittest
 
@@ -175,7 +176,7 @@ def chordToBraille(music21Chord, descending=True, showOctave=True):
     basePitch = allPitches[0]
     initNote = note.Note(
         basePitch,
-        quarterLength=music21Chord.quarterLength
+        duration=copy.deepcopy(music21Chord.duration)
     )
     brailleNote = noteToBraille(
         music21Note=initNote,
@@ -1735,6 +1736,26 @@ class Test(unittest.TestCase):
             (clef.Bass8vaClef, '⠜⠼⠅'),
         ):
             self.assertEqual(clefToBraille(clefClass(), keyboardHandSwitched=True), brailleClef)
+
+    def testChordDurationIsBrailled(self):
+        import contextlib
+        import io
+
+        from music21 import chord
+        from music21 import harmony
+
+        eighthChord = chord.Chord(['C5', 'E5'], type='eighth')
+        self.assertEqual(chordToBraille(eighthChord), '⠨⠋⠬')
+        self.assertEqual(chordToBraille(eighthChord.getGrace()), '⠨⠋⠬')
+        self.assertEqual(chordToBraille(chord.Chord(['C5', 'E5'], quarterLength=1 / 3)),
+                         '⠨⠋⠬')
+
+        cs = harmony.ChordSymbol('C')
+        self.assertEqual(cs.quarterLength, 0.0)
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            self.assertEqual(chordToBraille(cs), symbols['basic_exception'])
+        self.assertIn('cannot be transcribed to braille', stderr.getvalue())
 
 
 if __name__ == '__main__':
