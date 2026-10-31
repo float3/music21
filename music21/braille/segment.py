@@ -1068,9 +1068,10 @@ class BrailleSegment(text.BrailleText):
             for noteIndexContinue in range(noteIndexStart + 1,
                                            noteIndexStart + numSequential):
                 music21NoteContinue = allNotes[noteIndexContinue]
-                for artOther in music21NoteContinue.articulations:
-                    if artOther.name == articName:
-                        music21NoteContinue.articulations.remove(artOther)
+                music21NoteContinue.articulations = [
+                    artOther for artOther in music21NoteContinue.articulations
+                    if artOther.name != articName
+                ]
 
         newSegment = self.consolidate()
         noteGroupings = [newSegment[gpKey]
@@ -1080,7 +1081,7 @@ class BrailleSegment(text.BrailleText):
             allNotes_outer = [n for n in noteGrouping if isinstance(n, note.Note)]
             for noteIndexStart_outer in range(len(allNotes_outer)):
                 music21NoteStart_outer = allNotes_outer[noteIndexStart_outer]
-                for artic_outer in music21NoteStart_outer.articulations:
+                for artic_outer in list(music21NoteStart_outer.articulations):
                     if (not isinstance(artic_outer, articulations.TechnicalIndication)
                             or isinstance(artic_outer, articulations.Bowing)):
                         fixOneArticulation(
@@ -2460,6 +2461,34 @@ class Test(unittest.TestCase):
             seg[SegmentKey(1, 0, Affinity.NOTEGROUP, None)].append(clefClass())
             seg.addGroupingAttributes()
             self.assertEqual(seg.descendingChords, descending)
+
+    def testFixArticulationsDoubling(self):
+        '''
+        Four or more staccatos in a row: the first note gets two, the notes
+        in between get none, and the last note keeps one.
+
+        AI-assisted (Claude).
+        '''
+        from music21 import articulations
+
+        for staccatosOnSecondNote in (1, 2):
+            m = stream.Measure(number=1)
+            for i in range(4):
+                n = note.Note('C4', type='eighth')
+                staccatoCount = staccatosOnSecondNote if i == 1 else 1
+                for unused_j in range(staccatoCount):
+                    n.articulations.append(articulations.Staccato())
+                m.append(n)
+            findSegments(stream.Part([m]))
+            self.assertEqual([len(n.articulations) for n in m.notes], [2, 0, 0, 1])
+
+        m = stream.Measure(number=1)
+        for i in range(3):
+            n = note.Note('C4', type='eighth')
+            n.articulations.append(articulations.Staccato())
+            m.append(n)
+        findSegments(stream.Part([m]))
+        self.assertEqual([len(n.articulations) for n in m.notes], [1, 1, 1])
 
 
 if __name__ == '__main__':
