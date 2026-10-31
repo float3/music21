@@ -109,7 +109,7 @@ fix in an earlier form than its branch, the branch is the one to send.
 ### Braille
 
 - [`pr/braille-binary-dots`](https://github.com/float3/music21/tree/pr/braille-binary-dots): Fix the binary_dots entry for braille dots 1-2-3-5-6
-- [`pr/braille-show-hand`](https://github.com/float3/music21/tree/pr/braille-show-hand): Store the hand set on BrailleText.showHand
+- [`pr/braille-show-hand-setter`](https://github.com/float3/music21/tree/pr/braille-show-hand-setter): Make BrailleText.showHand store the hand and set only its symbol
 - [`pr/braille-tuplet-hidden-number`](https://github.com/float3/music21/tree/pr/braille-tuplet-hidden-number): Detect hidden tuplet numbers in braille noteToBraille
 - [`pr/braille-chord-symbol-duration`](https://github.com/float3/music21/tree/pr/braille-chord-symbol-duration): Use the chord's own duration in braille chordToBraille
 - [`pr/braille-split-measure-padding`](https://github.com/float3/music21/tree/pr/braille-split-measure-padding): Pad split measures with zero-length rests in braille splitMeasure
@@ -117,3 +117,5 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/braille-empty-text-expression`](https://github.com/float3/music21/tree/pr/braille-empty-text-expression): Transcribe a note after an empty TextExpression in braille
 - [`pr/braille-fix-articulations-iteration`](https://github.com/float3/music21/tree/pr/braille-fix-articulations-iteration): Remove every doubled articulation in BrailleSegment.fixArticulations
 - [`pr/braille-descending-chords-default`](https://github.com/float3/music21/tree/pr/braille-descending-chords-default): Spell braille chords downward by default and keep the clef's direction
+- [`pr/braille-grand-segment-same-hand-keys`](https://github.com/float3/music21/tree/pr/braille-grand-segment-same-hand-keys): Yield every key of one hand in BrailleGrandSegment.yieldCombinedGroupingKeys
+- [`pr/braille-fix-articulation-tie-edges`](https://github.com/float3/music21/tree/pr/braille-fix-articulation-tie-edges): Keep a braille tie across a segment break in fixArticulations
