@@ -1566,8 +1566,10 @@ def findSegments(music21Part,
         # -------------------
         seg.showClefSigns = showClefSigns
         seg.upperFirstInNoteFingering = upperFirstInNoteFingering
-        seg.descendingChords = descendingChords
+        if descendingChords is not None:
+            seg.descendingChords = descendingChords
         seg.addGroupingAttributes()
+        descendingChords = seg.descendingChords
 
         # Segment Attributes
         # ------------------
@@ -2512,6 +2514,30 @@ class Test(unittest.TestCase):
             m.append(n)
         findSegments(stream.Part([m]))
         self.assertEqual([len(n.articulations) for n in m.notes], [1, 1, 1])
+
+    def testFindSegmentsDescendingChordsFromClef(self):
+        '''
+        Chords are spelled downward unless a bass or tenor clef is found, and
+        the choice made from a clef carries over to the following segments.
+        '''
+        from music21.braille.objects import BrailleSegmentDivision
+
+        for startClef, expected in ((clef.TrebleClef(), True),
+                                    (clef.BassClef(), False),
+                                    (None, True)):
+            part = stream.Part()
+            for i in range(1, 4):
+                m = stream.Measure(number=i)
+                if i == 1 and startClef is not None:
+                    m.append(startClef)
+                if i == 3:
+                    m.append(BrailleSegmentDivision())
+                m.append(chord.Chord(['C3', 'E3', 'G3'], quarterLength=4.0))
+                part.append(m)
+            for seg in findSegments(part):
+                for groupingKey, grouping in seg.items():
+                    if groupingKey.affinity == Affinity.NOTEGROUP:
+                        self.assertIs(grouping.descendingChords, expected)
 
 
 if __name__ == '__main__':
