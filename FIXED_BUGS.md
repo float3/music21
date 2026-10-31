@@ -48,6 +48,9 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [#2132](https://github.com/cuthbertLab/music21/pull/2132) a trill with an accidental exporting no `accidental-mark`
 - [#2133](https://github.com/cuthbertLab/music21/pull/2133) `beatAndMeasureFromOffset` counting a split measure's second half in the wrong meter
 - [#2134](https://github.com/cuthbertLab/music21/pull/2134) a split measure's right barline becoming its second half's left barline
+- [#2136](https://github.com/cuthbertLab/music21/pull/2136) `mostCommonMeasureRhythms` failing on chords and unpitched notes
+- [#2137](https://github.com/cuthbertLab/music21/pull/2137) an octave-repeating scale closing with a zero-width step
+- [#2138](https://github.com/cuthbertLab/music21/pull/2138) figured-bass realizations sharing pitch objects
 
 ## Fixed here, not yet upstream
 
@@ -66,7 +69,6 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/floating-key-interpretation-copy`](https://github.com/float3/music21/tree/pr/floating-key-interpretation-copy): Smooth floating key analysis with each neighbour's own interpretations
 - [`pr/chord-reducer-hashable-timespans`](https://github.com/float3/music21/tree/pr/chord-reducer-hashable-timespans): Make ElementTimespan hashable
 - [`pr/verticality-part-id-chord-notes`](https://github.com/float3/music21/tree/pr/verticality-part-id-chord-notes): Give chord notes part id groups in Verticality.makeElement
-- [`pr/most-common-rhythms-chord`](https://github.com/float3/music21/tree/pr/most-common-rhythms-chord): Allow chords and unpitched notes in mostCommonMeasureRhythms (open: [#2136](https://github.com/cuthbertLab/music21/pull/2136))
 - [`pr/chord-bass-motion-direction`](https://github.com/float3/music21/tree/pr/chord-bass-motion-direction): Count ChordBassMotionFeature motion upward
 - [`pr/quality-feature-modal-key`](https://github.com/float3/music21/tree/pr/quality-feature-modal-key): Analyze modal keys in QualityFeature
 - [`pr/output-tab-orange-include-id`](https://github.com/float3/music21/tree/pr/output-tab-orange-include-id): Honor includeId and includeClassLabel in Orange and ARFF rows
@@ -83,11 +85,9 @@ fix in an earlier form than its branch, the branch is the one to send.
 
 ### Scales and figured bass
 
-- [`pr/octave-repeating-full-octave`](https://github.com/float3/music21/tree/pr/octave-repeating-full-octave): Close an octave-repeating scale without a zero-width step (open: [#2137](https://github.com/cuthbertLab/music21/pull/2137))
 - [`pr/harmonic-minor-no-altered-degrees`](https://github.com/float3/music21/tree/pr/harmonic-minor-no-altered-degrees): Build harmonic minor from its own intervals
 - [`pr/next-pitch-wide-cycles`](https://github.com/float3/music21/tree/pr/next-pitch-wide-cycles): Find nextPitch neighbors on cycles wider than an octave
 - [`pr/relative-node-id-deterministic`](https://github.com/float3/music21/tree/pr/relative-node-id-deterministic): Choose among nodes sharing a pitch without randomness
-- [`pr/fb-realizer-own-pitches-2`](https://github.com/float3/music21/tree/pr/fb-realizer-own-pitches-2): Give figured-bass realizations their own pitches (open: [#2138](https://github.com/cuthbertLab/music21/pull/2138))
 - [`pr/fb-tuplet-offsets`](https://github.com/float3/music21/tree/pr/fb-tuplet-offsets): Realize figured-bass lines holding tuplets
 
 ### Formats
