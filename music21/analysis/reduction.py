@@ -1317,6 +1317,13 @@ class Test(unittest.TestCase):
         # p.process()
 
     def testPartReductionWeightIsVolume(self):
+        '''
+        Unnormalized weights are volumes: with segmentByTarget=False each
+        measure's span gets the average volume of its dynamics, and with
+        segmentByTarget=True each dynamic's span gets its own volume.
+
+        AI-assisted (Claude).
+        '''
         from music21 import analysis
         from music21 import dynamics
         p = stream.Part()
@@ -1327,13 +1334,11 @@ class Test(unittest.TestCase):
         p.makeMeasures(inPlace=True)
         s = stream.Score([p])
 
-        # one span per measure: the average volume of its dynamics
         pr = analysis.reduction.PartReduction(s, segmentByTarget=False, normalize=False)
         pr.process()
         self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(),
                                 [('solo', [[0.0, 4.0, 0.525, '#666666']])])
 
-        # one span per dynamic: its own volume
         pr = analysis.reduction.PartReduction(s, segmentByTarget=True, normalize=False)
         pr.process()
         self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(),
