@@ -1757,6 +1757,26 @@ class Test(unittest.TestCase):
         ):
             self.assertEqual(clefToBraille(clefClass(), keyboardHandSwitched=True), brailleClef)
 
+    def testChordDurationIsBrailled(self):
+        import contextlib
+        import io
+
+        from music21 import chord
+        from music21 import harmony
+
+        eighthChord = chord.Chord(['C5', 'E5'], type='eighth')
+        self.assertEqual(chordToBraille(eighthChord), '⠨⠋⠬')
+        self.assertEqual(chordToBraille(eighthChord.getGrace()), '⠨⠋⠬')
+        self.assertEqual(chordToBraille(chord.Chord(['C5', 'E5'], quarterLength=1 / 3)),
+                         '⠨⠋⠬')
+
+        cs = harmony.ChordSymbol('C')
+        self.assertEqual(cs.quarterLength, 0.0)
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            self.assertEqual(chordToBraille(cs), symbols['basic_exception'])
+        self.assertIn('cannot be transcribed to braille', stderr.getvalue())
+
 
 if __name__ == '__main__':
     import music21
