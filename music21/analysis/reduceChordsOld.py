@@ -239,14 +239,8 @@ class ChordReducer:
         self._lastTs = None
         for i in range(lenMeasures):
             mI = inStream.measure(i, indicesNotNumbers=True)
-            if not mI.recurse().notesAndRests:
-                if i == 0:
-                    pass
-                else:
-                    break
-            else:
-                m = self.reduceThisMeasure(mI, i, maxChords, closedPosition, forceOctave)
-                p.coreAppend(m)
+            m = self.reduceThisMeasure(mI, i, maxChords, closedPosition, forceOctave)
+            p.coreAppend(m)
 
             if self.printDebug:
                 print(i, ' ', end='')
@@ -291,7 +285,8 @@ class ChordReducer:
             m.coreInsert(newOffset, cElCopy, ignoreSort=True)
 
         sourceMeasure = mI.parts.first().getElementsByClass(stream.Measure).first()
-        measureLength = sourceMeasure.duration.quarterLength
+        measureLength = (sourceMeasure.duration.quarterLength
+                         or sourceMeasure.barDuration.quarterLength)
         if cLast is not None and round(measureLength - cLastEnd, 6) != 0.0:
             cLast.quarterLength += measureLength - cLastEnd
 
@@ -348,6 +343,20 @@ class Test(unittest.TestCase):
         measures = reduction.getElementsByClass(stream.Measure)
         self.assertEqual([m.offset for m in measures], [0.0, 4.0, 8.0])
         self.assertEqual([m.duration.quarterLength for m in measures], [4.0, 4.0, 4.0])
+
+    def testEmptyMeasure(self):
+        from music21 import converter
+        from music21 import note
+        parts = [converter.parse('tinyNotation: 4/4 c1 r1 e1'),
+                 converter.parse('tinyNotation: 4/4 C1 r1 E1')]
+        for part in parts:
+            emptyMeasure = part.getElementsByClass(stream.Measure)[1]
+            emptyMeasure.remove(emptyMeasure.notesAndRests.first())
+        reduction = ChordReducer().multiPartReduction(stream.Score(parts), maxChords=3)
+        measures = reduction.getElementsByClass(stream.Measure)
+        self.assertEqual([m.offset for m in measures], [0.0, 4.0, 8.0])
+        self.assertEqual([m.duration.quarterLength for m in measures], [4.0, 4.0, 4.0])
+        self.assertEqual(len(measures[1].getElementsByClass(note.Rest)), 1)
 
 class TestExternal(unittest.TestCase):
     show = True
