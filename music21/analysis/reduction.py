@@ -448,6 +448,11 @@ class PartReduction:
     This reduction is designed to work with the GraphHorizontalBarWeighted and related Plot
     subclasses.
 
+    The `partGroups` parameter is a list of dictionaries with the keys 'name', 'color'
+    and 'match'. A group takes each Part whose id has one of the group's 'match' strings
+    as whole words. Each 'match' string is a case-insensitive regular expression;
+    if 'match' is None, the group's name is matched literally.
+
     If the `fillByMeasure` parameter is True, and if measures are available,
     each part will segment by Measure divisions, and look for the target activity only
     once per Measure.
@@ -521,7 +526,6 @@ class PartReduction:
                         matches = [re.escape(name)]
                     pId = str(p.id)
                     for m in matches:
-                        # a regular expression matching whole words of the id
                         if re.search(rf'(?<!\w)(?:{m})(?!\w)', pId, re.IGNORECASE):
                             sub.append(p)
                             break
@@ -1550,6 +1554,11 @@ class Test(unittest.TestCase):
         unused_target = pr.getGraphHorizontalBarWeightedData()
 
     def testPartReductionGroupMatchesWholeWords(self):
+        '''
+        A group's match strings take only parts whose id has them as whole words.
+
+        AI-assisted (Claude).
+        '''
         from music21 import analysis
         s = stream.Score()
         for pId in ('Violin I', 'Violin II', 'Viola', 'Violoncello', 'Flute 1', '10'):
