@@ -445,6 +445,26 @@ class Test(unittest.TestCase):
         self.assertEqual(net.getNeighborNodeIds('c4', Terminus.LOW, 'b3'),
                          (Terminus.LOW, Terminus.LOW))
 
+    def testNextPitchFollowsScaleChanges(self):
+        sc = scale.MajorScale('c4')
+        self.assertEqual(str(sc.nextPitch('e4')), 'F4')
+        sc.tonic = pitch.Pitch('d4')
+        self.assertEqual(str(sc.nextPitch('e4')), 'F#4')
+        sc.transpose('M2', inPlace=True)
+        self.assertEqual(str(sc.nextPitch('f#4')), 'G#4')
+        sc.abstract = scale.AbstractDiatonicScale('minor')
+        self.assertEqual(str(sc.nextPitch('f#4')), 'G4')
+
+        net = intervalNetwork.IntervalNetwork(['M2', 'M2', 'm2', 'M2', 'M2', 'M2', 'm2'])
+        self.assertEqual(str(net.nextPitch('c4', 1, 'f4')), 'G4')
+        net.fillBiDirectedEdges(['M2', 'M2', 'M2', 'M2', 'M2', 'M2'])
+        self.assertEqual(str(net.nextPitch('c4', 1, 'f4')), 'G#4')
+
+    def testNextPitchStaysRandomOnWeightedNetworks(self):
+        sc = scale.WeightedHexatonicBlues('c4')
+        found = {str(sc.nextPitch('f4')) for unused_x in range(100)}
+        self.assertEqual(found, {'F#4', 'G4'})
+
     def testDeriveByDegree(self):
         sc1 = scale.MajorScale()
         self.assertEqual(str(sc1.deriveByDegree(7, 'G#')),
