@@ -71,34 +71,34 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [#2162](https://github.com/cuthbertLab/music21/pull/2162) Realize figured-bass lines holding tuplets
 - [#2163](https://github.com/cuthbertLab/music21/pull/2163) Keep the stretch before a span's first dynamic in PartReduction
 - [#2165](https://github.com/cuthbertLab/music21/pull/2165) Count ChordBassMotionFeature motion upward
+- [#2166](https://github.com/cuthbertLab/music21/pull/2166) Place melodicIntervals at offsets in the stream analysed
+- [#2168](https://github.com/cuthbertLab/music21/pull/2168) Smooth floating key analysis with each neighbour's own interpretations
 
 ## Fixed here, not yet upstream
 
 ### Streams
 
-- [`pr/measures-collect-priority`](https://github.com/float3/music21/tree/pr/measures-collect-priority): Change a collected object's priority in Stream.measures only when needed
+- [`pr/measures-collect-priority`](https://github.com/float3/music21/tree/pr/measures-collect-priority): Change a collected object's priority in Stream.measures only when needed (open: [#2172](https://github.com/cuthbertLab/music21/pull/2172))
 - [`pr/split-measure-time-signature`](https://github.com/float3/music21/tree/pr/split-measure-time-signature): Give a split measure's second half the clef, key and meter in force where it is split
 - [`pr/greatest-divisor-grace-notes`](https://github.com/float3/music21/tree/pr/greatest-divisor-grace-notes): Slice by the greatest divisor past grace notes and empty measures
 - [`pr/slice-at-offsets-voices`](https://github.com/float3/music21/tree/pr/slice-at-offsets-voices): Keep the pieces of a note cut in a voice in that voice
-- [`pr/melodic-intervals-offsets`](https://github.com/float3/music21/tree/pr/melodic-intervals-offsets): Place melodicIntervals at offsets in the stream analysed
 - [`pr/partstaff-measure-gap-2`](https://github.com/float3/music21/tree/pr/partstaff-measure-gap-2): Join PartStaffs after a measure missing from the first staff (open: [#2156](https://github.com/cuthbertLab/music21/pull/2156))
 
 ### Analysis and features
 
-- [`pr/floating-key-interpretation-copy`](https://github.com/float3/music21/tree/pr/floating-key-interpretation-copy): Smooth floating key analysis with each neighbour's own interpretations
-- [`pr/chord-reducer-hashable-timespans-2`](https://github.com/float3/music21/tree/pr/chord-reducer-hashable-timespans-2): Make ElementTimespan hashable
+- [`pr/chord-reducer-hashable-timespans-2`](https://github.com/float3/music21/tree/pr/chord-reducer-hashable-timespans-2): Make ElementTimespan hashable (open: [#2169](https://github.com/cuthbertLab/music21/pull/2169))
 - [`pr/chord-reducer-bass-gap-overlap`](https://github.com/float3/music21/tree/pr/chord-reducer-bass-gap-overlap): Keep fillBassGaps from overlapping a part's next timespan
 - [`pr/chord-reducer-first-part-measures`](https://github.com/float3/music21/tree/pr/chord-reducer-first-part-measures): Chordify ChordReducer.run's reduction on the first part's measures
-- [`pr/chord-reducer-pitch-class-key`](https://github.com/float3/music21/tree/pr/chord-reducer-pitch-class-key): Key ChordReducer weights by sorted pitch classes
+- [`pr/chord-reducer-pitch-class-key`](https://github.com/float3/music21/tree/pr/chord-reducer-pitch-class-key): Key ChordReducer weights by sorted pitch classes (open: [#2174](https://github.com/cuthbertLab/music21/pull/2174))
 - [`pr/chord-reducer-old-measure-length`](https://github.com/float3/music21/tree/pr/chord-reducer-old-measure-length): Keep each measure's length in reduceChordsOld
 - [`pr/chord-reducer-old-empty-measure`](https://github.com/float3/music21/tree/pr/chord-reducer-old-empty-measure): Reduce every measure in reduceChordsOld.multiPartReduction
-- [`pr/partwise-trees-bulk-insert`](https://github.com/float3/music21/tree/pr/partwise-trees-bulk-insert): Insert each part's timespans at once in toPartwiseTimespanTrees
+- [`pr/partwise-trees-bulk-insert`](https://github.com/float3/music21/tree/pr/partwise-trees-bulk-insert): Insert each part's timespans at once in toPartwiseTimespanTrees (open: [#2173](https://github.com/cuthbertLab/music21/pull/2173))
 - [`pr/chord-reducer-timespan-measures`](https://github.com/float3/music21/tree/pr/chord-reducer-timespan-measures): Choose ChordReducer.run's chords from slices of the score's timespans (design; issue first)
 - [`pr/verticality-part-id-chord-notes`](https://github.com/float3/music21/tree/pr/verticality-part-id-chord-notes): Give chord notes part id groups in Verticality.makeElement
 - [`pr/output-tab-orange-include-id`](https://github.com/float3/music21/tree/pr/output-tab-orange-include-id): Honor includeId and includeClassLabel in Orange and ARFF rows
 - [`pr/features-as-list-rows`](https://github.com/float3/music21/tree/pr/features-as-list-rows): Return one row per instance from getFeaturesAsList
 - [`pr/part-reduction-same-ids`](https://github.com/float3/music21/tree/pr/part-reduction-same-ids): Keep each part's spans apart in PartReduction when ids repeat
-- [`pr/part-reduction-dynamic-on-barline`](https://github.com/float3/music21/tree/pr/part-reduction-dynamic-on-barline): Start each PartReduction span at the last dynamic before it
+- [`pr/part-reduction-dynamic-on-barline-2`](https://github.com/float3/music21/tree/pr/part-reduction-dynamic-on-barline-2): Start each PartReduction span at the last dynamic before it (open: [#2171](https://github.com/cuthbertLab/music21/pull/2171))
 - [`pr/part-reduction-average-weight`](https://github.com/float3/music21/tree/pr/part-reduction-average-weight): Average dynamics in PartReduction weights
 - [`pr/part-reduction-whole-word-groups`](https://github.com/float3/music21/tree/pr/part-reduction-whole-word-groups): Match PartReduction part groups on whole words of the part id
 - [`pr/dolan-part-groups`](https://github.com/float3/music21/tree/pr/dolan-part-groups): Set Dolan's default part groups when a stream is given
@@ -126,5 +126,5 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/braille-split-measure-padding-2`](https://github.com/float3/music21/tree/pr/braille-split-measure-padding-2): Pad split measures with zero-length rests in braille splitMeasure (open: [#2161](https://github.com/cuthbertLab/music21/pull/2161))
 - [`pr/braille-fix-articulations-iteration`](https://github.com/float3/music21/tree/pr/braille-fix-articulations-iteration): Remove every doubled articulation in BrailleSegment.fixArticulations
 - [`pr/braille-descending-chords-default`](https://github.com/float3/music21/tree/pr/braille-descending-chords-default): Spell braille chords downward by default and keep the clef's direction
-- [`pr/braille-grand-segment-same-hand-keys`](https://github.com/float3/music21/tree/pr/braille-grand-segment-same-hand-keys): Yield every key of one hand in BrailleGrandSegment.yieldCombinedGroupingKeys
+- [`pr/braille-grand-segment-same-hand-keys-2`](https://github.com/float3/music21/tree/pr/braille-grand-segment-same-hand-keys-2): Yield every key of one hand in BrailleGrandSegment.yieldCombinedGroupingKeys (open: [#2170](https://github.com/cuthbertLab/music21/pull/2170))
 - [`pr/braille-fix-articulation-tie-edges`](https://github.com/float3/music21/tree/pr/braille-fix-articulation-tie-edges): Keep a braille tie across a segment break in fixArticulations
