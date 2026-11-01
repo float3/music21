@@ -76,6 +76,7 @@ fix in an earlier form than its branch, the branch is the one to send.
 
 ### Streams
 
+- [`pr/measures-collect-priority`](https://github.com/float3/music21/tree/pr/measures-collect-priority): Change a collected object's priority in Stream.measures only when needed
 - [`pr/split-measure-time-signature`](https://github.com/float3/music21/tree/pr/split-measure-time-signature): Give a split measure's second half the clef, key and meter in force where it is split
 - [`pr/greatest-divisor-grace-notes`](https://github.com/float3/music21/tree/pr/greatest-divisor-grace-notes): Slice by the greatest divisor past grace notes and empty measures
 - [`pr/slice-at-offsets-voices`](https://github.com/float3/music21/tree/pr/slice-at-offsets-voices): Keep the pieces of a note cut in a voice in that voice
@@ -85,7 +86,14 @@ fix in an earlier form than its branch, the branch is the one to send.
 ### Analysis and features
 
 - [`pr/floating-key-interpretation-copy`](https://github.com/float3/music21/tree/pr/floating-key-interpretation-copy): Smooth floating key analysis with each neighbour's own interpretations
-- [`pr/chord-reducer-hashable-timespans`](https://github.com/float3/music21/tree/pr/chord-reducer-hashable-timespans): Make ElementTimespan hashable
+- [`pr/chord-reducer-hashable-timespans-2`](https://github.com/float3/music21/tree/pr/chord-reducer-hashable-timespans-2): Make ElementTimespan hashable
+- [`pr/chord-reducer-bass-gap-overlap`](https://github.com/float3/music21/tree/pr/chord-reducer-bass-gap-overlap): Keep fillBassGaps from overlapping a part's next timespan
+- [`pr/chord-reducer-first-part-measures`](https://github.com/float3/music21/tree/pr/chord-reducer-first-part-measures): Chordify ChordReducer.run's reduction on the first part's measures
+- [`pr/chord-reducer-pitch-class-key`](https://github.com/float3/music21/tree/pr/chord-reducer-pitch-class-key): Key ChordReducer weights by sorted pitch classes
+- [`pr/chord-reducer-old-measure-length`](https://github.com/float3/music21/tree/pr/chord-reducer-old-measure-length): Keep each measure's length in reduceChordsOld
+- [`pr/chord-reducer-old-empty-measure`](https://github.com/float3/music21/tree/pr/chord-reducer-old-empty-measure): Reduce every measure in reduceChordsOld.multiPartReduction
+- [`pr/partwise-trees-bulk-insert`](https://github.com/float3/music21/tree/pr/partwise-trees-bulk-insert): Insert each part's timespans at once in toPartwiseTimespanTrees
+- [`pr/chord-reducer-timespan-measures`](https://github.com/float3/music21/tree/pr/chord-reducer-timespan-measures): Choose ChordReducer.run's chords from slices of the score's timespans (design; issue first)
 - [`pr/verticality-part-id-chord-notes`](https://github.com/float3/music21/tree/pr/verticality-part-id-chord-notes): Give chord notes part id groups in Verticality.makeElement
 - [`pr/output-tab-orange-include-id`](https://github.com/float3/music21/tree/pr/output-tab-orange-include-id): Honor includeId and includeClassLabel in Orange and ARFF rows
 - [`pr/features-as-list-rows`](https://github.com/float3/music21/tree/pr/features-as-list-rows): Return one row per instance from getFeaturesAsList
