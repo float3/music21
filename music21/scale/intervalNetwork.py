@@ -1358,8 +1358,8 @@ class IntervalNetwork:
         if len(matchedIds) == 1:
             return matchedIds[0], (direction == Direction.ASCENDING)
         if matchedIds:
-            chosenId = common.weightedSelection(t.cast('list[int]', matchedIds),
-                                                [self.nodes[x].weight for x in matchedIds])
+            chosenId = min(matchedIds, key=lambda nId: (-self.nodes[nId].weight,
+                                                        self.nodeIdToDegree(nId)))
             return chosenId, (direction == Direction.ASCENDING)
         if getNeighbor not in (True, Direction.ASCENDING, Direction.DESCENDING, Direction.BI):
             return None, False
