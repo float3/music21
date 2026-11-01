@@ -306,6 +306,12 @@ class Test(unittest.TestCase):
         self.assertEqual(str(sc.pitchFromDegree(2)), 'D-4')
 
     def testIntervalListsDoNotSharePitchDegreeCache(self):
+        '''
+        Cyclical and octave-repeating scales with different interval lists
+        keep separate entries in the pitch-degree cache.
+
+        AI-assisted (Claude).
+        '''
         sc1 = scale.CyclicalScale('C4', ['M3', 'm3'])
         sc2 = scale.CyclicalScale('C4', ['m3', 'M3'])
         sc1.usePitchDegreeCache = True
@@ -323,6 +329,12 @@ class Test(unittest.TestCase):
         self.assertEqual(str(sc4.pitchFromDegree(2)), 'D-4')
 
     def testIntervalListStoresIntervals(self):
+        '''
+        The abstract cyclical and octave-repeating scales store their
+        intervals as Interval objects in intervalList.
+
+        AI-assisted (Claude).
+        '''
         cyclical = scale.AbstractCyclicalScale(['M3', interval.Interval('m3')])
         self.assertEqual([i.name for i in cyclical.intervalList], ['M3', 'm3'])
         self.assertIsNone(cyclical.mode)
@@ -335,6 +347,12 @@ class Test(unittest.TestCase):
                          ['P8'])
 
     def testModeKeywordDeprecated(self):
+        '''
+        The mode keyword still works with a deprecation warning, and giving
+        both mode and intervalList raises TypeError.
+
+        AI-assisted (Claude).
+        '''
         with self.assertWarns(exceptions21.Music21DeprecationWarning):
             cyclical = scale.AbstractCyclicalScale(mode=['M3'])
         self.assertEqual([i.name for i in cyclical.intervalList], ['M3'])
