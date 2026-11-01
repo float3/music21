@@ -282,6 +282,54 @@ class Test(unittest.TestCase):
             self.assertEqual(str(wholeTones.nextPitch('c5', Direction.DESCENDING)), 'A#4')
             self.assertEqual(wholeTones.getScaleDegreeFromPitch('c'), 1)
 
+    def testOctaveRepeatingScaleStepsPassingTheOctaveLetter(self):
+        minorThirds = scale.OctaveRepeatingScale('c4', ['m3'] * 4)
+        self.assertTrue(minorThirds.abstract.octaveDuplicating)
+        self.assertEqual(self.pitchOut(minorThirds.pitches), '[C4, E-4, G-4, A4, C5]')
+        self.assertEqual(self.pitchOut(minorThirds.getPitches('c4', 'c6')),
+                         '[C4, E-4, G-4, A4, C5, E-5, G-5, A5, C6]')
+        self.assertEqual(str(minorThirds.nextPitch('a4')), 'C5')
+        self.assertEqual(str(minorThirds.nextPitch('c5', Direction.DESCENDING)), 'A4')
+        self.assertEqual(minorThirds.getScaleDegreeFromPitch('c5'), 1)
+
+        semitones = scale.OctaveRepeatingScale('c4', ['m2'] * 12)
+        self.assertTrue(semitones.abstract.octaveDuplicating)
+        self.assertEqual(semitones.abstract.getDegreeMaxUnique(), 12)
+        self.assertEqual(str(semitones.pitches[-1]), 'C5')
+        self.assertEqual(self.pitchOut(semitones.getPitches('b4', 'd-5')), '[C-5, C5, D-5]')
+
+        mixed = scale.OctaveRepeatingScale('c4', ['m2', 'M2'] * 4)
+        self.assertTrue(mixed.abstract.octaveDuplicating)
+        self.assertEqual(str(mixed.pitches[-1]), 'C5')
+        self.assertEqual(self.pitchOut(mixed.getPitches('a4', 'd-6')),
+                         '[A4, B-4, C5, D-5, E-5, F-5, G-5, G5, A5, B-5, C6, D-6]')
+
+    def testOctaveRepeatingScaleClosesOnItsTonicSpelling(self):
+        '''
+        AI-assisted (Claude).
+        '''
+        thirds = scale.OctaveRepeatingScale('f#4', ['M3', 'M3', 'M3'])
+        self.assertEqual(self.pitchOut(thirds.pitches), '[F#4, A#4, D5, F#5]')
+        self.assertEqual(self.pitchOut(thirds.getPitches('c3', 'c5')),
+                         '[D3, F#3, A#3, D4, F#4, A#4]')
+        self.assertEqual(self.pitchOut(thirds.getPitches('c5', 'c3')),
+                         '[A#4, F#4, D4, A#3, F#3, D3]')
+        self.assertEqual(str(thirds.nextPitch('d5')), 'F#5')
+        self.assertEqual(str(thirds.nextPitch('a#4', stepSize=2)), 'F#5')
+        self.assertEqual(str(thirds.nextPitch('a#4', Direction.DESCENDING)), 'F#4')
+
+        for tonic in ('f#4', 'c#4', 'g#4', 'b-3', 'e-4', 'c-4', 'e#4'):
+            for intervalList in (['M2'] * 6, ['M3'] * 3, ['m3'] * 4, ['m2'] * 12):
+                sc = scale.OctaveRepeatingScale(tonic, intervalList)
+                tonicName = sc.tonic.name
+                names = [p.name for p in sc.getPitches('c2', 'c6')]
+                self.assertEqual(names.count(tonicName), 4, (tonic, intervalList, names))
+                descendingNames = [p.name for p in sc.getPitches('c6', 'c2')]
+                self.assertEqual(descendingNames.count(tonicName), 4, (tonic, intervalList))
+                self.assertEqual(sc.pitches[-1].name, tonicName, (tonic, intervalList))
+                beforeOctave = sc.pitches[-2]
+                self.assertEqual(sc.nextPitch(beforeOctave).name, tonicName, (tonic, intervalList))
+
     def testOctatonicModesDoNotSharePitchDegreeCache(self):
         sc1 = scale.OctatonicScale('C', mode=1)
         sc2 = scale.OctatonicScale('C', mode=2)
