@@ -1237,56 +1237,15 @@ class IntervalNetwork:
         if isinstance(pitchOrigin, str):
             pitchOriginObj = pitch.Pitch(pitchOrigin)
         else:
-            pitchOriginObj = copy.deepcopy(pitchOrigin)
+            pitchOriginObj = pitchOrigin
 
-        pCollect = None
-
-        # get the node id that we are starting with
-        nodeId = self.getRelativeNodeId(pitchReference,
-                                        nodeId=nodeName,
-                                        pitchTarget=pitchOriginObj,
-                                        direction=direction)
-
-        # environLocal.printDebug(['nextPitch()', 'got node Id', nodeId,
-        #  'direction', direction, 'self.nodes[nodeId].degree', self.nodes[nodeId].degree,
-        #  'pitchOriginObj', pitchOriginObj])
-        usedNeighbor = False
-        # if no match, get the neighbor
-        if (nodeId is None
-                and getNeighbor in (True, Direction.ASCENDING, Direction.DESCENDING, Direction.BI)):
-            usedNeighbor = True
-            neighborIds = self.getNeighborNodeIds(pitchReference=pitchReference,
-                                                  nodeName=nodeName,
-                                                  pitchTarget=pitchOriginObj,
-                                                  direction=direction)
-            lowId, highId = t.cast(
-                'tuple[Terminus|int, Terminus|int]', neighborIds)
-
-            # environLocal.printDebug(['nextPitch()', 'looking for neighbor',
-            #                         'getNeighbor', getNeighbor, 'source nodeId', nodeId,
-            #                         'lowId/highId', lowId, highId])
-
-            # replace the node with the nearest neighbor
-            if getNeighbor == Direction.DESCENDING:
-                nodeId = lowId
-            else:
-                nodeId = highId
-
-        # at this point a valid node id is required to continue
-        foundNodeId = t.cast('Terminus|int', nodeId)
-
-        startBelowOrigin = ((usedNeighbor and getNeighbor == Direction.DESCENDING)
-                            or (not usedNeighbor and direction == Direction.ASCENDING))
-        p = self._nodePitchNear(pitchReference,
-                                nodeName,
-                                foundNodeId,
-                                pitchOriginObj,
-                                direction=direction,
-                                atOrBelow=startBelowOrigin)
-
-        # pitchObj = p
-        n = self.nodes[foundNodeId]
-
+        nodeId, p = self._nodeAndPitchAt(pitchReference,
+                                         nodeName,
+                                         pitchOriginObj,
+                                         direction=direction,
+                                         getNeighbor=getNeighbor)
+        n = self.nodes[nodeId]
+        pCollect: pitch.Pitch|None = None
         for i in range(stepSize):
             postEdge, postNode = self.getNext(n, direction)
             if len(postEdge) > 1:
@@ -1310,50 +1269,103 @@ class IntervalNetwork:
 
         return pCollect
 
-    def _nodePitchNear(
+    def _nodeAndPitchAt(
         self,
         pitchReference: pitch.Pitch|str,
         nodeName: Node|int|Terminus|None,
-        nodeId: Terminus|int,
         pitchOrigin: pitch.Pitch,
         *,
         direction: Direction,
-        atOrBelow: bool,
-    ) -> pitch.Pitch:
+        getNeighbor: bool|Direction,
+    ) -> tuple[Terminus|int, pitch.Pitch]:
         '''
-        Return the pitch of `nodeId` nearest `pitchOrigin`: the highest
-        at or below it if `atOrBelow`, otherwise the lowest at or above it.
+        Return the node that `nextPitch` steps from and its pitch.
+
+        The node is the one sounding `pitchOrigin` (a weighted choice if several
+        do), or else its neighbor above, or below if `getNeighbor` is
+        Direction.DESCENDING.  Its pitch is the one nearest `pitchOrigin`: at or
+        below it when stepping up from a match or down from a lower neighbor,
+        otherwise at or above it.
 
         One node can stand for several pitch classes (a cycle of major thirds is
         one edge, so D, F# and A# after the first D are all its high terminus),
-        so read the pitch off a realization around the origin.
-
-        `pitchOrigin` is changed in place.
+        so the node and its pitch are both read off one realization around the
+        origin.
 
         AI-assisted (Claude).
         '''
-        pitchOrigin.octaveIsImplicit = False
+        originPs = pitchOrigin.ps
         span = self._searchSpan()
-        realizedPitches, realizedNodes = self.realize(
-            pitchReference,
-            nodeName,
-            minPitch=pitchOrigin.transpose(-span, inPlace=False),
-            maxPitch=pitchOrigin.transpose(span, inPlace=False),
-            direction=direction,
-        )
-        nodePitches = [realizedPitch
-                       for realizedPitch, realizedNode in zip(realizedPitches, realizedNodes)
+        minPitch = pitch.Pitch()
+        minPitch.ps = originPs - span
+        maxPitch = pitch.Pitch()
+        maxPitch.ps = originPs + span
+        realizedPitches, realizedNodes = self.realize(pitchReference,
+                                                      nodeName,
+                                                      minPitch=minPitch,
+                                                      maxPitch=maxPitch,
+                                                      direction=direction)
+        realizedPs = [p.ps for p in realizedPitches]
+        nodeId, atOrBelow = self._startNode(realizedPs,
+                                            realizedNodes,
+                                            originPs,
+                                            direction=direction,
+                                            getNeighbor=getNeighbor)
+
+        nodeIndices = [i for i, realizedNode in enumerate(realizedNodes)
                        if realizedNode == nodeId]
+        found: int|None
         if atOrBelow:
-            found = max((p for p in nodePitches if p.ps <= pitchOrigin.ps),
-                        key=lambda p: p.ps, default=None)
+            found = max((i for i in nodeIndices if realizedPs[i] <= originPs),
+                        key=realizedPs.__getitem__, default=None)
         else:
-            found = min((p for p in nodePitches if p.ps >= pitchOrigin.ps),
-                        key=lambda p: p.ps, default=None)
-        if found is None:
+            found = min((i for i in nodeIndices if realizedPs[i] >= originPs),
+                        key=realizedPs.__getitem__, default=None)
+        if nodeId is None or found is None:
             raise IntervalNetworkException(
                 'Could not find a pitch for the requested node degree')
-        return found
+        return nodeId, realizedPitches[found]
+
+    def _startNode(
+        self,
+        realizedPs: list[float],
+        realizedNodes: list[Terminus|int],
+        originPs: float,
+        *,
+        direction: Direction,
+        getNeighbor: bool|Direction,
+    ) -> tuple[Terminus|int|None, bool]:
+        '''
+        Return the node id `nextPitch` starts from, given a realization's pitch
+        space values and node ids, and whether its pitch is to be found at or
+        below `originPs` rather than at or above it.
+
+        AI-assisted (Claude).
+        '''
+        matchedIds: list[Terminus|int] = []
+        lowId: Terminus|int|None = None
+        highId: Terminus|int|None = None
+        for ps, realizedNode in zip(realizedPs, realizedNodes):
+            if ps == originPs:
+                if realizedNode not in matchedIds:
+                    matchedIds.append(realizedNode)
+            elif highId is None:
+                if ps < originPs:
+                    lowId = realizedNode
+                else:
+                    highId = realizedNode
+
+        if len(matchedIds) == 1:
+            return matchedIds[0], (direction == Direction.ASCENDING)
+        if matchedIds:
+            chosenId = common.weightedSelection(t.cast('list[int]', matchedIds),
+                                                [self.nodes[x].weight for x in matchedIds])
+            return chosenId, (direction == Direction.ASCENDING)
+        if getNeighbor not in (True, Direction.ASCENDING, Direction.DESCENDING, Direction.BI):
+            return None, False
+        if getNeighbor == Direction.DESCENDING:
+            return lowId, True
+        return highId, False
 
     def _searchSpan(self) -> int:
         '''
