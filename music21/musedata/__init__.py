@@ -688,12 +688,13 @@ class MuseDataMeasure(prebase.ProtoM21Object):
         from music21 import stream
 
         data = self.src[0].strip()  # get first line
+        mNumber = '1'
         # not all measure first-lines begin w/ measures, such as pickups
         if data[0] != 'm':  # a normal data record
             data = 'measure'
+            mNumber = '0'
 
         # see if there is a measure number
-        mNumber = '1'
         if len(data) >= 9 and data[8:].strip() != '':
             mNumber, junk = common.getNumFromStr(data)
 

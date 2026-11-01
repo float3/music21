@@ -594,6 +594,22 @@ class Test(unittest.TestCase):
         self.assertEqual([n.nameWithOctave for n in voices[0].notes], ['C4', 'A3'])
         self.assertEqual([n.nameWithOctave for n in voices[1].notes], ['C3'])
 
+    def testPickupMeasureNumber(self):
+        '''
+        Notes before the first measure record form a pickup measure numbered 0.
+        '''
+        from music21 import common
+        from music21 import converter
+        from music21 import stream
+
+        fpDir = common.getSourceFilePath() / 'musedata' / 'testPrimitive' / 'test02'
+        s = converter.parse(fpDir)
+        for p in s.parts:
+            measures = p.getElementsByClass(stream.Measure)
+            self.assertEqual([m.number for m in measures], [0, 1, 2, 3, 4, 5])
+            self.assertEqual(p.measure(0).paddingLeft, 2.0)
+            self.assertEqual(p.measure(1).paddingLeft, 0.0)
+
 
     def testBackBasic(self):
         from music21 import converter
@@ -602,7 +618,7 @@ class Test(unittest.TestCase):
         s = converter.parse(fpDir)
         # note: this is a multi-staff work, but presently gets encoded
         # as multiple voices
-        measures = s.parts[0].measures(1, 5)
+        measures = s.parts[0].measures(0, 4)
         self.assertEqual(len(measures[0].recurse().notesAndRests), 2)
         self.assertEqual(len(measures[1].recurse().notesAndRests), 5)
         self.assertEqual(len(measures[2].recurse().notesAndRests), 5)
