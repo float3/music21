@@ -3191,6 +3191,11 @@ class Test(unittest.TestCase):
         )
 
     def testDeduplicateByOffset(self):
+        '''
+        Instruments are deduplicated within each offset: a part name on an
+        instrument at another offset does not stop deduplication, and the
+        same instrument at two offsets is kept at both.
+        '''
         from music21 import stream
 
         def dedupedInstruments(offsetsAndInstruments):
@@ -3200,12 +3205,10 @@ class Test(unittest.TestCase):
             deduplicate(p, inPlace=True)
             return [(inst.classes[0], inst.getOffsetInHierarchy(p)) for inst in p[Instrument]]
 
-        # a part name at another offset does not stop deduplication
         viola = Viola()
         viola.partName = 'X'
         self.assertEqual(dedupedInstruments([(0, Violin()), (0, Violin()), (4, viola)]),
                          [('Violin', 0.0), ('Viola', 4.0)])
-        # the same instrument at two offsets is kept at both
         self.assertEqual(dedupedInstruments([(0, Violin()), (4, Violin())]),
                          [('Violin', 0.0), ('Violin', 4.0)])
 
