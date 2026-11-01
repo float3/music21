@@ -91,6 +91,7 @@ __all__ = [
 import copy
 import pathlib
 import typing as t
+import warnings
 
 from music21.scale import intervalNetwork
 from music21.scale.intervalNetwork import Direction, Terminus
@@ -118,14 +119,14 @@ type _PitchDegreeCacheKey = tuple[
     type,  # scale class
     str,  # scale type
     str,  # tonic name with octave
-    str,  # stringified mode
+    str,  # stringified mode or interval list
     int,  # degree
     Direction,  # direction
     bool  # equating termini
 ]
 
 # a dictionary mapping an abstract scale class, tonic.nameWithOctave,
-# _abstract.mode, and degree to a pitchNameWithOctave.
+# _abstract.mode or _abstract.intervalList, and degree to a pitchNameWithOctave.
 _pitchDegreeCache: dict[_PitchDegreeCacheKey, str] = {}
 
 # a pitch given in any of the forms that can be coerced to a pitch.Pitch
@@ -955,31 +956,104 @@ class AbstractMelodicMinorScale(AbstractScale):
         self._net.fillMelodicMinor()
 
 
+def _toIntervals(
+    intervals: t.Sequence[str|interval.Interval]|str|interval.Interval|None
+) -> list[interval.Interval]:
+    '''
+    Returns a new list of Interval objects from a list of intervals or
+    interval names.  A single interval or name becomes a list of one, and
+    None becomes an empty list.
+
+    >>> scale._toIntervals(['M3', interval.Interval('m3')])
+    [<music21.interval.Interval M3>, <music21.interval.Interval m3>]
+    >>> scale._toIntervals('P5')
+    [<music21.interval.Interval P5>]
+    >>> scale._toIntervals(None)
+    []
+    '''
+    if intervals is None:
+        return []
+    if isinstance(intervals, (str, interval.Interval)):
+        intervals = [intervals]
+    intervalObjects: list[interval.Interval] = []
+    for oneInterval in intervals:
+        if isinstance(oneInterval, interval.Interval):
+            intervalObjects.append(oneInterval)
+        else:
+            intervalObjects.append(interval.Interval(oneInterval))
+    return intervalObjects
+
+
+def _intervalListOrMode(
+    abstractScale: AbstractScale,
+    intervalList: t.Sequence[str|interval.Interval]|None,
+    mode: t.Sequence[str|interval.Interval]|None,
+) -> t.Sequence[str|interval.Interval]|None:
+    '''
+    Returns `intervalList`, or `mode` with a deprecation warning when
+    it was given instead.  Raises TypeError when both are given.
+
+    >>> sc = scale.AbstractCyclicalScale(['M3'])
+    >>> scale._intervalListOrMode(sc, ['m3'], None)
+    ['m3']
+    '''
+    if mode is None:
+        return intervalList
+    className = abstractScale.__class__.__name__
+    if intervalList is not None:
+        raise TypeError(
+            f"{className} received both 'intervalList' and its former name 'mode'; "
+            + "pass only 'intervalList'.")
+    warnings.warn(
+        f"{className}'s 'mode' keyword is deprecated and will be removed in v12; "
+        + "use 'intervalList' instead.",
+        exceptions21.Music21DeprecationWarning,
+        stacklevel=3)
+    return mode
+
+
 class AbstractCyclicalScale(AbstractScale):
     '''
     A scale of any size built with an interval list of any form.
     The resulting scale may be non octave repeating.
+
+    The intervals are kept in `intervalList`:
+
+    >>> sc = scale.AbstractCyclicalScale(['M3', 'm3'])
+    >>> sc.intervalList
+    [<music21.interval.Interval M3>, <music21.interval.Interval m3>]
+
+    * Changed in v11: the intervals are given as `intervalList` and stored
+      there as Interval objects.  The `mode` keyword is deprecated.
     '''
 
-    def __init__(self, mode: t.Any = None, **keywords) -> None:
+    def __init__(self,
+                 intervalList: t.Sequence[str|interval.Interval]|None = None,
+                 *,
+                 mode: t.Sequence[str|interval.Interval]|None = None,
+                 **keywords) -> None:
         super().__init__(**keywords)
         self.type = 'Abstract Cyclical'
         self.octaveDuplicating = False
-        self.buildNetwork(mode=mode)
+        self.intervalList: list[interval.Interval] = []
+        self.buildNetwork(_intervalListOrMode(self, intervalList, mode))
         # cannot assume that abstract cyclical scales are octave duplicating
         # until we have the intervals in use
 
-    def buildNetwork(self, mode: t.Any = None) -> None:
+    def buildNetwork(self, mode: t.Sequence[str|interval.Interval]|None = None) -> None:
         '''
-        Here, mode is the list of intervals.
+        Builds the network from `mode`, a list of intervals, and stores
+        the intervals in `intervalList`.  The argument keeps the name
+        `mode` from :meth:`AbstractScale.buildNetwork`.
+
+        >>> sc = scale.AbstractCyclicalScale(['M3'])
+        >>> sc.buildNetwork(['m3', 'M3'])
+        >>> sc.intervalList
+        [<music21.interval.Interval m3>, <music21.interval.Interval M3>]
         '''
-        modeList: list[t.Any]
-        if not isinstance(mode, (list, tuple)):
-            modeList = [mode]  # place in list
-        else:
-            modeList = list(mode)
+        self.intervalList = _toIntervals(mode)
         self.tonicDegree = 1
-        self._net = intervalNetwork.IntervalNetwork(modeList,
+        self._net = intervalNetwork.IntervalNetwork(self.intervalList,
                                                     octaveDuplicating=self.octaveDuplicating)
 
 
@@ -992,41 +1066,63 @@ class AbstractOctaveRepeatingScale(AbstractScale):
     that the octave will be repeated in one octave,
     only the next octave above the last interval will
     be provided.
+
+    The intervals, including the one that completes the octave,
+    are kept in `intervalList`:
+
+    >>> sc = scale.AbstractOctaveRepeatingScale(['M3', 'm3'])
+    >>> sc.intervalList
+    [<music21.interval.Interval M3>, <music21.interval.Interval m3>,
+     <music21.interval.Interval P4>]
+
+    * Changed in v11: the intervals are given as `intervalList` and stored
+      there as Interval objects.  The `mode` keyword is deprecated.
     '''
 
-    def __init__(self, mode: t.Any = None, **keywords) -> None:
+    def __init__(self,
+                 intervalList: t.Sequence[str|interval.Interval]|None = None,
+                 *,
+                 mode: t.Sequence[str|interval.Interval]|None = None,
+                 **keywords) -> None:
         super().__init__(**keywords)
         self.type = 'Abstract Octave Repeating'
+        self.intervalList: list[interval.Interval] = []
 
-        if mode is None:
-            # supply a default
-            mode = ['P8']
-        self.buildNetwork(mode=mode)
+        intervalList = _intervalListOrMode(self, intervalList, mode)
+        if intervalList is None:
+            intervalList = ['P8']
+        self.buildNetwork(intervalList)
 
-    def buildNetwork(self, mode: t.Any = None) -> None:
+    def buildNetwork(self, mode: t.Sequence[str|interval.Interval]|None = None) -> None:
         '''
-        Here, mode is the list of intervals.
-        '''
-        if not common.isListLike(mode):
-            mode = [mode]  # place in list
-        # get the interval to complete the octave
+        Builds the network from `mode`, a list of intervals, adding the
+        interval that completes the octave, and stores the intervals in
+        `intervalList`.  The argument keeps the name `mode` from
+        :meth:`AbstractScale.buildNetwork`.
 
-        intervalSum = interval.add(mode)
+        >>> sc = scale.AbstractOctaveRepeatingScale()
+        >>> sc.buildNetwork(['M2'])
+        >>> sc.intervalList
+        [<music21.interval.Interval M2>, <music21.interval.Interval m7>]
+        '''
+        intervals = _toIntervals(mode)
+        intervalSum = interval.add(intervals)
         iComplement = intervalSum.complement
         span = intervalSum.semitones
         if iComplement.semitones:
-            mode = [*mode, iComplement]  # a copy: mode is the caller's list
+            intervals.append(iComplement)
             span += iComplement.semitones
         elif span == 12 and intervalSum.name != 'P8':
             octaveShortfall = interval.subtract(['P8', intervalSum])
-            mode = [*mode[:-1], interval.add([mode[-1], octaveShortfall])]
+            intervals[-1] = interval.add([intervals[-1], octaveShortfall])
 
         # steps wider than an octave complete a pattern spanning several
         # octaves, which does not repeat every octave
         self.octaveDuplicating = (span == 12)
 
+        self.intervalList = intervals
         self.tonicDegree = 1
-        self._net = intervalNetwork.IntervalNetwork(mode,
+        self._net = intervalNetwork.IntervalNetwork(self.intervalList,
                                                     octaveDuplicating=self.octaveDuplicating)
 
 
@@ -1787,7 +1883,10 @@ class ConcreteScale(Scale):
         if (self.usePitchDegreeCache and self.tonic
                 and not minPitch and not maxPitch and getattr(self, 'type', None)):
             tonicCacheKey = self.tonic.nameWithOctave
-            modeCacheKey = str(self._abstract.mode)
+            if isinstance(self._abstract, (AbstractCyclicalScale, AbstractOctaveRepeatingScale)):
+                modeCacheKey = str(self._abstract.intervalList)
+            else:
+                modeCacheKey = str(self._abstract.mode)
             cacheKey = (
                 self.__class__,
                 self.type,
@@ -3128,11 +3227,10 @@ class OctaveRepeatingScale(ConcreteScale):
 
     def __init__(self,
                  tonic: str|pitch.Pitch|note.Note|None = None,
-                 intervalList: list|None = None,
+                 intervalList: t.Sequence[str|interval.Interval]|None = None,
                  **keywords) -> None:
         super().__init__(tonic=tonic, **keywords)
-        mode = intervalList if intervalList else ['m2']
-        self._abstract = AbstractOctaveRepeatingScale(mode=mode)
+        self._abstract = AbstractOctaveRepeatingScale(intervalList if intervalList else ['m2'])
         self.type = 'Octave Repeating'
 
 
@@ -3159,11 +3257,10 @@ class CyclicalScale(ConcreteScale):
 
     def __init__(self,
                  tonic: str|pitch.Pitch|note.Note|None = None,
-                 intervalList: list|None = None,
+                 intervalList: t.Sequence[str|interval.Interval]|None = None,
                  **keywords):
         super().__init__(tonic=tonic, **keywords)
-        mode = intervalList if intervalList else ['m2']
-        self._abstract = AbstractCyclicalScale(mode=mode)
+        self._abstract = AbstractCyclicalScale(intervalList if intervalList else ['m2'])
         self.type = 'Cyclical'
 
 
@@ -3197,7 +3294,7 @@ class ChromaticScale(ConcreteScale):
 
     def __init__(self, tonic: str|pitch.Pitch|note.Note|None = None, **keywords) -> None:
         super().__init__(tonic=tonic, **keywords)
-        self._abstract = AbstractCyclicalScale(mode=[
+        self._abstract = AbstractCyclicalScale([
             'm2', 'm2', 'm2',
             'm2', 'm2', 'm2', 'm2', 'm2', 'm2', 'm2', 'm2', 'm2'])
         net = t.cast('intervalNetwork.IntervalNetwork', self._abstract._net)
@@ -3232,7 +3329,7 @@ class WholeToneScale(ConcreteScale):
 
     def __init__(self, tonic: str|pitch.Pitch|note.Note|None = None, **keywords) -> None:
         super().__init__(tonic=tonic, **keywords)
-        self._abstract = AbstractCyclicalScale(mode=['M2', 'M2', 'M2', 'M2', 'M2', 'M2'])
+        self._abstract = AbstractCyclicalScale(['M2', 'M2', 'M2', 'M2', 'M2', 'M2'])
         self.type = 'Whole tone'
 
 
@@ -3278,9 +3375,8 @@ class SieveScale(ConcreteScale):
 
         # environLocal.printDebug([self._pitchSieve.sieveObject.represent(),
         #      self._pitchSieve.getIntervalSequence()])
-        # mode here is a list of intervals
         intervalSequence = self._pitchSieve.getIntervalSequence()
-        self._abstract = AbstractCyclicalScale(mode=intervalSequence)
+        self._abstract = AbstractCyclicalScale(intervalSequence)
         self.type = 'Sieve'
 
 
@@ -3351,7 +3447,7 @@ class ScalaScale(ConcreteScale):
 
         scalaData = self._scalaData
         intervalSequence = scalaData.getIntervalSequence()
-        self._abstract = AbstractCyclicalScale(mode=intervalSequence)
+        self._abstract = AbstractCyclicalScale(intervalSequence)
         net = t.cast('intervalNetwork.IntervalNetwork', self._abstract._net)
         net.pitchSimplification = 'mostCommon'
         self.type = f'Scala: {scalaData.fileName}'

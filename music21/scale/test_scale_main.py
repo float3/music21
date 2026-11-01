@@ -16,7 +16,9 @@ import unittest
 
 from music21 import common
 from music21 import corpus
+from music21 import exceptions21
 from music21 import instrument
+from music21 import interval
 from music21 import meter
 from music21 import note
 from music21 import pitch
@@ -302,6 +304,47 @@ class Test(unittest.TestCase):
 
         sc.abstract = scale.AbstractOctatonicScale(mode=1)
         self.assertEqual(str(sc.pitchFromDegree(2)), 'D-4')
+
+    def testIntervalListsDoNotSharePitchDegreeCache(self):
+        sc1 = scale.CyclicalScale('C4', ['M3', 'm3'])
+        sc2 = scale.CyclicalScale('C4', ['m3', 'M3'])
+        sc1.usePitchDegreeCache = True
+        sc2.usePitchDegreeCache = True
+
+        self.assertEqual(str(sc1.pitchFromDegree(2)), 'E4')
+        self.assertEqual(str(sc2.pitchFromDegree(2)), 'E-4')
+
+        sc3 = scale.OctaveRepeatingScale('C4', ['M2'])
+        sc4 = scale.OctaveRepeatingScale('C4', ['m2'])
+        sc3.usePitchDegreeCache = True
+        sc4.usePitchDegreeCache = True
+
+        self.assertEqual(str(sc3.pitchFromDegree(2)), 'D4')
+        self.assertEqual(str(sc4.pitchFromDegree(2)), 'D-4')
+
+    def testIntervalListStoresIntervals(self):
+        cyclical = scale.AbstractCyclicalScale(['M3', interval.Interval('m3')])
+        self.assertEqual([i.name for i in cyclical.intervalList], ['M3', 'm3'])
+        self.assertIsNone(cyclical.mode)
+
+        octaveRepeating = scale.AbstractOctaveRepeatingScale(['M3'])
+        self.assertEqual([i.name for i in octaveRepeating.intervalList], ['M3', 'm6'])
+
+        self.assertEqual(scale.AbstractCyclicalScale().intervalList, [])
+        self.assertEqual([i.name for i in scale.AbstractOctaveRepeatingScale().intervalList],
+                         ['P8'])
+
+    def testModeKeywordDeprecated(self):
+        with self.assertWarns(exceptions21.Music21DeprecationWarning):
+            cyclical = scale.AbstractCyclicalScale(mode=['M3'])
+        self.assertEqual([i.name for i in cyclical.intervalList], ['M3'])
+
+        with self.assertWarns(exceptions21.Music21DeprecationWarning):
+            octaveRepeating = scale.AbstractOctaveRepeatingScale(mode=['M3'])
+        self.assertEqual([i.name for i in octaveRepeating.intervalList], ['M3', 'm6'])
+
+        with self.assertRaises(TypeError):
+            scale.AbstractCyclicalScale(['M3'], mode=['m3'])
 
     def testCyclicalScales(self):
         sc = scale.CyclicalScale('c4', ['m2', 'm2'])
