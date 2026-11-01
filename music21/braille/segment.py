@@ -2589,47 +2589,6 @@ class Test(unittest.TestCase):
         brailleLines = keyboardPartsToBraille(score).splitlines()
         self.assertEqual(brailleLines[0].strip('⠀'), '⠩⠩⠼⠙⠲')
 
-    def testFixArticulationsTieAcrossSegments(self):
-        '''
-        A staccato note tied to a note in the same segment is slurred to it
-        instead; a staccato note tied across a segment break keeps its tie.
-
-        AI-assisted (Claude).
-        '''
-        from music21 import articulations
-        from music21 import tie
-        from music21.braille.objects import BrailleSegmentDivision
-
-        def tiedNote(pitchName, tieType, staccato=False, quarterLength=1.0):
-            n = note.Note(pitchName, quarterLength=quarterLength)
-            n.tie = tie.Tie(tieType)
-            if staccato:
-                n.articulations.append(articulations.Staccato())
-            return n
-
-        def tieTypes(part):
-            return [n.tie.type if n.tie is not None else None
-                    for n in part.flatten().notes]
-
-        for staccatoOnStop in (True, False):
-            m1 = stream.Measure(number=1)
-            m1.append([note.Note('D4'), note.Note('E4'), note.Note('F4'),
-                       tiedNote('C4', 'start', staccato=not staccatoOnStop)])
-            m2 = stream.Measure(number=2)
-            m2.append(BrailleSegmentDivision())
-            m2.append([tiedNote('C4', 'stop', staccato=staccatoOnStop),
-                       note.Note('D4'), note.Note('E4'),
-                       tiedNote('G4', 'start', staccato=True)])
-            m3 = stream.Measure(number=3)
-            m3.append(tiedNote('G4', 'stop', quarterLength=4.0))
-            part = stream.Part([m1, m2, m3])
-            self.assertEqual(len(findSegments(part)), 2)
-            self.assertEqual(tieTypes(part),
-                             [None, None, None, 'start', 'stop', None, None, None, None])
-            notes = list(part.flatten().notes)
-            self.assertTrue(notes[7].shortSlur)
-            self.assertFalse(getattr(notes[3], 'shortSlur', False))
-
     def testOctaveClefsSetChordDirection(self):
         for clefClass, descending in (
             (clef.Treble8vbClef, True),
@@ -2727,6 +2686,47 @@ class Test(unittest.TestCase):
                 for groupingKey, grouping in seg.items():
                     if groupingKey.affinity == Affinity.NOTEGROUP:
                         self.assertIs(grouping.descendingChords, expected)
+
+    def testFixArticulationsTieAcrossSegments(self):
+        '''
+        A staccato note tied to a note in the same segment is slurred to it
+        instead; a staccato note tied across a segment break keeps its tie.
+
+        AI-assisted (Claude).
+        '''
+        from music21 import articulations
+        from music21 import tie
+        from music21.braille.objects import BrailleSegmentDivision
+
+        def tiedNote(pitchName, tieType, staccato=False, quarterLength=1.0):
+            n = note.Note(pitchName, quarterLength=quarterLength)
+            n.tie = tie.Tie(tieType)
+            if staccato:
+                n.articulations.append(articulations.Staccato())
+            return n
+
+        def tieTypes(part):
+            return [n.tie.type if n.tie is not None else None
+                    for n in part.flatten().notes]
+
+        for staccatoOnStop in (True, False):
+            m1 = stream.Measure(number=1)
+            m1.append([note.Note('D4'), note.Note('E4'), note.Note('F4'),
+                       tiedNote('C4', 'start', staccato=not staccatoOnStop)])
+            m2 = stream.Measure(number=2)
+            m2.append(BrailleSegmentDivision())
+            m2.append([tiedNote('C4', 'stop', staccato=staccatoOnStop),
+                       note.Note('D4'), note.Note('E4'),
+                       tiedNote('G4', 'start', staccato=True)])
+            m3 = stream.Measure(number=3)
+            m3.append(tiedNote('G4', 'stop', quarterLength=4.0))
+            part = stream.Part([m1, m2, m3])
+            self.assertEqual(len(findSegments(part)), 2)
+            self.assertEqual(tieTypes(part),
+                             [None, None, None, 'start', 'stop', None, None, None, None])
+            notes = list(part.flatten().notes)
+            self.assertTrue(notes[7].shortSlur)
+            self.assertFalse(getattr(notes[3], 'shortSlur', False))
 
 
 if __name__ == '__main__':
