@@ -1394,6 +1394,12 @@ class IntervalNetwork:
         # pitchObj = p
         n = self.nodes[foundNodeId]
         # pCollect = p  # usually p, unless altered
+        referenceNodes = self.nodeNameToNodes(nodeName)
+        terminusName = None
+        if referenceNodes:
+            if isinstance(pitchReference, str):
+                pitchReference = pitch.Pitch(pitchReference)
+            terminusName = self._terminusName(referenceNodes[0], pitchReference)
 
         for i in range(stepSize):
             postEdge, postNode = self.getNext(n, direction)
@@ -1414,6 +1420,7 @@ class IntervalNetwork:
                 p = self.transposePitchAndApplySimplification(intervalObj, p)
             else:
                 p = self.transposePitchAndApplySimplification(intervalObj.reverse(), p)
+            p = self._spellTerminus(p, n, terminusName)
             pCollect = self.processAlteredNodes(
                 alteredDegrees=alteredDegrees,
                 n=n,
@@ -1629,6 +1636,7 @@ class IntervalNetwork:
                 self._ascendingCache[ck] = post, postNodeId
                 return post, postNodeId
 
+        terminusName = self._terminusName(nodeObj, pitchReference)
         # first, go upward from this pitch to the high terminus
         n = nodeObj
         p = pitchReference  # we start with the pitch that is the reference
@@ -1692,6 +1700,7 @@ class IntervalNetwork:
                 n = postNode[0]  # n is passed on
 
             p = self.transposePitchAndApplySimplification(intervalObj, p)
+            p = self._spellTerminus(p, n, terminusName)
             pCollect = p
             pCollect = self.processAlteredNodes(
                 alteredDegrees=alteredDegrees,
@@ -1735,6 +1744,7 @@ class IntervalNetwork:
              spec['interval'].generic.directed,
              spec['interval'].semitones)
             for degree, spec in (alteredDegrees or {}).items()))
+        terminusName = self._terminusName(nodeObj, start)
         walk = self._ascendingWalks.get(key)
         if walk is None:
             walk = NetworkWalkPath([NetworkWalkStep(start, start, nodeObj.id)], nodeObj)
@@ -1755,6 +1765,7 @@ class IntervalNetwork:
             walk.lastWalkedNode = postNode[0]
             p = self.transposePitchAndApplySimplification(postEdge[0].interval,
                                                           walk.steps[-1].unalteredPitch)
+            p = self._spellTerminus(p, walk.lastWalkedNode, terminusName)
             realizedPitch = self.processAlteredNodes(alteredDegrees=alteredDegrees,
                                                      n=walk.lastWalkedNode,
                                                      p=p,
@@ -1895,6 +1906,7 @@ class IntervalNetwork:
         if self.octaveDuplicating and maxPitchObj is not None:
             pitchRef.transposeAboveTarget(maxPitchObj, minimize=True, inPlace=True)
 
+        terminusName = self._terminusName(nodeObj, pitchRef)
         n = nodeObj
         p = pitchRef
         pCollect = p  # usually p, unless the tone has been altered
@@ -1957,6 +1969,7 @@ class IntervalNetwork:
                 n = postNode[0]  # n is passed on
 
             p = self.transposePitchAndApplySimplification(intervalObj.reverse(), p)
+            p = self._spellTerminus(p, n, terminusName)
             pCollect = self.processAlteredNodes(alteredDegrees=alteredDegrees,
                                                 n=n,
                                                 p=p,
@@ -3205,6 +3218,48 @@ class IntervalNetwork:
                         + ' allowable values are "maxAccidental" (default), "simplifyEnharmonic", '
                         + '"mostCommon", or None (or "none")')
         return pPost
+
+
+    def _terminusName(self, nodeObj: Node, pitchReference: pitch.Pitch) -> str|None:
+        '''
+        Return the name every terminus of an octave-duplicating network
+        takes when `pitchReference` stands on `nodeObj`, or None if that is
+        not known.
+        '''
+        if self.octaveDuplicating and nodeObj.id in (Terminus.LOW, Terminus.HIGH):
+            return pitchReference.name
+        return None
+
+    def _spellTerminus(self,
+                       p: pitch.Pitch,
+                       nodeObj: Node,
+                       terminusName: str|None) -> pitch.Pitch:
+        '''
+        Return `p` spelled as `terminusName` when `nodeObj` is a terminus and
+        the two are enharmonic, otherwise `p` itself.
+
+        Simplifying accidentals along a walk can change letters (C## becomes D),
+        so the pitch a walk reaches at a terminus can be spelled differently
+        from the tonic.
+
+        >>> net = scale.intervalNetwork.IntervalNetwork(['M3', 'M3', 'd4'],
+        ...                                             octaveDuplicating=True)
+        >>> net._spellTerminus(pitch.Pitch('G-5'), net.terminusHighNodes[0], 'F#')
+        <music21.pitch.Pitch F#5>
+
+        AI-assisted (Claude).
+        '''
+        if (terminusName is None
+                or p.name == terminusName
+                or nodeObj.id not in (Terminus.LOW, Terminus.HIGH)):
+            return p
+        respelled = pitch.Pitch(terminusName)
+        respelled.octave = p.octave
+        octaveDifference = (p.ps - respelled.ps) / 12
+        if octaveDifference != round(octaveDifference):
+            return p
+        respelled.octave += round(octaveDifference)
+        return respelled
 
 
 class BoundIntervalNetwork(IntervalNetwork):

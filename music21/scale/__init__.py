@@ -1012,14 +1012,19 @@ class AbstractOctaveRepeatingScale(AbstractScale):
         # get the interval to complete the octave
 
         intervalSum = interval.add(mode)
-        iComplement = intervalSum.complement
         span = intervalSum.semitones
-        if iComplement.semitones:
-            mode = [*mode, iComplement]  # a copy: mode is the caller's list
-            span += iComplement.semitones
-        elif span == 12 and intervalSum.name != 'P8':
-            octaveShortfall = interval.subtract(['P8', intervalSum])
-            mode = [*mode[:-1], interval.add([mode[-1], octaveShortfall])]
+        if span == 12 and intervalSum.name != 'P8':
+            tonic = pitch.Pitch('C4')
+            beforeLastStep = tonic
+            for step in mode[:-1]:
+                stepInterval = interval.Interval(step) if isinstance(step, str) else step
+                beforeLastStep = stepInterval.transposePitch(beforeLastStep, maxAccidental=1)
+            mode = [*mode[:-1], interval.Interval(beforeLastStep, tonic.transpose('P8'))]
+        elif span != 12:
+            iComplement = intervalSum.complement
+            if iComplement.semitones:
+                mode = [*mode, iComplement]  # a copy: mode is the caller's list
+                span += iComplement.semitones
 
         # steps wider than an octave complete a pattern spanning several
         # octaves, which does not repeat every octave
