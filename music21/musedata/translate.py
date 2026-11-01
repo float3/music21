@@ -142,6 +142,8 @@ class _SlurCollector:
     Builds Slur spanners from the slur marks of MuseData records, read in order.
     The marks ( ) [ ] { } and z x start and stop slurs 1 to 4, so up to four
     slurs can be open at once.
+
+    AI-assisted (Claude).
     '''
     starts = '([{z'
     stops = ')]}x'
@@ -633,6 +635,8 @@ class Test(unittest.TestCase):
         '''
         The slur marks ( ) [ ] { } z x start and stop slurs 1 to 4,
         which may overlap and cross barlines.
+
+        AI-assisted (Claude).
         '''
         from music21 import common
         from music21 import converter
