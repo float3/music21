@@ -2111,6 +2111,10 @@ class Test(unittest.TestCase):
         # b.write()
 
     def testDolanPartGroups(self):
+        '''
+        Dolan picks default part groups from the stream's instruments,
+        draws them from the bottom up, and keeps groups the user sets.
+        '''
         from music21 import instrument
         b = Dolan(doneAction=None)
         b._getPartGroups()
@@ -2121,7 +2125,6 @@ class Test(unittest.TestCase):
         self.assertEqual([g['name'] for g in b.partGroups],
                          ['Soprano', 'Alto', 'Tenor', 'Bass'])
         b.run()
-        # drawn from the bottom up
         self.assertEqual([(d[0], d[1][0][3]) for d in b.data],
                          [('Bass', 'mediumblue'), ('Tenor', 'lightgreen'),
                           ('Alto', 'orange'), ('Soprano', 'purple')])
@@ -2138,7 +2141,6 @@ class Test(unittest.TestCase):
         self.assertEqual([g['name'] for g in b.partGroups],
                          ['1st Violin', '2nd Violin', 'Viola', 'Cello'])
 
-        # groups the user sets are kept
         groups = [{'name': 'Low', 'color': 'black', 'match': ['cello']}]
         b = Dolan(s, partGroups=groups, doneAction=None)
         self.assertIs(b.partGroups, groups)
