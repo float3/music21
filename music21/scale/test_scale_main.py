@@ -870,34 +870,60 @@ class Test(unittest.TestCase):
         self.assertEqual(str(sc.nextPitch('C2', Direction.DESCENDING)), 'D-2')
         self.assertEqual(str(sc.nextPitch('D-2', Direction.ASCENDING)), 'E2')
 
-    def testScaleDegreeOfAPitchNameOnTwoDegrees(self):
-        # C stands on degrees 1 and 5 of each three-octave period
-        sc = scale.OctaveRepeatingScale('c4', ['P5', 'P5', 'P5', 'm3', 'M2', 'M2'])
-        for unused_x in range(20):
-            self.assertEqual(sc.getScaleDegreeFromPitch('c'), 1)
-        sc.getPitches('c2', 'c6')
-        self.assertEqual(sc.getScaleDegreeFromPitch('c'), 1)
-
     def testRagMarwaB(self):
+        '''
+        Given only the pitch, A ascending is on degree 5 (going on to B) or
+        degree 7 (going on to C), and D-flat descending is on degree 2 or 7.
+        getRelativeNodeId picks one of them with a weighted random choice.
+        '''
         sc = scale.RagMarwa('c4')
+        net = sc.abstract._net
 
-        # A stands on degrees 5 and 7, and D- on degrees 2 and 7: the lowest is given
-        for unused_x in range(20):
-            self.assertEqual(sc.getScaleDegreeFromPitch('A1', Direction.ASCENDING), 5)
-            self.assertEqual(sc.getScaleDegreeFromPitch('D-3', Direction.DESCENDING), 2)
+        def degrees(pitchTarget, direction, randomGenerator=None):
+            ids = net.getRelativeNodeIds('c4', 1, pitchTarget,
+                                         comparisonAttribute='name',
+                                         direction=direction)
+            picks = [net.getRelativeNodeId('c4', 1, pitchTarget,
+                                           comparisonAttribute='name',
+                                           direction=direction,
+                                           randomGenerator=r)
+                     for r in (lambda: 0.25, lambda: 0.75)]
+            return ([net.nodeIdToDegree(nId) for nId in ids],
+                    [net.nodeIdToDegree(nId) for nId in picks])
+
+        self.assertEqual(degrees('A1', Direction.ASCENDING), ([5, 7], [5, 7]))
+        self.assertEqual(degrees('D-3', Direction.DESCENDING), ([2, 7], [2, 7]))
+
+        self.assertIn(sc.getScaleDegreeFromPitch('A1', Direction.ASCENDING), (5, 7))
+        self.assertIn(sc.getScaleDegreeFromPitch('D-3', Direction.DESCENDING), (2, 7))
 
     def testRagMarwaC(self):
+        '''
+        Descending from D-flat, the next node is C (degree 1) from degree 2
+        and B (degree 6) from degree 7.
+        '''
         sc = scale.RagMarwa('c4')
+        net = sc.abstract._net
 
-        self.assertEqual(sc.abstract._net.realizeTermini('c1', Terminus.LOW),
+        self.assertEqual(net.realizeTermini('c1', Terminus.LOW),
                          (pitch.Pitch('C1'), pitch.Pitch('C2')))
 
-        self.assertEqual(sc.abstract._net.realizeMinMax('c1', Terminus.LOW),
+        self.assertEqual(net.realizeMinMax('c1', Terminus.LOW),
                          (pitch.Pitch('C1'), pitch.Pitch('D-2')))
 
-        # D-2 stands on degrees 2 and 7; coming down from degree 2 leads to C2
-        for unused_x in range(20):
-            self.assertEqual(str(sc.nextPitch('D-2', Direction.DESCENDING)), 'C2')
+        ids = net.getRelativeNodeIds('c4', 1, 'D-2', direction=Direction.DESCENDING)
+        self.assertEqual([net.nodeIdToDegree(nId) for nId in ids], [2, 7])
+
+        nextDegrees = []
+        for r in (lambda: 0.25, lambda: 0.75):
+            nId = net.getRelativeNodeId('c4', 1, 'D-2',
+                                        direction=Direction.DESCENDING,
+                                        randomGenerator=r)
+            unused_edges, nextNodes = net.getNext(net.nodes[nId], Direction.DESCENDING)
+            nextDegrees.append([n.degree for n in nextNodes])
+        self.assertEqual(nextDegrees, [[1], [6]])
+
+        self.assertIn(str(sc.nextPitch('D-2', Direction.DESCENDING)), ('C2', 'B1'))
 
     def testWeightedHexatonicBluesA(self):
         sc = scale.WeightedHexatonicBlues('c4')
