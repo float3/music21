@@ -4489,6 +4489,23 @@ class Chord(ChordBase):
         ...
 
     def sortAscending(self, *, inPlace: bool = False) -> t.Self|None:
+        '''
+        Arranges the notes from lowest to highest; the same as
+        :meth:`~music21.chord.Chord.sortDiatonicAscending`.
+
+        Fingerings on the chord stay where they are. A chord's
+        :class:`~music21.articulations.Fingering` objects are read from the
+        lowest note up, whatever order the notes are stored in, so they
+        already follow the sorted order.
+
+        >>> cMaj = chord.Chord(['G4', 'E4', 'C4'])
+        >>> cMaj.articulations = [articulations.Fingering(1),
+        ...                       articulations.Fingering(3),
+        ...                       articulations.Fingering(5)]
+        >>> cMaj.sortAscending(inPlace=True)
+        >>> [(p.name, f.fingerNumber) for p, f in zip(cMaj.pitches, cMaj.articulations)]
+        [('C', 1), ('E', 3), ('G', 5)]
+        '''
         if inPlace:
             return self.sortDiatonicAscending(inPlace=True)
         return self.sortDiatonicAscending(inPlace=False)
