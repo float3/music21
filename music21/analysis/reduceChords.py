@@ -20,6 +20,7 @@ import itertools
 import unittest
 
 from music21 import chord
+from music21 import clef
 from music21.common.numberTools import opFrac
 from music21.common.types import DocOrder
 from music21 import exceptions21
@@ -28,9 +29,9 @@ from music21 import meter
 from music21 import note
 from music21 import pitch
 from music21 import stream
+from music21 import tie
 from music21 import tree
 
-# from music21 import tie
 environLocal = environment.Environment('reduceChords')
 
 # -----------------------------------------------------------------------------
@@ -81,7 +82,9 @@ class ChordReducer:
             closedPosition=False,
             forbiddenChords=None,
             maximumNumberOfChords=3,
-            removeDissonances=False):
+            removeDissonances=False,
+            forceOctave=4,
+            weightAlgorithm=None):
         r'''
         Reduce `inputScore` to a Score with one Part that has up to
         `maximumNumberOfChords` chords in each measure of the first part.
@@ -89,10 +92,11 @@ class ChordReducer:
         Each measure is cut into slices wherever a note starts or stops.  A
         slice weighs its length times the beat strength where it starts (the
         last sounding slice of the measure weighs its length), times 0.1 if it
-        is dissonant, and slices with the same pitch classes add up.  The
-        heaviest pitch-class sets, down to a quarter of the heaviest, are kept.
-        Each kept slice lasts until the next kept slice with other pitch
-        classes, the first starts the measure, and the last ends it.
+        is dissonant, and slices with the same pitch classes add up; see
+        :meth:`sliceWeight`.  The heaviest pitch-class sets, down to a quarter
+        of the heaviest, are kept.  Each kept slice lasts until the next kept
+        slice with other pitch classes, the first starts the measure, and the
+        last ends it.  Grace notes have no length, so they are left out.
 
         >>> score = corpus.parse('bwv66.6')
         >>> reduction = analysis.reduceChords.ChordReducer().run(score)
@@ -105,11 +109,17 @@ class ChordReducer:
         classes count as consonant or dissonant.  With `removeDissonances`,
         the upper notes that start a dissonant verticality are removed first;
         see :meth:`removeVerticalDissonances`.  `closedPosition` puts each
-        chord in closed position in octave 4.
+        chord in closed position with its lowest note in octave `forceOctave`,
+        or in its own octave if `forceOctave` is None.  `weightAlgorithm`
+        replaces :meth:`sliceWeight`; see :meth:`sliceWeights`.
+
+        A chord that is the same as the first chord of the next measure is
+        tied to it, and the reduction gets the clef that best fits its notes.
 
         * Changed in v11: chords are chosen from slices of the score's
-          timespans by length, beat strength and consonance, and
-          `removeDissonances` was added.
+          timespans by length, beat strength and consonance; the result is
+          tied across barlines and gets its own clef; `removeDissonances`,
+          `forceOctave` and `weightAlgorithm` were added.
 
         AI-assisted (Claude).
         '''
@@ -160,6 +170,7 @@ class ChordReducer:
             weights = self.sliceWeights(slices,
                                         timeSignature,
                                         paddingLeft=measure.paddingLeft,
+                                        weightAlgorithm=weightAlgorithm,
                                         allowableChords=allowableChords,
                                         forbiddenChords=forbiddenChords)
             kept = self.keepHeaviestSlices(slices, weights, maximumNumberOfChords)
@@ -172,12 +183,30 @@ class ChordReducer:
                                                          addTies=False))
             reducedMeasure.coreElementsChanged()
 
-        reduction = stream.Score([reducedPart])
         if closedPosition:
-            for x in reduction[chord.Chord]:
-                x.closedPosition(forceOctave=4, inPlace=True)
+            for x in reducedPart[chord.Chord]:
+                x.closedPosition(forceOctave=forceOctave, inPlace=True)
 
-        return reduction
+        previous = None
+        for reducedMeasure in reducedPart.getElementsByClass(stream.Measure):
+            elements = list(reducedMeasure.notesAndRests)
+            if not elements:
+                continue
+            first = elements[0]
+            if (isinstance(previous, note.NotRest)
+                    and isinstance(first, note.NotRest)
+                    and previous.pitches == first.pitches):
+                self._addTie(previous, 'start')
+                self._addTie(first, 'stop')
+            previous = elements[-1]
+
+        for oldClef in list(reducedPart.recurse().getElementsByClass(clef.Clef)):
+            oldClef.activeSite.remove(oldClef)
+        firstMeasure = reducedPart.getElementsByClass(stream.Measure).first()
+        if firstMeasure is not None:
+            firstMeasure.insert(0.0, clef.bestClef(reducedPart, allowTreble8vb=True))
+
+        return stream.Score([reducedPart])
 
     @staticmethod
     def measureSlices(scoreTree, start, end, timePoints=None):
@@ -213,16 +242,18 @@ class ChordReducer:
                      timeSignature,
                      *,
                      paddingLeft=0.0,
+                     weightAlgorithm=None,
                      allowableChords=None,
                      forbiddenChords=None):
         '''
         Return a dict from the sorted pitch classes of each sounding slice
-        in `slices` to their total weight.  A slice weighs its quarterLength
-        times the accent of `timeSignature` where it starts, except the last
-        sounding slice, which weighs its quarterLength, and a dissonant slice
-        (see :meth:`isConsonant`) weighs a tenth of that.  `paddingLeft` is
-        the measure's padding, so that a pickup gets the accents of the end
-        of a measure.
+        in `slices` to their total weight.  Each slice's weight is
+        `weightAlgorithm(quarterLength, accent, isLast, isConsonant)`, where
+        `accent` is the accent of `timeSignature` where the slice starts,
+        `isLast` is True for the last sounding slice, and `isConsonant` comes
+        from :meth:`isConsonant`.  It defaults to :meth:`sliceWeight`.
+        `paddingLeft` is the measure's padding, so that a pickup gets the
+        accents of the end of a measure.
 
         >>> s = analysis.reduceChords.testMeasureStream1()
         >>> scoreTree = tree.fromStream.asTimespans(s, flatten=True,
@@ -234,24 +265,53 @@ class ChordReducer:
         ...     print(pcs, round(weight, 2))
         (0, 4, 7) 3.0
         (0, 4, 5, 11) 0.05
+
+        Weighing by length alone:
+
+        >>> def byLength(quarterLength, accent, isLast, isConsonant):
+        ...     return quarterLength
+        >>> weights = cr.sliceWeights(slices, meter.TimeSignature('4/4'),
+        ...     weightAlgorithm=byLength)
+        >>> for pcs, weight in weights.items():
+        ...     print(pcs, round(weight, 2))
+        (0, 4, 7) 3.0
+        (0, 4, 5, 11) 1.0
         '''
+        if weightAlgorithm is None:
+            weightAlgorithm = self.sliceWeight
         sounding = [i for i, s in enumerate(slices) if s.verticality.pitchSet]
         weights = {}
         for i in sounding:
             measureSlice = slices[i]
             pitches = measureSlice.verticality.pitchSet
-            if i == sounding[-1]:
-                weight = float(measureSlice.quarterLength)
-            else:
-                accent = timeSignature.getAccentWeight(opFrac(measureSlice.offset + paddingLeft),
-                                                       forcePositionMatch=True,
-                                                       permitMeterModulus=True)
-                weight = float(measureSlice.quarterLength * accent)
-            if not self.isConsonant(pitches, allowableChords, forbiddenChords):
-                weight *= 0.1
+            accent = timeSignature.getAccentWeight(opFrac(measureSlice.offset + paddingLeft),
+                                                   forcePositionMatch=True,
+                                                   permitMeterModulus=True)
+            weight = weightAlgorithm(float(measureSlice.quarterLength),
+                                     float(accent),
+                                     i == sounding[-1],
+                                     self.isConsonant(pitches, allowableChords, forbiddenChords))
             key = tuple(sorted({p.pitchClass for p in pitches}))
             weights[key] = weights.get(key, 0.0) + weight
         return weights
+
+    @staticmethod
+    def sliceWeight(quarterLength, accent, isLast, isConsonant):
+        '''
+        Return the weight :meth:`sliceWeights` gives a slice by default: its
+        `quarterLength` times its `accent`, or its `quarterLength` alone if it
+        `isLast`, times 0.1 unless it `isConsonant`.
+
+        >>> cr = analysis.reduceChords.ChordReducer()
+        >>> cr.sliceWeight(2.0, 0.5, False, True)
+        1.0
+        >>> cr.sliceWeight(2.0, 0.5, True, False)
+        0.2
+        '''
+        weight = quarterLength if isLast else quarterLength * accent
+        if not isConsonant:
+            weight *= 0.1
+        return weight
 
     @staticmethod
     def keepHeaviestSlices(slices, weights, maximumNumberOfChords=3, trimBelow=0.25):
@@ -331,6 +391,12 @@ class ChordReducer:
         return chord.Chord(pitches).isConsonant()
 
     # PRIVATE METHODS #
+    @staticmethod
+    def _addTie(element, tieType):
+        if element.tie is not None and element.tie.type != tieType:
+            tieType = 'continue'
+        element.tie = tie.Tie(tieType)
+
     @staticmethod
     def _debug(scoreTree):
         for part, subtree in scoreTree.toPartwiseTimespanTrees().items():
@@ -1005,6 +1071,41 @@ class Test(unittest.TestCase):
         self.assertEqual([[(c.offset, c.quarterLength, [p.nameWithOctave for p in c.pitches])
                            for c in m.notes] for m in measures],
                          [[(0.0, 4.0, ['C3', 'E4'])], [(0.0, 4.0, ['C3', 'G4'])]])
+
+    def testRunTiesAcrossBarlines(self):
+        from music21 import converter
+
+        parts = [converter.parse('tinyNotation: 4/4 e1 e1 e1 f1'),
+                 converter.parse('tinyNotation: 4/4 C1 C1 C1 C1')]
+        reduction = ChordReducer().run(stream.Score(parts))
+        measures = reduction.parts.first().getElementsByClass(stream.Measure)
+        self.assertEqual([[c.tie.type if c.tie else None for c in m.notes] for m in measures],
+                         [['start'], ['continue'], ['stop'], [None]])
+        self.assertIsInstance(measures.first().clef, clef.BassClef)
+
+    def testRunForceOctave(self):
+        from music21 import converter
+
+        parts = [converter.parse('tinyNotation: 4/4 e1'),
+                 converter.parse('tinyNotation: 4/4 C1')]
+        reduction = ChordReducer().run(stream.Score(parts), closedPosition=True)
+        self.assertEqual([p.nameWithOctave for p in reduction[chord.Chord].first().pitches],
+                         ['C4', 'E4'])
+        reduction = ChordReducer().run(stream.Score(parts), closedPosition=True,
+                                       forceOctave=None)
+        self.assertEqual([p.nameWithOctave for p in reduction[chord.Chord].first().pitches],
+                         ['C3', 'E3'])
+
+    def testRunLeavesOutGraceNotes(self):
+        from music21 import converter
+
+        upper = converter.parse('tinyNotation: 4/4 e1')
+        upperMeasure = upper.getElementsByClass(stream.Measure).first()
+        upperMeasure.insert(0.0, note.Note('F#4').getGrace())
+        lower = converter.parse('tinyNotation: 4/4 C1')
+        reduction = ChordReducer().run(stream.Score([upper, lower]))
+        self.assertEqual([p.nameWithOctave for c in reduction.recurse().notes for p in c.pitches],
+                         ['C3', 'E4'])
 
 
 class TestExternal(unittest.TestCase):
