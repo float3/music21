@@ -3266,8 +3266,10 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
                 sRight.timeSignature = copy.deepcopy(timeSignatures[0])
 
             def inForceAtSplit(klass):
-                # the measure's own before the split; a measure's context
-                # search passes over what it holds itself
+                '''
+                The last one of sLeft's own before the split, else the
+                one in force before sLeft when searchContext is True.
+                '''
                 own = [e for e in sLeft.getElementsByClass(klass)
                        if sLeft.elementOffset(e) < quarterLength]
                 if own:
