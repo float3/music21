@@ -1729,6 +1729,7 @@ def prepareSlurredNotes(music21Part,
             # the elements of the slur are no longer present in the stream,
             # such as if they were manually removed.  It is rare, but why this is here.
             continue
+        beginIndex, endIndex = sorted((beginIndex, endIndex))
 
         delta = abs(endIndex - beginIndex) + 1
 
@@ -2473,6 +2474,42 @@ class Test(unittest.TestCase):
                                            (False, True)])
         self.assertEqual(beamFlags(right), [(True, False), (False, True), (False, True),
                                             (False, True)])
+
+    def testSlurSpannedElementsOutOfOrder(self):
+        '''
+        A slur whose spanned elements were added last note first marks
+        the same notes as one added in score order.
+        '''
+        def slurredPart(numNotes, first, last):
+            part = stream.Part()
+            m = stream.Measure()
+            notes = [note.Note(pitchName, quarterLength=0.5)
+                     for pitchName in 'CDEFGA'[:numNotes]]
+            m.append(notes)
+            part.append(m)
+            slur = spanner.Slur()
+            slur.addSpannedElements(notes[first])
+            slur.addSpannedElements(notes[last])
+            part.insert(0, slur)
+            return part, notes
+
+        part, notes = slurredPart(6, 4, 0)
+        prepareSlurredNotes(part, slurLongPhraseWithBrackets=False)
+        self.assertTrue(notes[1].beginLongDoubleSlur)
+        self.assertTrue(notes[3].endLongDoubleSlur)
+        self.assertFalse(hasattr(notes[5], 'beginLongDoubleSlur'))
+        self.assertFalse(hasattr(notes[5], 'endLongDoubleSlur'))
+
+        part, notes = slurredPart(6, 4, 0)
+        prepareSlurredNotes(part)
+        self.assertTrue(notes[0].beginLongBracketSlur)
+        self.assertTrue(notes[4].endLongBracketSlur)
+
+        part, notes = slurredPart(3, 2, 0)
+        prepareSlurredNotes(part)
+        self.assertTrue(notes[0].shortSlur)
+        self.assertTrue(notes[1].shortSlur)
+        self.assertFalse(hasattr(notes[2], 'shortSlur'))
 
     def testGrandSegmentHeadingFromLeftHand(self):
         '''
