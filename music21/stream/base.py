@@ -9818,7 +9818,6 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
             if target is not None and id(e) != id(target):
                 continue
 
-            # an element of a voice is cut, and its pieces kept, in the voice
             if voiceIndex is None:
                 container = returnObj
                 containerOffset = 0.0
