@@ -418,6 +418,11 @@ class Test(unittest.TestCase):
         self.assertEqual(self.pitchOut(sc.pitches), '[G4, A4, B-4, C5, D5, E-5, F#5, G5]')
 
     def testNextPitchOnCycleWiderThanOctave(self):
+        '''
+        nextPitch finds the neighbors on cycles whose step is wider than an
+        octave, including from D#5 and F--5, the enharmonics of E-5 one
+        letter lower and one higher.
+        '''
         ninths = scale.CyclicalScale('c4', ['M9'])
         self.assertEqual(str(ninths.nextPitch('b3')), 'C4')
         self.assertEqual(str(ninths.nextPitch('b3', Direction.DESCENDING)), 'B-2')
@@ -427,7 +432,6 @@ class Test(unittest.TestCase):
         tenths = scale.CyclicalScale('c4', ['m10'])
         self.assertEqual(str(tenths.nextPitch('d4')), 'E-5')
         self.assertEqual(str(tenths.nextPitch('d4', Direction.DESCENDING)), 'C4')
-        # enharmonics of E-5, one letter lower and one higher
         self.assertEqual(str(tenths.nextPitch('d#5')), 'G-6')
         self.assertEqual(str(tenths.nextPitch('f--5', Direction.DESCENDING)), 'C4')
 
