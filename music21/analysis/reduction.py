@@ -554,7 +554,6 @@ class PartReduction:
 
 
     def _createEventSpans(self):
-        # for each part bundle, store a list of events
         for partBundle in self._partBundles:
             pColor = partBundle['color']
             parts = partBundle['parts']
@@ -1320,6 +1319,12 @@ class Test(unittest.TestCase):
         self._matchWeightedData(match, target)
 
     def testPartReductionSameIds(self):
+        '''
+        Part groups that share a name, and parts that share an id, each keep
+        their own spans and weights.
+
+        AI-assisted (Claude).
+        '''
         from music21 import analysis
         from music21 import dynamics
         s = stream.Score()
@@ -1330,7 +1335,6 @@ class Test(unittest.TestCase):
             p.insert(0, dynamics.Dynamic(dyn))
             s.insert(0, p)
 
-        # two part groups with one name
         partGroups = [{'name': 'Piano', 'color': '#666666', 'match': ['rh']},
                       {'name': 'Piano', 'color': '#666666', 'match': ['lh']}]
         pr = analysis.reduction.PartReduction(s, partGroups=partGroups)
@@ -1339,7 +1343,6 @@ class Test(unittest.TestCase):
                   ('Piano', [[0.0, 4.0, 0.35 / 0.55, '#666666']])]
         self._matchWeightedData(pr.getGraphHorizontalBarWeightedData(), target)
 
-        # two parts with one id
         for p in s.parts:
             p.id = 'Piano'
         pr = analysis.reduction.PartReduction(s)
