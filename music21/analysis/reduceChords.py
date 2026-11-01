@@ -13,12 +13,14 @@ Automatically reduce a MeasureStack to a single chord or group of chords.
 '''
 from __future__ import annotations
 
+import bisect
 import collections
 from collections.abc import Sequence
 import itertools
 import unittest
 
 from music21 import chord
+from music21.common.numberTools import opFrac
 from music21.common.types import DocOrder
 from music21 import exceptions21
 from music21 import environment
@@ -60,6 +62,9 @@ def testMeasureStream1():
 class ChordReducerException(exceptions21.Music21Exception):
     pass
 
+
+MeasureSlice = collections.namedtuple('MeasureSlice', ['offset', 'quarterLength', 'verticality'])
+
 class ChordReducer:
     r'''
     A chord reducer.
@@ -75,7 +80,39 @@ class ChordReducer:
             allowableChords=None,
             closedPosition=False,
             forbiddenChords=None,
-            maximumNumberOfChords=3):
+            maximumNumberOfChords=3,
+            removeDissonances=False):
+        r'''
+        Reduce `inputScore` to a Score with one Part that has up to
+        `maximumNumberOfChords` chords in each measure of the first part.
+
+        Each measure is cut into slices wherever a note starts or stops.  A
+        slice weighs its length times the beat strength where it starts (the
+        last sounding slice of the measure weighs its length), times 0.1 if it
+        is dissonant, and slices with the same pitch classes add up.  The
+        heaviest pitch-class sets, down to a quarter of the heaviest, are kept.
+        Each kept slice lasts until the next kept slice with other pitch
+        classes, the first starts the measure, and the last ends it.
+
+        >>> score = corpus.parse('bwv66.6')
+        >>> reduction = analysis.reduceChords.ChordReducer().run(score)
+        >>> for c in reduction.parts.first().measure(2).notes:
+        ...     print(c.offset, c.quarterLength, c.pitchedCommonName)
+        0.0 3.0 A-major triad
+        3.0 1.0 C#-major triad
+
+        `allowableChords` and `forbiddenChords` are Chords whose interval
+        classes count as consonant or dissonant.  With `removeDissonances`,
+        the upper notes that start a dissonant verticality are removed first;
+        see :meth:`removeVerticalDissonances`.  `closedPosition` puts each
+        chord in closed position in octave 4.
+
+        * Changed in v11: chords are chosen from slices of the score's
+          timespans by length, beat strength and consonance, and
+          `removeDissonances` was added.
+
+        AI-assisted (Claude).
+        '''
         if not isinstance(inputScore, stream.Score):
             raise ChordReducerException('Must be called on a stream.Score')
 
@@ -103,53 +140,195 @@ class ChordReducer:
             classList=(note.Note, chord.Chord))
 
         self.removeZeroDurationTimespans(scoreTree)
-        self.splitByBass(scoreTree)
-        self.removeVerticalDissonances(scoreTree=scoreTree,
-                                       allowableChords=allowableChords,
-                                       forbiddenChords=forbiddenChords)
+        if removeDissonances:
+            self.removeVerticalDissonances(scoreTree=scoreTree,
+                                           allowableChords=allowableChords,
+                                           forbiddenChords=forbiddenChords)
 
-        partwiseTrees = scoreTree.toPartwiseTimespanTrees()
+        templatePart = inputScore.parts.first()
+        reducedPart = templatePart.template(fillWithRests=False,
+                                            removeClasses=('GeneralNote',),
+                                            retainVoices=False)
+        timePoints = scoreTree.allTimePoints()
+        timeSignature = meter.TimeSignature()
+        for measure, reducedMeasure in zip(templatePart.getElementsByClass(stream.Measure),
+                                           reducedPart.getElementsByClass(stream.Measure)):
+            timeSignature = measure.timeSignature or timeSignature
+            start = measure.getOffsetBySite(templatePart)
+            length = measure.duration.quarterLength or measure.barDuration.quarterLength
+            slices = self.measureSlices(scoreTree, start, opFrac(start + length), timePoints)
+            weights = self.sliceWeights(slices,
+                                        timeSignature,
+                                        paddingLeft=measure.paddingLeft,
+                                        allowableChords=allowableChords,
+                                        forbiddenChords=forbiddenChords)
+            kept = self.keepHeaviestSlices(slices, weights, maximumNumberOfChords)
+            if not kept:
+                reducedMeasure.coreInsert(0.0, note.Rest(quarterLength=length))
+            for measureSlice in kept:
+                reducedMeasure.coreInsert(
+                    measureSlice.offset,
+                    measureSlice.verticality.makeElement(measureSlice.quarterLength,
+                                                         addTies=False))
+            reducedMeasure.coreElementsChanged()
 
-        self.fillBassGaps(scoreTree, partwiseTrees)
-
-        self.removeShortTimespans(scoreTree, partwiseTrees, duration=0.5)
-        self.fillBassGaps(scoreTree, partwiseTrees)
-        self.fillMeasureGaps(scoreTree, partwiseTrees)
-
-        self.removeShortTimespans(scoreTree, partwiseTrees, duration=1.0)
-        self.fillBassGaps(scoreTree, partwiseTrees)
-        self.fillMeasureGaps(scoreTree, partwiseTrees)
-
-        reduction = stream.Score()
-        # partwiseReduction = tree.toPartwiseScore()
-        # for part in partwiseReduction:
-        #    reduction.append(part)
-
-        # TODO: make chordified a method on TimespanTree and move stream.chordify guts there
-        #   then use that and remove this deprecated call.
-        import warnings
-        with warnings.catch_warnings():  # catch deprecation warning
-            warnings.simplefilter('ignore', category=exceptions21.Music21DeprecationWarning)
-            chordifiedReduction = tree.toStream.chordified(
-                scoreTree,
-                templateStream=inputScore,
-            )
-        chordifiedPart = stream.Part()
-        for measure in chordifiedReduction.getElementsByClass(stream.Measure):
-            reducedMeasure = self.reduceMeasureToNChords(
-                measure,
-                maximumNumberOfChords=maximumNumberOfChords,
-                weightAlgorithm=self.qlbsmpConsonance,
-                trimBelow=0.25,
-            )
-            chordifiedPart.append(reducedMeasure)
-        reduction.append(chordifiedPart)
-
+        reduction = stream.Score([reducedPart])
         if closedPosition:
             for x in reduction[chord.Chord]:
                 x.closedPosition(forceOctave=4, inPlace=True)
 
         return reduction
+
+    @staticmethod
+    def measureSlices(scoreTree, start, end, timePoints=None):
+        '''
+        Return a list of :class:`MeasureSlice` named tuples covering `start`
+        to `end` of `scoreTree`, cut wherever a timespan starts or stops.
+        Each has an offset from `start`, a quarterLength and the
+        :class:`~music21.tree.verticality.Verticality` at its start.
+        `timePoints` can pass `scoreTree.allTimePoints()` when it is called
+        for many measures.
+
+        >>> score = corpus.parse('bwv66.6')
+        >>> scoreTree = tree.fromStream.asTimespans(score, flatten=True,
+        ...     classList=(note.Note, chord.Chord))
+        >>> cr = analysis.reduceChords.ChordReducer()
+        >>> for s in cr.measureSlices(scoreTree, 1.0, 3.0):
+        ...     print(s.offset, s.quarterLength, s.verticality)
+        0.0 1.0 <music21.tree.verticality.Verticality 1.0 {F#3 C#4 F#4 A4}>
+        1.0 1.0 <music21.tree.verticality.Verticality 2.0 {G#3 B3 E4 B4}>
+        '''
+        if timePoints is None:
+            timePoints = scoreTree.allTimePoints()
+        first = bisect.bisect_right(timePoints, start)
+        last = bisect.bisect_left(timePoints, end)
+        points = [start, *timePoints[first:last], end]
+        return [MeasureSlice(opFrac(sliceStart - start),
+                             opFrac(sliceEnd - sliceStart),
+                             scoreTree.getVerticalityAt(sliceStart))
+                for sliceStart, sliceEnd in zip(points, points[1:])]
+
+    def sliceWeights(self,
+                     slices,
+                     timeSignature,
+                     *,
+                     paddingLeft=0.0,
+                     allowableChords=None,
+                     forbiddenChords=None):
+        '''
+        Return a dict from the sorted pitch classes of each sounding slice
+        in `slices` to their total weight.  A slice weighs its quarterLength
+        times the accent of `timeSignature` where it starts, except the last
+        sounding slice, which weighs its quarterLength, and a dissonant slice
+        (see :meth:`isConsonant`) weighs a tenth of that.  `paddingLeft` is
+        the measure's padding, so that a pickup gets the accents of the end
+        of a measure.
+
+        >>> s = analysis.reduceChords.testMeasureStream1()
+        >>> scoreTree = tree.fromStream.asTimespans(s, flatten=True,
+        ...     classList=(note.Note, chord.Chord))
+        >>> cr = analysis.reduceChords.ChordReducer()
+        >>> slices = cr.measureSlices(scoreTree, 0.0, 4.0)
+        >>> weights = cr.sliceWeights(slices, meter.TimeSignature('4/4'))
+        >>> for pcs, weight in weights.items():
+        ...     print(pcs, round(weight, 2))
+        (0, 4, 7) 3.0
+        (0, 4, 5, 11) 0.05
+        '''
+        sounding = [i for i, s in enumerate(slices) if s.verticality.pitchSet]
+        weights = {}
+        for i in sounding:
+            measureSlice = slices[i]
+            pitches = measureSlice.verticality.pitchSet
+            if i == sounding[-1]:
+                weight = float(measureSlice.quarterLength)
+            else:
+                accent = timeSignature.getAccentWeight(opFrac(measureSlice.offset + paddingLeft),
+                                                       forcePositionMatch=True,
+                                                       permitMeterModulus=True)
+                weight = float(measureSlice.quarterLength * accent)
+            if not self.isConsonant(pitches, allowableChords, forbiddenChords):
+                weight *= 0.1
+            key = tuple(sorted({p.pitchClass for p in pitches}))
+            weights[key] = weights.get(key, 0.0) + weight
+        return weights
+
+    @staticmethod
+    def keepHeaviestSlices(slices, weights, maximumNumberOfChords=3, trimBelow=0.25):
+        '''
+        Return the slices to keep from `slices`, lengthened: those whose
+        pitch classes are among the `maximumNumberOfChords` heaviest in
+        `weights` and weigh at least `trimBelow` times the heaviest.  A kept
+        slice lasts until the next kept slice with other pitch classes; the
+        first starts at 0.0 and the last lasts to the end of the slices.  A
+        kept slice that starts a sixteenth, thirty-second, sixty-fourth or
+        triplet eighth after a beat starts on the beat instead.
+
+        >>> s = analysis.reduceChords.testMeasureStream1()
+        >>> scoreTree = tree.fromStream.asTimespans(s, flatten=True,
+        ...     classList=(note.Note, chord.Chord))
+        >>> cr = analysis.reduceChords.ChordReducer()
+        >>> slices = cr.measureSlices(scoreTree, 0.0, 4.0)
+        >>> weights = {(0, 4, 7): 3.0, (0, 4, 5, 11): 1.0}
+        >>> for kept in cr.keepHeaviestSlices(slices, weights):
+        ...     print(kept.offset, kept.quarterLength, kept.verticality)
+        0.0 2.0 <music21.tree.verticality.Verticality 0.0 {C4 E4 G4 C5}>
+        2.0 1.0 <music21.tree.verticality.Verticality 2.0 {C4 E4 F4 B4}>
+        3.0 1.0 <music21.tree.verticality.Verticality 3.0 {C4 E4 G4 C5}>
+
+        With a lower limit, the lighter chord is dropped and the first lasts
+        through it:
+
+        >>> for kept in cr.keepHeaviestSlices(slices, weights, trimBelow=0.5):
+        ...     print(kept.offset, kept.quarterLength, kept.verticality)
+        0.0 4.0 <music21.tree.verticality.Verticality 0.0 {C4 E4 G4 C5}>
+        '''
+        heaviest = sorted(weights, key=weights.get, reverse=True)[:maximumNumberOfChords]
+        if not heaviest:
+            return []
+        keptKeys = {k for k in heaviest if weights[k] >= weights[heaviest[0]] * trimBelow}
+        kept = []
+        currentKey = None
+        for measureSlice in slices:
+            pitches = measureSlice.verticality.pitchSet
+            key = tuple(sorted({p.pitchClass for p in pitches})) if pitches else None
+            sliceEnd = opFrac(measureSlice.offset + measureSlice.quarterLength)
+            if key in keptKeys and key != currentKey:
+                offset = measureSlice.offset if kept else 0.0
+                kept.append(measureSlice._replace(offset=offset,
+                                                  quarterLength=opFrac(sliceEnd - offset)))
+                currentKey = key
+            elif kept:
+                kept[-1] = kept[-1]._replace(quarterLength=opFrac(sliceEnd - kept[-1].offset))
+        for i in range(1, len(kept)):
+            afterBeat = opFrac(kept[i].offset - int(kept[i].offset))
+            if round(float(afterBeat), 3) in (0.25, 0.125, 0.333, 0.063, 0.062):
+                kept[i - 1] = kept[i - 1]._replace(
+                    quarterLength=opFrac(kept[i - 1].quarterLength - afterBeat))
+                kept[i] = kept[i]._replace(offset=opFrac(kept[i].offset - afterBeat),
+                                           quarterLength=opFrac(kept[i].quarterLength
+                                                                + afterBeat))
+        return [k for k in kept if k.quarterLength]
+
+    def isConsonant(self, pitches, allowableChords=None, forbiddenChords=None):
+        '''
+        Return True if `pitches` form a consonant chord or have the interval
+        classes of one of `allowableChords`, unless they have the interval
+        classes of one of `forbiddenChords`.  Both are sets of interval-class
+        sets, as :meth:`run` makes them.
+
+        >>> cr = analysis.reduceChords.ChordReducer()
+        >>> cr.isConsonant([pitch.Pitch('C4'), pitch.Pitch('E4'), pitch.Pitch('G4')])
+        True
+        >>> cr.isConsonant([pitch.Pitch('C4'), pitch.Pitch('D4')])
+        False
+        '''
+        intervalClassSet = self._getIntervalClassSet(pitches)
+        if forbiddenChords and intervalClassSet in forbiddenChords:
+            return False
+        if allowableChords and intervalClassSet in allowableChords:
+            return True
+        return chord.Chord(pitches).isConsonant()
 
     # PRIVATE METHODS #
     @staticmethod
@@ -687,20 +866,8 @@ class ChordReducer:
         are above the lowest pitch in that verticality.
         '''
         for verticality in scoreTree.iterateVerticalities():
-            isConsonant = False
-            pitches = verticality.pitchSet
-            intervalClassSet = self._getIntervalClassSet(pitches)
-            # print(verticality, intervalClassSet, allowableChords, forbiddenChords)
-            if allowableChords and intervalClassSet in allowableChords:
-                isConsonant = True
-            if verticality.toChord().isConsonant():
-                isConsonant = True
-            if forbiddenChords and intervalClassSet in forbiddenChords:
-                isConsonant = False
-            if isConsonant:
-                # print('\tCONSONANT')
+            if self.isConsonant(verticality.pitchSet, allowableChords, forbiddenChords):
                 continue
-            # print('\tNOT CONSONANT')
             pitchSet = verticality.pitchSet
             lowestPitch = min(pitchSet)
             for timespan in verticality.startTimespans:
@@ -764,8 +931,9 @@ class Test(unittest.TestCase):
 
     def testForbiddenChords(self):
         '''
-        A verticality whose interval classes match a forbidden chord loses its
-        upper timespans, even when it is consonant or listed in allowableChords.
+        With removeDissonances, a verticality whose interval classes match a
+        forbidden chord loses its upper timespans, even when it is consonant
+        or listed in allowableChords.
 
         AI-assisted (Claude).
         '''
@@ -786,17 +954,20 @@ class Test(unittest.TestCase):
                          [(pitch.Pitch('C3'), pitch.Pitch('E4'), pitch.Pitch('G4'))])
 
         reduction = ChordReducer().run(makeScore(),
-                                       forbiddenChords=[chord.Chord('C E G')])
+                                       forbiddenChords=[chord.Chord('C E G')],
+                                       removeDissonances=True)
         self.assertEqual(reducedPitches(reduction), [(pitch.Pitch('C3'),)])
 
         reduction = ChordReducer().run(makeScore(),
                                        allowableChords=[chord.Chord('C D E')],
-                                       forbiddenChords=[chord.Chord('C E G')])
+                                       forbiddenChords=[chord.Chord('C E G')],
+                                       removeDissonances=True)
         self.assertEqual(reducedPitches(reduction), [(pitch.Pitch('C3'),)])
 
         reduction = ChordReducer().run(makeScore(),
                                        allowableChords=[chord.Chord('C E G')],
-                                       forbiddenChords=[chord.Chord('C D E')])
+                                       forbiddenChords=[chord.Chord('C D E')],
+                                       removeDissonances=True)
         self.assertEqual(reducedPitches(reduction),
                          [(pitch.Pitch('C3'), pitch.Pitch('E4'), pitch.Pitch('G4'))])
 
@@ -820,6 +991,23 @@ class Test(unittest.TestCase):
              for m in measures],
             [[(0.0, 4.0, ['C3', 'C4'])], [(0.0, 4.0, ['G2', 'E4'])]],
         )
+
+    def testRunDropsPassingDissonance(self):
+        from music21 import converter
+        from music21 import instrument
+
+        parts = []
+        for i, tinyNotation in enumerate(['4/4 e2 f4 e4 g2 r2', '4/4 C1 C2 r2']):
+            p = converter.parse('tinyNotation: ' + tinyNotation)
+            inst = instrument.Instrument()
+            inst.partId = f'P{i}'
+            p.insert(0, inst)
+            parts.append(p)
+        reduction = ChordReducer().run(stream.Score(parts))
+        measures = reduction.parts.first().getElementsByClass(stream.Measure)
+        self.assertEqual([[(c.offset, c.quarterLength, [p.nameWithOctave for p in c.pitches])
+                           for c in m.notes] for m in measures],
+                         [[(0.0, 4.0, ['C3', 'E4'])], [(0.0, 4.0, ['C3', 'G4'])]])
 
 
 class TestExternal(unittest.TestCase):
