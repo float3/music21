@@ -744,7 +744,9 @@ _DOC_ORDER = [extractHarmonies, getVoiceLeadingMoments,
 
 class Test(unittest.TestCase):
     def testOffsetMappingAfterTriplet(self):
-        # end times after a triplet
+        '''
+        End times after a triplet are exact.
+        '''
         from fractions import Fraction
 
         part = stream.Part()

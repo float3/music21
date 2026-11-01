@@ -895,7 +895,10 @@ class Test(unittest.TestCase):
                 self.assertEqual(third_note.editorial.notationString, single_symbol)
 
     def testSegmentsAfterTriplet(self) -> None:
-        # each segment after a triplet starts where the one before it ends
+        '''
+        Each segment after an eighth-note or quarter-note triplet starts
+        where the one before it ends.
+        '''
         from fractions import Fraction
 
         fbLine = FiguredBassLine(key.Key('C'), meter.TimeSignature('2/4'))
@@ -909,7 +912,6 @@ class Test(unittest.TestCase):
                          [third, third, third, 1.0, 2.0])
         self.assertGreater(fbLine.realize().getNumSolutions(), 0)
 
-        # quarter-note triplet
         fbLine = FiguredBassLine(key.Key('C'), meter.TimeSignature('4/4'))
         twoThirds = Fraction(2, 3)
         fbLine.addElement(note.Note('C3', quarterLength=twoThirds))
