@@ -677,6 +677,8 @@ class PartReduction:
 
         If `splitSpans` is True, a span will be split of the target changes over the span.
         Otherwise, Spans will be averaged. This is the `segmentByTarget` parameter.
+        When splitting, each span starts with the weight of the last target at
+        or before its start.
 
         The `targetToWeight` parameter is a function that takes a list or Stream of objects
         (of the class specified by `target`) and returns a single floating-point value.
@@ -740,7 +742,6 @@ class PartReduction:
                     match = match.extendDuration(target, inPlace=False)
                     # match.show('t')
                     dsFirst = copy.deepcopy(ds)
-                    # a span starts at the last target at or before it
                     prior = flatRef.getElementAtOrBefore(offsetStart, [target])
                     if prior is not None:
                         dsFirst['weight'] = targetToWeight(prior)
@@ -1095,6 +1096,9 @@ class Test(unittest.TestCase):
         # post.show()
 
     def testPartReductionDynamicOnBarline(self):
+        '''
+        A dynamic on a barline starts the span after the barline.
+        '''
         from music21 import analysis
         from music21 import dynamics
         p = stream.Part()
@@ -1120,10 +1124,12 @@ class Test(unittest.TestCase):
                                            [4.0, 8.0, 1.0, '#666666']])])
 
     def testPartReductionDynamicBetweenSpans(self):
+        '''
+        A dynamic in a rest measure, or on the barline before it, starts
+        the next span.
+        '''
         from music21 import analysis
         from music21 import dynamics
-        # the f, in the rest measure or on the barline before it,
-        # starts the next span
         for fOffset in (4, 5):
             p = stream.Part()
             p.id = 'solo'
