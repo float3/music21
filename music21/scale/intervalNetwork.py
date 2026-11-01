@@ -85,6 +85,18 @@ type CacheKey = tuple[
     int|Terminus, str, str|None, str|None, bool, bool|None,
     tuple[tuple[int, Direction, int, int|float], ...]]
 
+# node id, reference pitch name and ps, origin pitch name and ps, direction,
+# and (degree, direction, generic, semitones) per altered degree
+type NearbyRealizationKey = tuple[
+    Terminus|int,
+    str,
+    float,
+    str,
+    float,
+    Direction,
+    tuple[tuple[int, Direction, int, int|float], ...],
+]
+
 # node id, start pitch, and (degree, direction, generic, semitones) per altered degree
 type NetworkWalkKey = tuple[
     Terminus|int,
@@ -506,6 +518,10 @@ class IntervalNetwork:
             tuple[list[pitch.Pitch], list[Terminus|int]]
         ] = OrderedDict()
         self._ascendingWalks: dict[NetworkWalkKey, NetworkWalkPath] = {}
+        self._nearbyRealizations: dict[
+            NearbyRealizationKey,
+            tuple[list[pitch.Pitch], list[Terminus|int]]
+        ] = {}
 
     def clear(self) -> None:
         '''
@@ -518,6 +534,7 @@ class IntervalNetwork:
         self._ascendingCache = OrderedDict()
         self._descendingCache = OrderedDict()
         self._ascendingWalks = {}
+        self._nearbyRealizations = {}
 
     def __eq__(self, other) -> bool:
         '''
@@ -1446,15 +1463,15 @@ class IntervalNetwork:
         AI-assisted (Claude).
         '''
         pitchOrigin.octaveIsImplicit = False
-        span = self._searchSpan()
-        realizedPitches, realizedNodes = self.realize(
-            pitchReference,
-            nodeName,
-            minPitch=pitchOrigin.transpose(-span, inPlace=False),
-            maxPitch=pitchOrigin.transpose(span, inPlace=False),
-            direction=direction,
-            alteredDegrees=alteredDegrees,
-        )
+        if nodeName is None:
+            nodeObj = self.terminusLowNodes[0]
+        else:
+            nodeObj = t.cast(list[Node], self.nodeNameToNodes(nodeName))[0]
+        realizedPitches, realizedNodes = self._realizeNear(pitchReference,
+                                                           nodeObj,
+                                                           pitchOrigin,
+                                                           direction=direction,
+                                                           alteredDegrees=alteredDegrees)
         nodePitches = [realizedPitch
                        for realizedPitch, realizedNode in zip(realizedPitches, realizedNodes)
                        if realizedNode == nodeId]
@@ -1472,6 +1489,62 @@ class IntervalNetwork:
         if alteredDegrees and degree in alteredDegrees:
             return found.transpose(alteredDegrees[degree]['interval'].reverse())
         return found
+
+    def _realizeNear(
+        self,
+        pitchReference: pitch.Pitch|str,
+        nodeObj: Node,
+        pitchTarget: pitch.Pitch,
+        *,
+        direction: Direction,
+        alteredDegrees: AlteredDegrees|None,
+    ) -> tuple[list[pitch.Pitch], list[Terminus|int]]:
+        '''
+        Realize the network with `pitchReference` on `nodeObj` from
+        :meth:`_searchSpan` semitones below `pitchTarget` to as many above it.
+
+        A deterministic network keeps the result for each reference, node,
+        target, direction, and set of altered degrees, so the caller must not
+        change the lists or the pitches in them.
+
+        >>> net = scale.MajorScale().abstract._net
+        >>> pitches, nodeIds = net._realizeNear('c4', net.nodes[scale.Terminus.LOW],
+        ...                                     pitch.Pitch('e4'),
+        ...                                     direction=scale.Direction.ASCENDING,
+        ...                                     alteredDegrees=None)
+        >>> [str(p) for p in pitches]
+        ['E3', 'F3', 'G3', 'A3', 'B3', 'C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5', 'D5', 'E5']
+
+        AI-assisted (Claude).
+        '''
+        if isinstance(pitchReference, str):
+            pitchReference = pitch.Pitch(pitchReference)
+        key: NearbyRealizationKey = (
+            nodeObj.id,
+            pitchReference.nameWithOctave,
+            pitchReference.ps,
+            pitchTarget.nameWithOctave,
+            pitchTarget.ps,
+            direction,
+            tuple((degree,
+                   spec['direction'],
+                   spec['interval'].generic.directed,
+                   spec['interval'].semitones)
+                  for degree, spec in (alteredDegrees or {}).items()),
+        )
+        if self.deterministic and key in self._nearbyRealizations:
+            return self._nearbyRealizations[key]
+
+        span = self._searchSpan()
+        realized = self.realize(pitchReference,
+                                nodeObj,
+                                minPitch=pitchTarget.transpose(-span, inPlace=False),
+                                maxPitch=pitchTarget.transpose(span, inPlace=False),
+                                direction=direction,
+                                alteredDegrees=alteredDegrees)
+        if self.deterministic:
+            self._nearbyRealizations[key] = realized
+        return realized
 
     def _searchSpan(self) -> int:
         '''
@@ -2550,16 +2623,11 @@ class IntervalNetwork:
         octaveWasImplicit = pitchTargetObj.octaveIsImplicit
         pitchTargetObj.octaveIsImplicit = False
 
-        span = self._searchSpan()
-        minPitch = pitchTargetObj.transpose(-span, inPlace=False)
-        maxPitch = pitchTargetObj.transpose(span, inPlace=False)
-
-        realizedPitches, realizedNodes = self.realize(pitchReference,
-                                                      nodeObj,
-                                                      minPitch=minPitch,
-                                                      maxPitch=maxPitch,
-                                                      direction=direction,
-                                                      alteredDegrees=alteredDegrees)
+        realizedPitches, realizedNodes = self._realizeNear(pitchReference,
+                                                           nodeObj,
+                                                           pitchTargetObj,
+                                                           direction=direction,
+                                                           alteredDegrees=alteredDegrees)
 
         # environLocal.printDebug(['getRelativeNodeId()', 'nodeObj', nodeObj,
         #    'realizedPitch', realizedPitch, 'realizedNode', realizedNode])
@@ -2624,16 +2692,11 @@ class IntervalNetwork:
         # don't alter permanently, in case a Pitch object was passed in.
         octaveWasImplicit = pitchTargetObj.octaveIsImplicit
         pitchTargetObj.octaveIsImplicit = False
-        span = self._searchSpan()
-        minPitch = pitchTargetObj.transpose(-span, inPlace=False)
-        maxPitch = pitchTargetObj.transpose(span, inPlace=False)
-
-        realizedPitches, realizedNodes = self.realize(pitchReference,
-                                                      nodeId,
-                                                      minPitch=minPitch,
-                                                      maxPitch=maxPitch,
-                                                      direction=direction,
-                                                      alteredDegrees=alteredDegrees)
+        realizedPitches, realizedNodes = self._realizeNear(pitchReference,
+                                                           nodeId,
+                                                           pitchTargetObj,
+                                                           direction=direction,
+                                                           alteredDegrees=alteredDegrees)
 
         lowNeighbor = None
         highNeighbor = None
