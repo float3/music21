@@ -132,7 +132,7 @@ class ChordReducer:
             warnings.simplefilter('ignore', category=exceptions21.Music21DeprecationWarning)
             chordifiedReduction = tree.toStream.chordified(
                 scoreTree,
-                templateStream=inputScore,
+                templateStream=inputScore.parts.first(),
             )
         chordifiedPart = stream.Part()
         for measure in chordifiedReduction.getElementsByClass(stream.Measure):
@@ -837,6 +837,26 @@ class Test(unittest.TestCase):
         reduction = ChordReducer().run(stream.Score(parts))
         chords = list(reduction.recurse().getElementsByClass(chord.Chord))
         self.assertEqual(sum(c.quarterLength for c in chords), 3.0)
+
+    def testPartsWithDifferentMeasures(self):
+        from music21 import converter
+        from music21 import instrument
+
+        parts = []
+        for i, tinyNotation in enumerate(['4/4 e1 f1', '2/4 C2 D2 C2 D2']):
+            p = converter.parse('tinyNotation: ' + tinyNotation)
+            inst = instrument.Instrument()
+            inst.partId = f'P{i}'
+            p.insert(0, inst)
+            parts.append(p)
+        reduction = ChordReducer().run(stream.Score(parts))
+        measures = reduction.parts.first().getElementsByClass(stream.Measure)
+        self.assertEqual([m.offset for m in measures], [0.0, 4.0])
+
+        parts[1].append(stream.Measure([note.Note('E2', type='half')]))
+        reduction = ChordReducer().run(stream.Score(parts))
+        measures = reduction.parts.first().getElementsByClass(stream.Measure)
+        self.assertEqual([m.offset for m in measures], [0.0, 4.0])
 
 
 class TestExternal(unittest.TestCase):
