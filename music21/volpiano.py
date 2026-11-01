@@ -96,7 +96,7 @@ def _makeBreak(numBreakTokens: int, breaksToLayout: bool) -> base.Music21Object:
     a LineBreak, PageBreak or ColumnBreak, or, if `breaksToLayout` is True,
     a new SystemLayout, a new PageLayout or a ColumnBreak.
     '''
-    if not breaksToLayout:  # default
+    if not breaksToLayout:
         breakClass = classByNumBreakTokens[numBreakTokens]
         assert breakClass is not None
         return breakClass()
@@ -520,6 +520,24 @@ class Test(unittest.TestCase):
             self.assertTrue(fromStream(stream.Stream([clefClass()])).startswith(volpianoClef))
         self.assertEqual(fromStream(stream.Stream([clef.Bass8vbClef(), note.Note('G1')])),
                          fromStream(stream.Stream([clef.BassClef(), note.Note('G2')])))
+
+    def testBreaksAtEndToLayout(self):
+        part = toPart('1---e-7', breaksToLayout=True)
+        self.assertEqual(len(part[layout.SystemLayout]), 1)
+        self.assertEqual(len(part[LineBreak]), 0)
+        self.assertTrue(part[layout.SystemLayout].first().isNew)
+
+        part = toPart('1---e-77', breaksToLayout=True)
+        self.assertEqual(len(part[layout.PageLayout]), 1)
+        self.assertTrue(part[layout.PageLayout].first().isNew)
+
+        part = toPart('1---e-77')
+        self.assertEqual(len(part[PageBreak]), 1)
+
+        part = toPart('1---ef-3-gh-7', breaksToLayout=True)
+        measures = part.getElementsByClass(stream.Measure)
+        self.assertEqual(len(measures[0][layout.SystemLayout]), 0)
+        self.assertEqual(len(measures[1][layout.SystemLayout]), 1)
 
 
 if __name__ == '__main__':
