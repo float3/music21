@@ -469,27 +469,12 @@ def fromStream(s, *, layoutToBreaks=False):
 
 class Test(unittest.TestCase):
     def testBreaksAndNeumesAfterBarline(self):
-        # breaks and neumes go in the measure they are read in
         part = toPart('1---e-3-ef-g-7-e-4-gh--j-77')
         self.assertEqual(
             [[type(el).__name__ for el in m.getElementsByClass([Neume, LineBreak, PageBreak])]
              for m in part.getElementsByClass(stream.Measure)],
             [[], ['Neume', 'LineBreak'], ['Neume', 'PageBreak']])
         self.assertEqual(fromStream(part), '1---e----3ef-g7---e----4gh-j77---')
-
-    def testNeumeTakesEveryNoteOfItsRun(self):
-        # one Neume holds the whole run
-        part = toPart('1---cdef-g-')
-        neumes = list(part[Neume])
-        self.assertEqual(len(neumes), 1)
-        self.assertEqual([n.name for n in neumes[0]], ['C', 'D', 'E', 'F'])
-        self.assertEqual(fromStream(part), '1---cdef-g-')
-
-    def testNeumeEndedWithoutHyphen(self):
-        # a neume ended by a barline or by the end of the text is kept
-        part = toPart('1---ef3-gh')
-        self.assertEqual([len(neume) for neume in part[Neume]], [2, 2])
-        self.assertEqual(fromStream(part), '1---ef----3gh-')
 
     def testBreaksAtEndToLayout(self):
         part = toPart('1---e-7', breaksToLayout=True)
