@@ -228,7 +228,6 @@ class WindowedAnalysis:
                     if i not in participants:
                         continue
                     for m in dataStream:
-                        # a stream holds an object once; repeats from other windows are copies
                         if id(m) in appendedIds:
                             current.append(copy.deepcopy(m))
                         else:
@@ -439,20 +438,22 @@ class Test(unittest.TestCase):
         self.assertEqual(len(a[0]), 1)
 
     def testAdjacentAverage(self):
+        '''
+        Each minimum window gathers every window of the given size holding
+        it, and the windowed stream itself is unchanged.
+        '''
         from music21 import note
         s = stream.Stream()
         for _ in range(5):
             s.append(note.Note('C'))
         wa = WindowedAnalysis(s, MockObjectProcessor())
 
-        # each minimum window gathers every window of the given size holding it
         data, unused_color = wa.analyze(2, windowType='adjacentAverage')
         self.assertEqual(data, [2, 4, 4, 4, 2])
         data, unused_color = wa.analyze(3, windowType='adjacentAverage')
         self.assertEqual(data, [3, 6, 9, 6, 3])
         data, unused_color = wa.analyze(5, windowType='adjacentAverage')
         self.assertEqual(data, [5, 5, 5, 5, 5])
-        # the windowed stream itself is unchanged
         self.assertEqual(len(wa._windowedStream), 5)
         self.assertEqual(len(wa._windowedStream.recurse().notes), 5)
 
