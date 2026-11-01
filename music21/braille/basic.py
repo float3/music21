@@ -355,7 +355,8 @@ def clefToBraille(music21Clef, keyboardHandSwitched=False):
             )
         except KeyError:  # pragma: no cover
             music21Clef.editorial.brailleEnglish = [f'Unnamed Clef {music21Clef}']
-        if isinstance(music21Clef, (clef.TrebleClef, clef.BassClef)):
+        if isinstance(music21Clef, (clef.TrebleClef, clef.Treble8vbClef, clef.Treble8vaClef,
+                                    clef.BassClef, clef.Bass8vbClef, clef.Bass8vaClef)):
             brailleClef += clefs['suffix'][keyboardHandSwitched]
             if keyboardHandSwitched:
                 music21Clef.editorial.brailleEnglish.append(' Keyboard hand switched')
@@ -1746,6 +1747,15 @@ class Test(unittest.TestCase):
         with contextlib.redirect_stderr(stderr):
             self.assertEqual(chordToBraille(cs), symbols['basic_exception'])
         self.assertIn('cannot be transcribed to braille', stderr.getvalue())
+
+    def testOctaveClefsShowHandSwitched(self):
+        for clefClass, brailleClef in (
+            (clef.Treble8vbClef, '⠜⠌⠅'),
+            (clef.Treble8vaClef, '⠜⠌⠅'),
+            (clef.Bass8vbClef, '⠜⠼⠅'),
+            (clef.Bass8vaClef, '⠜⠼⠅'),
+        ):
+            self.assertEqual(clefToBraille(clefClass(), keyboardHandSwitched=True), brailleClef)
 
 
 if __name__ == '__main__':

@@ -10497,6 +10497,8 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
         the second note, but if skipRests is set to True or there is a gap
         in the Stream, then these two numbers
         will be different).
+        Offsets are measured from the start of this Stream, so the intervals
+        of a Part with Measures stand at their offsets in the Part.
 
         See :meth:`~music21.stream.Stream.findConsecutiveNotes` in this class for
         a discussion of what is meant by default for "consecutive notes", and
@@ -10544,8 +10546,6 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
             return self.cloneEmpty(derivationMethod='melodicIntervals')
 
         returnStream = self.cloneEmpty(derivationMethod='melodicIntervals')
-        # each container's offset in self; findConsecutiveNotes leaves
-        # each note's activeSite at its container
         containerOffsets = {id(self): 0.0}
         for container in self.recurse(streamsOnly=True):
             containerOffsets[id(container)] = opFrac(
