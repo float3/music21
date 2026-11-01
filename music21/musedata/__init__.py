@@ -406,8 +406,24 @@ class MuseDataRecord(prebase.ProtoM21Object):
             # on trim trailing white space, not leading
             return data.rstrip()
 
-    # TODO: need to get slurs from this indication:
-    # (), {}, []
+    def getSlurSymbols(self) -> str:
+        '''
+        Return the slur marks of this record in the order they are written.
+        ( ) [ ] { } and z x start and stop slurs 1 to 4.
+
+        >>> mdr = musedata.MuseDataRecord('F4     1        q     u        ]{')
+        >>> mdr.getSlurSymbols()
+        ']{'
+        >>> mdr = musedata.MuseDataRecord('C4    12        e     u  [      .p')
+        >>> mdr.getSlurSymbols()
+        ''
+        '''
+        if self.stage == 1:
+            return ''
+        data = self._getAdditionalNotations()
+        if data is None:
+            return ''
+        return ''.join(char for char in data if char in '()[]{}zx')
 
     def _getAdditionalNotations(self) -> str|None:
         '''

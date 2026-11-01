@@ -137,10 +137,42 @@ def _musedataRecordListToNoteOrChord(records, previousElement=None):
     return post, dynamicObjs
 
 
-def _processPending(hasVoices, pendingRecords, eLast, m, vActive):
+class _SlurCollector:
+    '''
+    Builds Slur spanners from the slur marks of MuseData records, read in order.
+    The marks ( ) [ ] { } and z x start and stop slurs 1 to 4, so up to four
+    slurs can be open at once.
+    '''
+    starts = '([{z'
+    stops = ')]}x'
+
+    def __init__(self):
+        self.openSlurs = {}
+        self.slurs = []
+
+    def add(self, record, element):
+        '''
+        Stop, then start, the slurs that `record` marks on `element`, so a
+        note can end one slur and begin the next with the same mark number.
+        '''
+        from music21 import spanner
+
+        marks = record.getSlurSymbols()
+        for char in marks:
+            if char in self.stops:
+                start = self.openSlurs.pop(self.stops.index(char), None)
+                if start is not None:
+                    self.slurs.append(spanner.Slur(start, element))
+        for char in marks:
+            if char in self.starts:
+                self.openSlurs[self.starts.index(char)] = element
+
+
+def _processPending(pendingRecords, eLast, m, vActive, slurCollector):
     e, dynamicObjs = _musedataRecordListToNoteOrChord(pendingRecords, eLast)
+    slurCollector.add(pendingRecords[0], e)
     # place dynamics at same position as element
-    if hasVoices:
+    if vActive is not None:
         vActive.coreAppend(e)
         for d in dynamicObjs:
             vActive.coreInsert(e.getOffsetBySite(vActive), d)
@@ -179,6 +211,7 @@ def musedataPartToStreamPart(museDataPart, inputM21=None):
     # get each measure
     # store last Note/Chord/Rest for tie comparisons; span measures
     eLast = None
+    slurCollector = _SlurCollector()
     for mIndex, mdm in enumerate(mdmObjs):
         # environLocal.printDebug(['processing:', mdm.src])
         if not mdm.hasNotes():
@@ -236,7 +269,7 @@ def musedataPartToStreamPart(museDataPart, inputM21=None):
                 # the current use of back assumes tt back assumes tt we always
                 # return to the start of the measure; this may not be the case
                 if pendingRecords:
-                    eLast = _processPending(hasVoices, pendingRecords, eLast, m, vActive)
+                    eLast = _processPending(pendingRecords, eLast, m, vActive, slurCollector)
                     pendingRecords = []
 
                 # every time we encounter a back, we need to store
@@ -248,7 +281,7 @@ def musedataPartToStreamPart(museDataPart, inputM21=None):
                 # environLocal.printDebug(['got mdr rest, parent:', mdr.parent])
                 # check for pending records first
                 if pendingRecords:
-                    eLast = _processPending(hasVoices, pendingRecords, eLast, m, vActive)
+                    eLast = _processPending(pendingRecords, eLast, m, vActive, slurCollector)
                     pendingRecords = []
                 # create rest after clearing pending records
                 r = note.Rest()
@@ -271,14 +304,14 @@ def musedataPartToStreamPart(museDataPart, inputM21=None):
                 # need to append immediately
                 if pendingRecords:
                     # this could be a Chord or Note
-                    eLast = _processPending(hasVoices, pendingRecords, eLast, m, vActive)
+                    eLast = _processPending(pendingRecords, eLast, m, vActive, slurCollector)
                     pendingRecords = []
                 # need to append this record for the current note
                 pendingRecords.append(mdr)
 
         # check for any remaining single notes (if last) or chords
         if pendingRecords:
-            eLast = _processPending(hasVoices, pendingRecords, eLast, m, vActive)
+            eLast = _processPending(pendingRecords, eLast, m, vActive, slurCollector)
 
         # may be bending elements in a voice to append to a measure
         if vActive is not None and vActive:
@@ -296,6 +329,8 @@ def musedataPartToStreamPart(museDataPart, inputM21=None):
         p.coreAppend(m)
         barCount += 1
 
+    for sl in slurCollector.slurs:
+        p.coreInsert(0, sl)
     p.coreElementsChanged()
     # for now, make all imports a c-score on import;
     tInterval = museDataPart.getTranspositionIntervalObject()
@@ -594,15 +629,61 @@ class Test(unittest.TestCase):
         self.assertEqual([n.nameWithOctave for n in voices[0].notes], ['C4', 'A3'])
         self.assertEqual([n.nameWithOctave for n in voices[1].notes], ['C3'])
 
+    def testSlurs(self):
+        '''
+        The slur marks ( ) [ ] { } z x start and stop slurs 1 to 4,
+        which may overlap and cross barlines.
+        '''
+        from music21 import common
+        from music21 import converter
+        from music21 import musedata
+        from music21 import spanner
+
+        fpDir = common.getSourceFilePath() / 'musedata' / 'testPrimitive' / 'test02'
+        upper = converter.parse(fpDir).parts[0]
+        slurs = upper[spanner.Slur]
+        self.assertEqual(len(slurs), 1)
+        self.assertEqual(slurs[0].getFirst().nameWithOctave, 'F5')
+        self.assertEqual(slurs[0].getLast().nameWithOctave, 'A5')
+        self.assertEqual(slurs[0].getLast().measureNumber, 1)
+
+        mdw = musedata.MuseDataWork()
+        mdw.addString('\n'.join([
+            '', '', '', '', 'WK#:1         MV#:1', 'Source', 'Work', 'Movement', 'Part', '',
+            'Group memberships: score',
+            'score: part 1 of 1',
+            '$  K:0   Q:1   T:2/4   C:4',
+            'measure 1',
+            'C4     1        q     u        (',
+            'D4     1        q     u        [',
+            'measure 2',
+            'E4     1        q     u        )',
+            'F4     1        q     u        ]{',
+            'measure 3',
+            'G4     1        q     u',
+            ' B4    1        q     u',
+            'A4     1        q     u        }z',
+            'measure 4',
+            'B4     2        h     u        x',
+            'mheavy2',
+            '/END',
+        ]))
+        s = museDataWorkToStreamScore(mdw)
+        slurs = s.parts[0][spanner.Slur]
+        self.assertEqual(
+            [(sl.getFirst().nameWithOctave, sl.getLast().nameWithOctave) for sl in slurs],
+            [('C4', 'E4'), ('D4', 'F4'), ('F4', 'A4'), ('A4', 'B4')])
+
 
     def testBackBasic(self):
         from music21 import converter
         from music21 import common
+        from music21 import stream
         fpDir = common.getSourceFilePath() / 'musedata' / 'testPrimitive' / 'test01'
         s = converter.parse(fpDir)
         # note: this is a multi-staff work, but presently gets encoded
         # as multiple voices
-        measures = s.parts[0].measures(1, 5)
+        measures = s.parts[0].getElementsByClass(stream.Measure)
         self.assertEqual(len(measures[0].recurse().notesAndRests), 2)
         self.assertEqual(len(measures[1].recurse().notesAndRests), 5)
         self.assertEqual(len(measures[2].recurse().notesAndRests), 5)
