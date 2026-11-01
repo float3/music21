@@ -261,6 +261,9 @@ Removed and deprecated
      - ``ks.isNonTraditional = True``
    * - ``variant.addVariant(replacementDuration=...)``
      - ``replacementQuarterLength=...``
+   * - ``scale.AbstractCyclicalScale(mode=...)``,
+       ``scale.AbstractOctaveRepeatingScale(mode=...)``
+     - ``intervalList=...``
    * - ``common.defaultlist``
      - a ``list`` or a ``dict``
    * - ``common.enums.ContainsEnum``
