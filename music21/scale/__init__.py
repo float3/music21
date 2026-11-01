@@ -955,6 +955,31 @@ class AbstractMelodicMinorScale(AbstractScale):
         self._net.fillMelodicMinor()
 
 
+def _closeOnTonic(mode: list) -> list:
+    '''
+    Given a list of intervals that spans twelve semitones, return it with the
+    last interval spelled so that the list adds up to a perfect octave.
+    A list that already adds up to a perfect octave is returned unchanged.
+
+    >>> scale._closeOnTonic(['M3', 'M3', 'M3'])
+    ['M3', 'M3', <music21.interval.Interval d4>]
+    >>> scale._closeOnTonic(['M2'] * 6)
+    ['M2', 'M2', 'M2', 'M2', 'M2', <music21.interval.Interval d3>]
+    >>> scale._closeOnTonic(['m3', 'M3', 'P4'])
+    ['m3', 'M3', 'P4']
+    '''
+    tonic = pitch.Pitch('C4')
+    beforeLastStep = tonic
+    for step in mode[:-1]:
+        stepInterval = interval.Interval(step) if isinstance(step, str) else step
+        beforeLastStep = stepInterval.transposePitch(beforeLastStep, maxAccidental=1)
+    octave = tonic.transpose('P8')
+    lastStep = interval.Interval(mode[-1]) if isinstance(mode[-1], str) else mode[-1]
+    if lastStep.transposePitch(beforeLastStep).nameWithOctave == octave.nameWithOctave:
+        return mode
+    return [*mode[:-1], interval.Interval(beforeLastStep, octave)]
+
+
 class AbstractCyclicalScale(AbstractScale):
     '''
     A scale of any size built with an interval list of any form.
@@ -972,12 +997,30 @@ class AbstractCyclicalScale(AbstractScale):
     def buildNetwork(self, mode: t.Any = None) -> None:
         '''
         Here, mode is the list of intervals.
+
+        If the intervals are whole semitones and add up to a number of
+        semitones that divides the octave, the list is repeated to fill the
+        octave and the network is octave duplicating.
+
+        >>> sc = scale.AbstractCyclicalScale(['M3'])
+        >>> sc.octaveDuplicating
+        True
+        >>> sc.getDegreeMaxUnique()
+        3
+        >>> scale.AbstractCyclicalScale(['P5']).octaveDuplicating
+        False
         '''
         modeList: list[t.Any]
         if not isinstance(mode, (list, tuple)):
             modeList = [mode]  # place in list
         else:
             modeList = list(mode)
+        steps = [interval.Interval(step) if isinstance(step, str) else step for step in modeList]
+        span = sum(step.semitones for step in steps)
+        wholeSemitones = all(float(step.semitones).is_integer() for step in steps)
+        self.octaveDuplicating = (wholeSemitones and span in (1, 2, 3, 4, 6, 12))
+        if self.octaveDuplicating:
+            modeList = _closeOnTonic(modeList * int(12 // span))
         self.tonicDegree = 1
         self._net = intervalNetwork.IntervalNetwork(modeList,
                                                     octaveDuplicating=self.octaveDuplicating)
@@ -1014,12 +1057,7 @@ class AbstractOctaveRepeatingScale(AbstractScale):
         intervalSum = interval.add(mode)
         span = intervalSum.semitones
         if span == 12 and intervalSum.name != 'P8':
-            tonic = pitch.Pitch('C4')
-            beforeLastStep = tonic
-            for step in mode[:-1]:
-                stepInterval = interval.Interval(step) if isinstance(step, str) else step
-                beforeLastStep = stepInterval.transposePitch(beforeLastStep, maxAccidental=1)
-            mode = [*mode[:-1], interval.Interval(beforeLastStep, tonic.transpose('P8'))]
+            mode = _closeOnTonic(mode)
         elif span != 12:
             iComplement = intervalSum.complement
             if iComplement.semitones:
@@ -3155,11 +3193,29 @@ class CyclicalScale(ConcreteScale):
     >>> sc.getScaleDegreeFromPitch('b-2', direction=scale.Direction.BI)
     1
 
-    No `intervalList` defaults to a single minor second:
+    A cycle that returns to the tonic within an octave repeats every octave.
+    It fills the octave, with one degree for each pitch in it:
+
+    >>> sc = scale.CyclicalScale('c4', ['M3'])
+    >>> sc.pitches
+    [<music21.pitch.Pitch C4>, <music21.pitch.Pitch E4>,
+     <music21.pitch.Pitch G#4>, <music21.pitch.Pitch C5>]
+    >>> [str(p) for p in sc.getPitches('c3', 'c5')]
+    ['C3', 'E3', 'G#3', 'C4', 'E4', 'G#4', 'C5']
+    >>> [sc.getScaleDegreeFromPitch(p) for p in ('c4', 'e4', 'g#4')]
+    [1, 2, 3]
+
+    No `intervalList` defaults to a single minor second, which fills the
+    octave in twelve steps:
 
     >>> sc2 = scale.CyclicalScale()
-    >>> sc2.pitches
-    [<music21.pitch.Pitch C4>, <music21.pitch.Pitch D-4>]
+    >>> sc2.pitches[:3]
+    [<music21.pitch.Pitch C4>, <music21.pitch.Pitch D-4>, <music21.pitch.Pitch D4>]
+    >>> sc2.abstract.getDegreeMaxUnique()
+    12
+
+    * Changed in v11: a cycle that returns to the tonic within an octave
+      numbers its degrees across the octave.
     '''
 
     def __init__(self,
@@ -3248,11 +3304,11 @@ class SieveScale(ConcreteScale):
     sieve is realized as intervals and used to create a scale.
 
     >>> sc = scale.SieveScale('c4', '3@0')
-    >>> sc.pitches
-    [<music21.pitch.Pitch C4>, <music21.pitch.Pitch E-4>]
+    >>> [str(p) for p in sc.pitches]
+    ['C4', 'E-4', 'F#4', 'A4', 'C5']
     >>> sc = scale.SieveScale('d4', '3@0')
-    >>> sc.pitches
-    [<music21.pitch.Pitch D4>, <music21.pitch.Pitch F4>]
+    >>> [str(p) for p in sc.pitches]
+    ['D4', 'F4', 'G#4', 'B4', 'D5']
     >>> sc = scale.SieveScale('c2', '(-3@2 & 4) | (-3@1 & 4@1) | (3@2 & 4@2) | (-3 & 4@3)')
     >>> [str(p) for p in sc.pitches]
     ['C2', 'D2', 'E2', 'F2', 'G2', 'A2', 'B2', 'C3']

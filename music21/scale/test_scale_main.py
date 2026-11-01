@@ -360,14 +360,10 @@ class Test(unittest.TestCase):
                          '[G4, A-4, A4, B-4, C-5, C5, D-5, D5, E-5, F-5, F5, G-5, '
                          + 'G5, A-5, A5, B-5, C-6, C6, D-6, D6, E-6, F-6, F6, G-6, G6]')
 
-        # these values are different because scale degree 1 has different
-        # pitches in different registers, as this is a non-octave repeating
-        # scale
-
-        self.assertEqual(sc.abstract.getDegreeMaxUnique(), 2)
+        self.assertEqual(sc.abstract.getDegreeMaxUnique(), 12)
 
         self.assertEqual(str(sc.pitchFromDegree(1)), 'C4')
-        self.assertEqual(str(sc.pitchFromDegree(1, 'c2', 'c3')), 'B#1')
+        self.assertEqual(str(sc.pitchFromDegree(1, 'c2', 'c3')), 'C2')
 
         # scale storing parameters
         # How to get a spelling in several ways.
@@ -388,7 +384,74 @@ class Test(unittest.TestCase):
 
         # test default args
         sc2 = scale.CyclicalScale()
-        self.assertEqual(self.pitchOut(sc2.getPitches()), '[C4, D-4]')
+        self.assertEqual(self.pitchOut(sc2.getPitches()[:3]), '[C4, D-4, D4]')
+
+    def testCyclicalScaleClosingWithinAnOctave(self):
+        '''
+        A cycle whose steps divide the octave repeats every octave, with one
+        degree per pitch in the octave and the same spelling in every octave.
+
+        AI-assisted (Claude).
+        '''
+        thirds = scale.CyclicalScale('c4', ['M3'])
+        self.assertTrue(thirds.abstract.octaveDuplicating)
+        self.assertEqual(self.pitchOut(thirds.pitches), '[C4, E4, G#4, C5]')
+        self.assertEqual(self.pitchOut(thirds.getPitches('c3', 'c5')),
+                         '[C3, E3, G#3, C4, E4, G#4, C5]')
+        self.assertEqual(self.pitchOut(thirds.getPitches('c5', 'c3')),
+                         '[C5, G#4, E4, C4, G#3, E3, C3]')
+        self.assertEqual(str(thirds.nextPitch('g#4')), 'C5')
+        self.assertEqual(str(thirds.nextPitch('c4', Direction.DESCENDING)), 'G#3')
+        self.assertEqual(thirds.abstract.getDegreeMaxUnique(), 3)
+        self.assertEqual(thirds.getScaleDegreeFromPitch('c5'), 1)
+        self.assertEqual(thirds.getScaleDegreeFromPitch('e4'), 2)
+        self.assertEqual(thirds.getScaleDegreeFromPitch('g#2'), 3)
+
+        sharpThirds = scale.CyclicalScale('f#4', ['M3'])
+        self.assertEqual(self.pitchOut(sharpThirds.pitches), '[F#4, A#4, D5, F#5]')
+        self.assertEqual(self.pitchOut(sharpThirds.getPitches('f#3', 'f#5')),
+                         '[F#3, A#3, D4, F#4, A#4, D5, F#5]')
+        self.assertEqual(self.pitchOut(sharpThirds.getPitches('f#5', 'f#3')),
+                         '[F#5, D5, A#4, F#4, D4, A#3, F#3]')
+        self.assertEqual(str(sharpThirds.nextPitch('d5')), 'F#5')
+        self.assertEqual(str(sharpThirds.nextPitch('f#4', Direction.DESCENDING)), 'D4')
+        self.assertEqual(sharpThirds.getScaleDegreeFromPitch('d3'), 3)
+
+        wholeTones = scale.CyclicalScale('c4', ['M2'])
+        self.assertEqual(self.pitchOut(wholeTones.getPitches('c3', 'c5')),
+                         '[C3, D3, E3, F#3, G#3, A#3, C4, D4, E4, F#4, G#4, A#4, C5]')
+        self.assertEqual(self.pitchOut(wholeTones.getPitches('c5', 'c3')),
+                         '[C5, A#4, G#4, F#4, E4, D4, C4, A#3, G#3, F#3, E3, D3, C3]')
+        self.assertEqual(str(wholeTones.nextPitch('a#4')), 'C5')
+        self.assertEqual(str(wholeTones.nextPitch('c4', Direction.DESCENDING)), 'A#3')
+        self.assertEqual(wholeTones.abstract.getDegreeMaxUnique(), 6)
+        self.assertEqual(wholeTones.getScaleDegreeFromPitch('e4'),
+                         scale.WholeToneScale('c4').getScaleDegreeFromPitch('e4'))
+
+        sharpWholeTones = scale.CyclicalScale('f#4', ['M2'])
+        self.assertEqual(self.pitchOut(sharpWholeTones.pitches),
+                         '[F#4, G#4, A#4, B#4, D5, E5, F#5]')
+        self.assertEqual(self.pitchOut(sharpWholeTones.getPitches('f#5', 'f#3')),
+                         '[F#5, E5, D5, B#4, A#4, G#4, F#4, E4, D4, B#3, A#3, G#3, F#3]')
+        self.assertEqual(str(sharpWholeTones.nextPitch('e5')), 'F#5')
+        self.assertEqual(sharpWholeTones.getScaleDegreeFromPitch('b#2'), 4)
+
+        self.assertEqual(self.pitchOut(scale.WholeToneScale('c4').getPitches('c4', 'c5')),
+                         '[C4, D4, E4, F#4, G#4, A#4, C5]')
+
+    def testCyclicalScaleNotClosingWithinAnOctave(self):
+        fourths = scale.CyclicalScale('c4', ['P4'])
+        self.assertFalse(fourths.abstract.octaveDuplicating)
+        self.assertEqual(self.pitchOut(fourths.pitches), '[C4, F4]')
+        self.assertEqual(self.pitchOut(fourths.getPitches('c3', 'c5')), '[D3, G3, C4, F4, B-4]')
+        self.assertEqual(fourths.abstract.getDegreeMaxUnique(), 1)
+        self.assertEqual(fourths.getScaleDegreeFromPitch('b-4'), 1)
+
+        fifths = scale.CyclicalScale('c4', ['P5'])
+        self.assertFalse(fifths.abstract.octaveDuplicating)
+        self.assertEqual(self.pitchOut(fifths.getPitches('c3', 'c5')), '[F3, C4, G4]')
+        self.assertEqual(str(fifths.nextPitch('d5')), 'A5')
+        self.assertEqual(fifths.getScaleDegreeFromPitch('d5'), 1)
 
     def testHarmonicMinorDescendingRange(self):
         sc = scale.HarmonicMinorScale('c4')
@@ -438,7 +501,7 @@ class Test(unittest.TestCase):
         thirds = scale.CyclicalScale('d3', ['M3'])
         for enharmonicOfD in ('c##4', 'e--4'):
             self.assertEqual(str(thirds.nextPitch(enharmonicOfD)), 'F#4')
-            self.assertEqual(str(thirds.nextPitch(enharmonicOfD, Direction.DESCENDING)), 'B-3')
+            self.assertEqual(str(thirds.nextPitch(enharmonicOfD, Direction.DESCENDING)), 'A#3')
 
         sc = scale.MajorScale('c4')
         self.assertEqual(str(sc.nextPitch('b#3')), 'D4')
@@ -1086,7 +1149,7 @@ class Test(unittest.TestCase):
         sc = scale.SieveScale('d4', '1@0', eld=2)
         # noinspection PyTypeChecker
         self.assertEqual(self.pitchOut(sc.getPitches('c2', 'c4')),
-                         '[C2, D2, F-2, G-2, A-2, B-2, C3, D3, F-3, G-3, A-3, B-3, C4]')
+                         '[C2, D2, E2, F#2, G#2, B-2, C3, D3, E3, F#3, G#3, B-3, C4]')
 
         sc = scale.SieveScale('d4', '1@0', eld=0.5)
         # noinspection PyTypeChecker
