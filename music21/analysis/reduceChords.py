@@ -1095,7 +1095,7 @@ class Test(unittest.TestCase):
         measures = reduction.parts.first().getElementsByClass(stream.Measure)
         self.assertEqual([[c.tie.type if c.tie else None for c in m.notes] for m in measures],
                          [['start'], ['continue'], ['stop'], [None]])
-        self.assertIsInstance(measures.first().clef, clef.BassClef)
+        self.assertIsInstance(measures.first().clef, clef.Treble8vbClef)
 
     def testRunForceOctave(self):
         from music21 import converter
