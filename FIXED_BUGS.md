@@ -41,6 +41,7 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [#2123](https://github.com/cuthbertLab/music21/pull/2123) Capella single barlines failing to import and prolonged tuplets read as 3:2
 - [#2124](https://github.com/cuthbertLab/music21/pull/2124) `ChordBassMotionFeature` failing on a `NoChord`
 - [#2125](https://github.com/cuthbertLab/music21/pull/2125) an ABC measure's overflow being lost when no time signature fits it
+- [#2126](https://github.com/cuthbertLab/music21/pull/2126) a chord exported to MusicXML sorted on a copy that was then discarded
 - [#2127](https://github.com/cuthbertLab/music21/pull/2127) a `ReductiveNote` on a chord looking for a C instead of taking its highest note
 - [#2128](https://github.com/cuthbertLab/music21/pull/2128) tuplets set on a duration that had not worked out its own components being lost
 - [#2129](https://github.com/cuthbertLab/music21/pull/2129) `PartReduction` lengthening the score's own dynamics
@@ -51,12 +52,11 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [#2136](https://github.com/cuthbertLab/music21/pull/2136) `mostCommonMeasureRhythms` failing on chords and unpitched notes
 - [#2137](https://github.com/cuthbertLab/music21/pull/2137) an octave-repeating scale closing with a zero-width step
 - [#2138](https://github.com/cuthbertLab/music21/pull/2138) figured-bass realizations sharing pitch objects
-- [#2126](https://github.com/cuthbertLab/music21/pull/2126) a chord exported to MusicXML sorted on a copy that was then discarded
 - [#2140](https://github.com/cuthbertLab/music21/pull/2140) harmonic minor built through altered degrees
 - [#2141](https://github.com/cuthbertLab/music21/pull/2141) volpiano breaks and neumes put in the wrong measure
 - [#2142](https://github.com/cuthbertLab/music21/pull/2142) `makeTies` adding the measure it makes once per voice
-- [#2145](https://github.com/cuthbertLab/music21/pull/2145) `os.getuid` reported by mypy and pylint on Windows
 - [#2144](https://github.com/cuthbertLab/music21/pull/2144) makeTies: keep voices tied into a measure without voices
+- [#2145](https://github.com/cuthbertLab/music21/pull/2145) `os.getuid` reported by mypy and pylint on Windows
 - [#2147](https://github.com/cuthbertLab/music21/pull/2147) Fix the binary_dots entry for braille dots 1-2-3-5-6
 - [#2148](https://github.com/cuthbertLab/music21/pull/2148) Make BrailleText.showHand store the hand and set only its symbol
 - [#2149](https://github.com/cuthbertLab/music21/pull/2149) Detect hidden tuplet numbers in braille noteToBraille
@@ -66,6 +66,7 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [#2153](https://github.com/cuthbertLab/music21/pull/2153) lily: quote note colours with quoteString
 - [#2154](https://github.com/cuthbertLab/music21/pull/2154) Allow adjacentAverage windowed analysis with windows above size one
 - [#2155](https://github.com/cuthbertLab/music21/pull/2155) Find nextPitch neighbors on cycles wider than an octave
+- [#2158](https://github.com/cuthbertLab/music21/pull/2158) Deduplicate instruments offset by offset
 - [#2159](https://github.com/cuthbertLab/music21/pull/2159) Analyze modal keys in QualityFeature
 - [#2160](https://github.com/cuthbertLab/music21/pull/2160) Fix findConsecutiveNotes(skipUnisons=True) on repeated notes and chords
 - [#2162](https://github.com/cuthbertLab/music21/pull/2162) Realize figured-bass lines holding tuplets
@@ -73,7 +74,6 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [#2165](https://github.com/cuthbertLab/music21/pull/2165) Count ChordBassMotionFeature motion upward
 - [#2166](https://github.com/cuthbertLab/music21/pull/2166) Place melodicIntervals at offsets in the stream analysed
 - [#2168](https://github.com/cuthbertLab/music21/pull/2168) Smooth floating key analysis with each neighbour's own interpretations
-- [#2158](https://github.com/cuthbertLab/music21/pull/2158) Deduplicate instruments offset by offset
 - [#2172](https://github.com/cuthbertLab/music21/pull/2172) Change a collected object's priority in Stream.measures only when needed
 - [#2173](https://github.com/cuthbertLab/music21/pull/2173) Insert each part's timespans at once in toPartwiseTimespanTrees
 - [#2174](https://github.com/cuthbertLab/music21/pull/2174) Key ChordReducer weights by sorted pitch classes
@@ -85,21 +85,23 @@ fix in an earlier form than its branch, the branch is the one to send.
 
 - [`pr/split-measure-time-signature-2`](https://github.com/float3/music21/tree/pr/split-measure-time-signature-2): Give a split measure's second half the clef, key and meter in force where it is split (open: [#2179](https://github.com/cuthbertLab/music21/pull/2179))
 - [`pr/greatest-divisor-grace-notes-2`](https://github.com/float3/music21/tree/pr/greatest-divisor-grace-notes-2): Slice by the greatest divisor past grace notes and empty measures (open: [#2181](https://github.com/cuthbertLab/music21/pull/2181))
-- [`pr/slice-at-offsets-voices`](https://github.com/float3/music21/tree/pr/slice-at-offsets-voices): Keep the pieces of a note cut in a voice in that voice
+- [`pr/slice-at-offsets-voices-2`](https://github.com/float3/music21/tree/pr/slice-at-offsets-voices-2): Keep the pieces of a note cut in a voice in that voice
 - [`pr/partstaff-measure-gap-2`](https://github.com/float3/music21/tree/pr/partstaff-measure-gap-2): Join PartStaffs after a measure missing from the first staff (open: [#2156](https://github.com/cuthbertLab/music21/pull/2156))
 - [`pr/chord-sort-fingerings`](https://github.com/float3/music21/tree/pr/chord-sort-fingerings): Document that sortAscending leaves a chord's fingerings in place
+- [`pr/make-measures-limit`](https://github.com/float3/music21/tree/pr/make-measures-limit): Stop makeMeasures at 100,000 measures on malformed input (open: [#2183](https://github.com/cuthbertLab/music21/pull/2183))
+- [`pr/meter-accent-weights-linear`](https://github.com/float3/music21/tree/pr/meter-accent-weights-linear): Build TimeSignature accent weights in linear time, and reject huge numerators (open: [#2184](https://github.com/cuthbertLab/music21/pull/2184))
 
 ### Analysis and features
 
 - [`pr/chord-reducer-hashable-timespans-2`](https://github.com/float3/music21/tree/pr/chord-reducer-hashable-timespans-2): Make ElementTimespan hashable (open: [#2169](https://github.com/cuthbertLab/music21/pull/2169))
-- [`pr/chord-reducer-bass-gap-overlap`](https://github.com/float3/music21/tree/pr/chord-reducer-bass-gap-overlap): Keep fillBassGaps from overlapping a part's next timespan
-- [`pr/chord-reducer-first-part-measures`](https://github.com/float3/music21/tree/pr/chord-reducer-first-part-measures): Chordify ChordReducer.run's reduction on the first part's measures
+- [`pr/chord-reducer-bass-gap-overlap-2`](https://github.com/float3/music21/tree/pr/chord-reducer-bass-gap-overlap-2): Keep fillBassGaps from overlapping a part's next timespan
+- [`pr/chord-reducer-first-part-measures-2`](https://github.com/float3/music21/tree/pr/chord-reducer-first-part-measures-2): Chordify ChordReducer.run's reduction on the first part's measures
 - [`pr/chord-reducer-old-measure-length-2`](https://github.com/float3/music21/tree/pr/chord-reducer-old-measure-length-2): Keep each measure's length in reduceChordsOld (open: [#2177](https://github.com/cuthbertLab/music21/pull/2177))
-- [`pr/chord-reducer-old-empty-measure`](https://github.com/float3/music21/tree/pr/chord-reducer-old-empty-measure): Reduce every measure in reduceChordsOld.multiPartReduction
-- [`pr/chord-reducer-timespan-measures`](https://github.com/float3/music21/tree/pr/chord-reducer-timespan-measures): Choose ChordReducer.run's chords from slices of the score's timespans (design; issue first)
+- [`pr/chord-reducer-old-empty-measure-2`](https://github.com/float3/music21/tree/pr/chord-reducer-old-empty-measure-2): Reduce every measure in reduceChordsOld.multiPartReduction
+- [`pr/chord-reducer-timespan-measures-2`](https://github.com/float3/music21/tree/pr/chord-reducer-timespan-measures-2): Choose ChordReducer.run's chords from slices of the score's timespans (design; issue first)
 - [`pr/verticality-part-id-chord-notes`](https://github.com/float3/music21/tree/pr/verticality-part-id-chord-notes): Give chord notes part id groups in Verticality.makeElement
 - [`pr/output-tab-orange-include-id-2`](https://github.com/float3/music21/tree/pr/output-tab-orange-include-id-2): Honor includeId and includeClassLabel in Orange and ARFF rows
-- [`pr/features-as-list-rows`](https://github.com/float3/music21/tree/pr/features-as-list-rows): Return one row per instance from getFeaturesAsList
+- [`pr/features-as-list-rows-2`](https://github.com/float3/music21/tree/pr/features-as-list-rows-2): Return one row per instance from getFeaturesAsList
 - [`pr/part-reduction-same-ids`](https://github.com/float3/music21/tree/pr/part-reduction-same-ids): Keep each part's spans apart in PartReduction when ids repeat
 - [`pr/part-reduction-dynamic-on-barline-2`](https://github.com/float3/music21/tree/pr/part-reduction-dynamic-on-barline-2): Start each PartReduction span at the last dynamic before it (open: [#2171](https://github.com/cuthbertLab/music21/pull/2171))
 - [`pr/part-reduction-average-weight`](https://github.com/float3/music21/tree/pr/part-reduction-average-weight): Average dynamics in PartReduction weights
@@ -112,30 +114,32 @@ fix in an earlier form than its branch, the branch is the one to send.
 
 ### Scales and figured bass
 
-- [`pr/relative-node-id-deterministic`](https://github.com/float3/music21/tree/pr/relative-node-id-deterministic): Choose among nodes sharing a pitch without randomness
+- [`pr/relative-node-ids`](https://github.com/float3/music21/tree/pr/relative-node-ids): Add getRelativeNodeIds and a randomGenerator for getRelativeNodeId
 - [`pr/remove-altered-degrees`](https://github.com/float3/music21/tree/pr/remove-altered-degrees): Remove alteredDegrees from IntervalNetwork and AbstractScale
 - [`pr/next-pitch-one-pathway`](https://github.com/float3/music21/tree/pr/next-pitch-one-pathway): Find nextPitch's start node and pitch in one realization (on remove-altered-degrees)
-- [`pr/next-pitch-cache`](https://github.com/float3/music21/tree/pr/next-pitch-cache): Cache the realization nextPitch reads around its origin (master keeps one-pathway's code and only its tests)
 - [`pr/octave-repeating-close-past-letter`](https://github.com/float3/music21/tree/pr/octave-repeating-close-past-letter): Close octave-repeating scales on the tonic's spelling
 - [`pr/cyclical-octave-duplicating`](https://github.com/float3/music21/tree/pr/cyclical-octave-duplicating): Make cyclical scales that close within an octave octave-duplicating (on octave-repeating-close-past-letter)
 - [`pr/scale-mode-intervals`](https://github.com/float3/music21/tree/pr/scale-mode-intervals): Name the interval list of the abstract cyclical scales intervalList
 
 ### Formats
 
+- [`pr/decompression-limits`](https://github.com/float3/music21/tree/pr/decompression-limits): Limit the uncompressed size of compressed input files (open: [#2182](https://github.com/cuthbertLab/music21/pull/2182))
 - [`pr/nwctxt-chord-groups-2`](https://github.com/float3/music21/tree/pr/nwctxt-chord-groups-2): Read NWC Dur2/Pos2 chord notes and rest chords at the same offset (open: [#2139](https://github.com/cuthbertLab/music21/pull/2139))
-- [`pr/nwc-binary-chords`](https://github.com/float3/music21/tree/pr/nwc-binary-chords): Read chord and rest-chord notes in binary NWC files
-- [`pr/nwc-chord-dump`](https://github.com/float3/music21/tree/pr/nwc-chord-dump): Dump binary NWC chords as Dur2/Pos2 and rest chords as RestChord
+- [`pr/nwc-binary-chords-2`](https://github.com/float3/music21/tree/pr/nwc-binary-chords-2): Read chord and rest-chord notes in binary NWC files
 - [`pr/volpiano-end-breaks-layout-2`](https://github.com/float3/music21/tree/pr/volpiano-end-breaks-layout-2): Make volpiano breaks at the end of the text follow breaksToLayout (open: [#2180](https://github.com/cuthbertLab/music21/pull/2180))
-- [`pr/volpiano-neumes`](https://github.com/float3/music21/tree/pr/volpiano-neumes): Make a volpiano neume hold every note of its run
+- [`pr/volpiano-neumes-2`](https://github.com/float3/music21/tree/pr/volpiano-neumes-2): Make a volpiano neume hold every note of its run
 - [`pr/musedata-synthetic-tests`](https://github.com/float3/music21/tree/pr/musedata-synthetic-tests): Add synthetic MuseData test files
 - [`pr/musedata-pickup-measure-number`](https://github.com/float3/music21/tree/pr/musedata-pickup-measure-number): Number a MuseData pickup measure 0 (on musedata-synthetic-tests)
 - [`pr/musedata-slurs`](https://github.com/float3/music21/tree/pr/musedata-slurs): Read MuseData slurs as Slur spanners (on musedata-synthetic-tests)
 
 ### Braille
 
-- [`pr/braille-chord-symbol-duration`](https://github.com/float3/music21/tree/pr/braille-chord-symbol-duration): Use the chord's own duration in braille chordToBraille
-- [`pr/braille-split-measure-padding-2`](https://github.com/float3/music21/tree/pr/braille-split-measure-padding-2): Pad split measures with zero-length rests in braille splitMeasure (open: [#2161](https://github.com/cuthbertLab/music21/pull/2161))
-- [`pr/braille-fix-articulations-iteration`](https://github.com/float3/music21/tree/pr/braille-fix-articulations-iteration): Remove every doubled articulation in BrailleSegment.fixArticulations
-- [`pr/braille-descending-chords-default`](https://github.com/float3/music21/tree/pr/braille-descending-chords-default): Spell braille chords downward by default and keep the clef's direction
+- [`pr/braille-chord-symbol-duration-2`](https://github.com/float3/music21/tree/pr/braille-chord-symbol-duration-2): Use the chord's own duration in braille chordToBraille
+- [`pr/braille-split-measure-padding-2`](https://github.com/float3/music21/tree/pr/braille-split-measure-padding-2): Keep an explicit zero quarterLength in GeneralNote (open: [#2161](https://github.com/cuthbertLab/music21/pull/2161))
+- [`pr/braille-fix-articulations-iteration-2`](https://github.com/float3/music21/tree/pr/braille-fix-articulations-iteration-2): Remove every doubled articulation in BrailleSegment.fixArticulations
+- [`pr/braille-descending-chords-default-2`](https://github.com/float3/music21/tree/pr/braille-descending-chords-default-2): Spell braille chords downward by default and keep the clef's direction
 - [`pr/braille-grand-segment-same-hand-keys-2`](https://github.com/float3/music21/tree/pr/braille-grand-segment-same-hand-keys-2): Yield every key of one hand in BrailleGrandSegment.yieldCombinedGroupingKeys (open: [#2170](https://github.com/cuthbertLab/music21/pull/2170))
-- [`pr/braille-fix-articulation-tie-edges`](https://github.com/float3/music21/tree/pr/braille-fix-articulation-tie-edges): Keep a braille tie across a segment break in fixArticulations
+- [`pr/braille-fix-articulation-tie-edges-2`](https://github.com/float3/music21/tree/pr/braille-fix-articulation-tie-edges-2): Keep a braille tie across a segment break in fixArticulations
+- [`pr/braille-beamed-notes-first-index`](https://github.com/float3/music21/tree/pr/braille-beamed-notes-first-index): Check for a previous element before reading it in prepareBeamedNotes
+- [`pr/braille-slurred-notes-first-index`](https://github.com/float3/music21/tree/pr/braille-slurred-notes-first-index): Order a slur's note indices in prepareSlurredNotes
+- [`pr/braille-chord-previous-note`](https://github.com/float3/music21/tree/pr/braille-chord-previous-note): Show the octave after a note or chord written as the exception sign
