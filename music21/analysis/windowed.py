@@ -208,31 +208,19 @@ class WindowedAnalysis:
                 end = start + windowSize
 
         elif windowType == 'adjacentAverage':
-            # first get overlapping windows
-            overlapped = []
-            for i in range(maxWindowCount - windowSize + 1):
-                current = stream.Stream()
-                # store indices of min windows that participate
-                participants = []
-                for j in range(i, i + windowSize):
-                    current.append(self._windowedStream[j])
-                    participants.append(j)
-                overlapped.append([current, participants])
-
-            # then distribute to each of maxWindowCount
+            measureCopies = [[m] for m in self._windowedStream]
             for i in range(maxWindowCount):
-                # get all participants, combine into a single
                 current = stream.Stream()
-                appendedIds = set()
-                for dataStream, participants in overlapped:
-                    if i not in participants:
-                        continue
-                    for m in dataStream:
-                        if id(m) in appendedIds:
-                            current.append(copy.deepcopy(m))
-                        else:
-                            appendedIds.add(id(m))
-                            current.append(m)
+                timesUsed = [0] * maxWindowCount
+                firstStart = max(0, i - windowSize + 1)
+                lastStart = min(i, maxWindowCount - windowSize)
+                for start in range(firstStart, lastStart + 1):
+                    for j in range(start, start + windowSize):
+                        copies = measureCopies[j]
+                        if timesUsed[j] == len(copies):
+                            copies.append(copy.deepcopy(copies[0]))
+                        current.append(copies[timesUsed[j]])
+                        timesUsed[j] += 1
                 try:
                     data[i], color[i] = self.processor.process(current)
                 except DiscreteAnalysisException:
@@ -456,6 +444,28 @@ class Test(unittest.TestCase):
         self.assertEqual(data, [5, 5, 5, 5, 5])
         self.assertEqual(len(wa._windowedStream), 5)
         self.assertEqual(len(wa._windowedStream.recurse().notes), 5)
+
+    def testAdjacentAverageMatchesJoinedWindows(self):
+        '''
+        Each result of adjacentAverage is the processor's result on the windows
+        holding that minimum window, joined in order.
+        '''
+        from music21.analysis import discrete
+        from music21 import corpus
+
+        s = corpus.parse('bach/bwv66.6')
+        p = discrete.KrumhanslSchmuckler()
+        wa = WindowedAnalysis(s.parts[0], p)
+        windowSize = 3
+        measures = list(wa._windowedStream)
+        lastStart = len(measures) - windowSize
+        data, color = wa.analyze(windowSize, windowType='adjacentAverage')
+        for i in range(len(measures)):
+            joined = stream.Stream()
+            for start in range(max(0, i - windowSize + 1), min(i, lastStart) + 1):
+                for m in measures[start:start + windowSize]:
+                    joined.append(copy.deepcopy(m))
+            self.assertEqual((data[i], color[i]), p.process(joined))
 
 
     def testVariableWindowing(self):
