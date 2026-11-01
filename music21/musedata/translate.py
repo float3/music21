@@ -507,27 +507,92 @@ class Test(unittest.TestCase):
         '''
         testing a piece with 1 flat to make sure that sharps appear but normal B-flats do not.
         '''
-        pass
-        # s = corpus.parse('bwv1080', '16')
-        # self.assertEqual(len(s.parts[0].getKeySignatures()), 1)
-        # self.assertEqual(str(s.parts[0].getKeySignatures()[0]),
-        #        '<music21.key.KeySignature of 1 flat>')
-        #
-        # notes = s.parts[0].flatten().notesAndRests
-        # self.assertEqual(str(notes[2].accidental), '<music21.pitch.Accidental sharp>')
-        # self.assertTrue(notes[2].accidental.displayStatus)
-        #
-        # # from key signature
-        # # B-, thus no flat should appear.
-        # self.assertEqual(str(notes[16].accidental), '<music21.pitch.Accidental flat>')
-        # self.assertFalse(notes[16].accidental.displayStatus)
-        #
-        # # cautionary from within measure, the C follows a C#
-        # notes = s.parts[1].measure(13).flatten().notesAndRests
-        # self.assertEqual(str(notes[8].accidental), '<music21.pitch.Accidental natural>')
-        # self.assertTrue(notes[8].accidental.displayStatus)
+        from music21 import common
+        from music21 import converter
+        from music21 import key
 
-        # s.show()
+        fpDir = common.getSourceFilePath() / 'musedata' / 'testPrimitive' / 'test02'
+        upper = converter.parse(fpDir).parts[0]
+        self.assertEqual(str(upper[key.KeySignature].first()),
+                         '<music21.key.KeySignature of 1 flat>')
+
+        notes = upper.flatten().notes
+        self.assertEqual(notes[4].pitch.nameWithOctave, 'B-5')
+        self.assertFalse(notes[4].pitch.accidental.displayStatus)
+        self.assertEqual(notes[9].pitch.nameWithOctave, 'F#5')
+        self.assertTrue(notes[9].pitch.accidental.displayStatus)
+        self.assertEqual(notes[12].pitch.nameWithOctave, 'B5')
+        self.assertEqual(notes[12].pitch.accidental.name, 'natural')
+        self.assertTrue(notes[12].pitch.accidental.displayStatus)
+        self.assertIsNone(notes[3].pitch.accidental)
+
+    def testSyntheticScore(self):
+        '''
+        Parse the two-part synthetic encoding in test02 and check
+        durations, measures, ties, beams, chords, voices, and markings.
+
+        AI-assisted (Claude).
+        '''
+        from music21 import articulations
+        from music21 import chord
+        from music21 import common
+        from music21 import converter
+        from music21 import dynamics
+        from music21 import expressions
+        from music21 import meter
+        from music21 import note
+        from music21 import stream
+        from music21 import tempo
+
+        fpDir = common.getSourceFilePath() / 'musedata' / 'testPrimitive' / 'test02'
+        s = converter.parse(fpDir)
+        self.assertEqual(s.metadata.title, 'Test Air')
+        self.assertEqual(s.metadata.movementName, 'Second Movement')
+        self.assertEqual([p.partName for p in s.parts], ['Upper', 'Lower'])
+
+        upper, lower = s.parts
+        for p in (upper, lower):
+            measures = p.getElementsByClass(stream.Measure)
+            self.assertEqual(len(measures), 6)
+            self.assertEqual(measures[0].paddingLeft, 2.0)
+            self.assertEqual([m.number for m in measures[1:]], [1, 2, 3, 4, 5])
+            self.assertEqual(measures[-1].rightBarline.type, 'final')
+            self.assertEqual(p.duration.quarterLength, 16.0)
+
+        self.assertEqual(str(upper[meter.TimeSignature].first()),
+                         '<music21.meter.TimeSignature 3/4>')
+        self.assertEqual(upper[tempo.MetronomeMark].first().text, 'Andante')
+        self.assertIsInstance(lower[clef.Clef].first(), clef.BassClef)
+
+        notes = upper.flatten().notes
+        self.assertEqual(
+            [n.nameWithOctave for n in notes],
+            ['C5', 'F5', 'G5', 'A5', 'B-5', 'A5', 'G5', 'F5', 'E5',
+             'F#5', 'G5', 'G5', 'B5', 'A5', 'F5'])
+        self.assertEqual(
+            [n.quarterLength for n in notes],
+            [1.0, 1.5, 0.5, 1.0, 0.5, 0.5, 0.5, 0.5, 1.0,
+             1.0, 2.0, 1.0, 0.5, 0.5, 3.0])
+        self.assertEqual(notes[1].duration.dots, 1)
+        self.assertEqual(notes[10].tie.type, 'start')
+        self.assertEqual(notes[11].tie.type, 'stop')
+        self.assertIsNone(notes[9].tie)
+        self.assertEqual([n.beams.getTypes() for n in notes[4:8]],
+                         [['start'], ['continue'], ['continue'], ['stop']])
+        self.assertEqual(len(notes[0].beams), 0)
+        self.assertIsInstance(notes[4].articulations[0], articulations.Staccato)
+        self.assertIsInstance(notes[14].expressions[0], expressions.Fermata)
+        self.assertEqual(upper[dynamics.Dynamic].first().value, 'p')
+        self.assertEqual(len(upper.measure(4).getElementsByClass(note.Rest)), 1)
+
+        chords = lower.flatten().getElementsByClass(chord.Chord)
+        self.assertEqual([c.pitchNames for c in chords],
+                         [['F', 'C'], ['C', 'E', 'G'], ['F', 'F']])
+        self.assertEqual([c.quarterLength for c in chords], [3.0, 1.0, 3.0])
+        voices = lower.measure(4).voices
+        self.assertEqual(len(voices), 2)
+        self.assertEqual([n.nameWithOctave for n in voices[0].notes], ['C4', 'A3'])
+        self.assertEqual([n.nameWithOctave for n in voices[1].notes], ['C3'])
 
 
     def testBackBasic(self):

@@ -1777,6 +1777,55 @@ class Test(unittest.TestCase):
         self.assertEqual(crlfPart.getWorkTitle(), 'Clarinet Quintet')
         self.assertEqual(crlfPart.getMovementTitle(), 'Trio II')
 
+    def testSyntheticFiles(self):
+        '''
+        test02 is a two-part synthetic encoding: 01.md has LF line endings
+        and 02.md has CRLF line endings.
+
+        AI-assisted (Claude).
+        '''
+        fpDir = common.getSourceFilePath() / 'musedata' / 'testPrimitive' / 'test02'
+        self.assertNotIn(b'\r', (fpDir / '01.md').read_bytes())
+        self.assertIn(b'\r\n', (fpDir / '02.md').read_bytes())
+
+        mdw = MuseDataWork()
+        mdw.addFile([str(fpDir / '01.md'), str(fpDir / '02.md')])
+        mdpObjs = mdw.getParts()
+        self.assertEqual(len(mdpObjs), 2)
+        upper = mdpObjs[0]
+        lower = mdpObjs[1]
+        for mdp in mdpObjs:
+            self.assertEqual(mdp.stage, 2)
+            self.assertFalse(any(line.endswith('\r') for line in mdp.src))
+            self.assertEqual(mdp.getWorkNumber(), '1')
+            self.assertEqual(mdp.getMovementNumber(), '2')
+            self.assertEqual(mdp.getSource(), 'Synthetic test data')
+            self.assertEqual(mdp.getWorkTitle(), 'Test Air')
+            self.assertEqual(mdp.getMovementTitle(), 'Second Movement')
+            self.assertEqual(mdp.getGroupMemberships(), ['sound', 'score'])
+            self.assertEqual(mdp.getGroupMembershipsTotal('score'), 2)
+            self.assertEqual(mdp.getKeyParameters(), -1)
+            self.assertEqual(mdp.getTimeSignatureParameters(), '3/4')
+            self.assertEqual(mdp.getDivisionsPerQuarterNote(), 4)
+            self.assertEqual(len(mdp.getMeasures()), 7)
+
+        self.assertEqual(upper.getPartName(), 'Upper')
+        self.assertEqual(lower.getPartName(), 'Lower')
+        self.assertEqual(upper.getGroupMembershipNumber('score'), 1)
+        self.assertEqual(lower.getGroupMembershipNumber('score'), 2)
+        self.assertEqual(upper.getDirective(), 'Andante')
+        self.assertIsNone(lower.getDirective())
+        self.assertEqual(upper.getClefObject().name, 'treble')
+        self.assertEqual(lower.getClefObject().name, 'bass')
+        self.assertIsNone(upper.getTranspositionIntervalObject())
+
+        records = upper.getMeasures()[3].getRecords()
+        self.assertEqual(records[1].getPitchObject().nameWithOctave, 'F#5')
+        self.assertTrue(records[2].isTied())
+        self.assertFalse(records[1].isTied())
+        self.assertTrue(lower.getMeasures()[4].hasVoices())
+        self.assertFalse(lower.getMeasures()[3].hasVoices())
+
     def testLoadFromFile(self):
         fp = str(common.getSourceFilePath() / 'musedata' / 'testPrimitive')
 
