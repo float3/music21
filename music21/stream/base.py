@@ -10357,6 +10357,9 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
           x.findConsecutiveNotes() - x.findConsecutiveNotes(skipUnisons=True)
           will give you the number of P1s in the piece, because there could be
           d2's in there as well.
+        * A Chord counts as a unison of the Chord before it if both have the
+          same pitches, in any order.  A skipped unison still lasts until its
+          own end, so the next note follows it without a `None` between.
 
         See test.TestStream.testFindConsecutiveNotes() for usage details.
 
@@ -10455,7 +10458,7 @@ class Stream[M21ObjType: base.Music21Object](core.StreamCore):
                             returnList.append(None)
                             lastWasNone = True
                             lastPitches = ()
-                    # a repeated chord is skipped, but still sounds until it ends
+                    # if we have a chord
                     elif (skipUnisons
                           and len(lastPitches) == len(e.pitches)
                           and (sorted(p.ps for p in e.pitches)
