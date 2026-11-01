@@ -34,7 +34,7 @@ are now Enums.
 from __future__ import annotations
 
 from collections import OrderedDict
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 import copy
 import dataclasses
 import enum
@@ -2489,7 +2489,7 @@ class IntervalNetwork:
                 post.append(p)
         return post
 
-    def getRelativeNodeId(
+    def getRelativeNodeIds(
         self,
         pitchReference: pitch.Pitch|str,
         nodeId: Node|int|Terminus|None,
@@ -2498,39 +2498,39 @@ class IntervalNetwork:
         comparisonAttribute: str = 'ps',
         direction: Direction = Direction.ASCENDING,
         alteredDegrees: AlteredDegrees|None = None
-    ) -> Terminus|int|None:
+    ) -> list[Terminus|int]:
         '''
-        Given a reference pitch assigned to node id, determine the
-        relative node id of pitchTarget, even if displaced over multiple octaves
+        Given a reference pitch assigned to node id, return the ids of every
+        node whose pitch matches pitchTarget, even if displaced over multiple
+        octaves, sorted by degree.
 
-        The `nodeId` parameter may be
-        a :class:`~music21.scale.intervalNetwork.Node` object, a node degree,
-        a terminus string, or a None (indicating Terminus.LOW).
+        The arguments are those of
+        :meth:`~music21.scale.intervalNetwork.IntervalNetwork.getRelativeNodeId`.
 
-        Returns None if no match.
-
-        If `getNeighbor` is True, or direction, the nearest node will be returned.
-
-        If more than one node defines the same pitch, Node weights are used
-        to select a single node.
+        Returns an empty list if no node matches.
 
         >>> edgeList = ['M2', 'M2', 'm2', 'M2', 'M2', 'M2', 'm2']
         >>> net = scale.intervalNetwork.IntervalNetwork(edgeList)
-        >>> net.getRelativeNodeId('a', 1, 'a4')
-        Terminus.LOW
-        >>> net.getRelativeNodeId('a', 1, 'b4')
-        0
-        >>> net.getRelativeNodeId('a', 1, 'c#4')
-        1
-        >>> net.getRelativeNodeId('a', 1, 'c4', comparisonAttribute='step')
-        1
-        >>> net.getRelativeNodeId('a', 1, 'c', comparisonAttribute='step')
-        1
-        >>> net.getRelativeNodeId('a', 1, 'b-4') is None
-        True
-        '''
-        # TODO: this always takes the first: need to add weighted selection
+        >>> net.getRelativeNodeIds('a', 1, 'c#4')
+        [1]
+        >>> net.getRelativeNodeIds('a', 1, 'b-4')
+        []
 
+        In Rag Marwa, A ascending is both the fifth degree (going on to B)
+        and the seventh (going on to C), and D-flat descending is both the
+        second degree and the seventh:
+
+        >>> net = scale.AbstractRagMarwa()._net
+        >>> Direction = scale.Direction
+        >>> [net.nodes[nId].degree
+        ...     for nId in net.getRelativeNodeIds('c4', 1, 'a4', direction=Direction.ASCENDING)]
+        [5, 7]
+        >>> [net.nodes[nId].degree
+        ...     for nId in net.getRelativeNodeIds('c4', 1, 'd-3', direction=Direction.DESCENDING)]
+        [2, 7]
+
+        * New in v11.
+        '''
         nodeObj: Node
         if nodeId is None:  # assume first
             nodeObj = self.terminusLowNodes[0]
@@ -2578,15 +2578,68 @@ class IntervalNetwork:
         if octaveWasImplicit:
             pitchTargetObj.octaveIsImplicit = True
 
+        return sorted(post, key=lambda nId: self.nodes[nId].degree)
+
+    def getRelativeNodeId(
+        self,
+        pitchReference: pitch.Pitch|str,
+        nodeId: Node|int|Terminus|None,
+        pitchTarget: pitch.Pitch|note.Note|str,
+        *,
+        comparisonAttribute: str = 'ps',
+        direction: Direction = Direction.ASCENDING,
+        alteredDegrees: AlteredDegrees|None = None,
+        randomGenerator: Callable[[], float]|None = None,
+    ) -> Terminus|int|None:
+        '''
+        Given a reference pitch assigned to node id, determine the
+        relative node id of pitchTarget, even if displaced over multiple octaves
+
+        The `nodeId` parameter may be
+        a :class:`~music21.scale.intervalNetwork.Node` object, a node degree,
+        a terminus string, or a None (indicating Terminus.LOW).
+
+        Returns None if no match.
+
+        If `getNeighbor` is True, or direction, the nearest node will be returned.
+
+        If more than one node defines the same pitch, Node weights are used
+        to select a single node at random, using `randomGenerator` (a function
+        returning a number from 0 to 1) if given.
+        :meth:`~music21.scale.intervalNetwork.IntervalNetwork.getRelativeNodeIds`
+        returns all of them.
+
+        >>> edgeList = ['M2', 'M2', 'm2', 'M2', 'M2', 'M2', 'm2']
+        >>> net = scale.intervalNetwork.IntervalNetwork(edgeList)
+        >>> net.getRelativeNodeId('a', 1, 'a4')
+        Terminus.LOW
+        >>> net.getRelativeNodeId('a', 1, 'b4')
+        0
+        >>> net.getRelativeNodeId('a', 1, 'c#4')
+        1
+        >>> net.getRelativeNodeId('a', 1, 'c4', comparisonAttribute='step')
+        1
+        >>> net.getRelativeNodeId('a', 1, 'c', comparisonAttribute='step')
+        1
+        >>> net.getRelativeNodeId('a', 1, 'b-4') is None
+        True
+
+        * Changed in v11: added `randomGenerator`.
+        '''
+        post = self.getRelativeNodeIds(pitchReference,
+                                       nodeId,
+                                       pitchTarget,
+                                       comparisonAttribute=comparisonAttribute,
+                                       direction=direction,
+                                       alteredDegrees=alteredDegrees)
         if not post:
             return None
         elif len(post) == 1:
             return post[0]
-        else:  # do a weighted selection
-            # environLocal.printDebug(['getRelativeNodeId()', 'got multiple matches', post])
-            # use node keys stored in post, get node, and collect weights
+        else:
             return common.weightedSelection(t.cast('list[int]', post),
-                                            [self.nodes[x].weight for x in post])
+                                            [self.nodes[x].weight for x in post],
+                                            randomGenerator=randomGenerator)
 
     def getNeighborNodeIds(
         self,

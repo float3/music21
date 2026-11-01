@@ -679,41 +679,59 @@ class Test(unittest.TestCase):
         self.assertEqual(str(sc.nextPitch('D-2', Direction.ASCENDING)), 'E2')
 
     def testRagMarwaB(self):
+        '''
+        Given only the pitch, A ascending is on degree 5 (going on to B) or
+        degree 7 (going on to C), and D-flat descending is on degree 2 or 7.
+        getRelativeNodeId picks one of them with a weighted random choice.
+        '''
         sc = scale.RagMarwa('c4')
+        net = sc.abstract._net
 
-        # for rag marwa, and given only the pitch "A", the scale can move to
-        # either b or c; this selection is determined by weighted random
-        # selection.
-        post = []
-        for unused_x in range(100):
-            post.append(sc.getScaleDegreeFromPitch('A1', Direction.ASCENDING))
-        self.assertGreater(post.count(5), 25)
-        self.assertGreater(post.count(7), 25)
+        def degrees(pitchTarget, direction, randomGenerator=None):
+            ids = net.getRelativeNodeIds('c4', 1, pitchTarget,
+                                         comparisonAttribute='name',
+                                         direction=direction)
+            picks = [net.getRelativeNodeId('c4', 1, pitchTarget,
+                                           comparisonAttribute='name',
+                                           direction=direction,
+                                           randomGenerator=r)
+                     for r in (lambda: 0.25, lambda: 0.75)]
+            return ([net.nodeIdToDegree(nId) for nId in ids],
+                    [net.nodeIdToDegree(nId) for nId in picks])
 
-        # for rag marwa, and given only the pitch d-, the scale can move to
-        # either b or c; this selection is determined by weighted random
-        # selection; can be 2 or 7
-        post = []
-        for unused_x in range(100):
-            post.append(sc.getScaleDegreeFromPitch('D-3', Direction.DESCENDING))
-        self.assertGreater(post.count(2), 25)
-        self.assertGreater(post.count(7), 25)
+        self.assertEqual(degrees('A1', Direction.ASCENDING), ([5, 7], [5, 7]))
+        self.assertEqual(degrees('D-3', Direction.DESCENDING), ([2, 7], [2, 7]))
+
+        self.assertIn(sc.getScaleDegreeFromPitch('A1', Direction.ASCENDING), (5, 7))
+        self.assertIn(sc.getScaleDegreeFromPitch('D-3', Direction.DESCENDING), (2, 7))
 
     def testRagMarwaC(self):
+        '''
+        Descending from D-flat, the next node is C (degree 1) from degree 2
+        and B (degree 6) from degree 7.
+        '''
         sc = scale.RagMarwa('c4')
+        net = sc.abstract._net
 
-        self.assertEqual(sc.abstract._net.realizeTermini('c1', Terminus.LOW),
+        self.assertEqual(net.realizeTermini('c1', Terminus.LOW),
                          (pitch.Pitch('C1'), pitch.Pitch('C2')))
 
-        self.assertEqual(sc.abstract._net.realizeMinMax('c1', Terminus.LOW),
+        self.assertEqual(net.realizeMinMax('c1', Terminus.LOW),
                          (pitch.Pitch('C1'), pitch.Pitch('D-2')))
 
-        # descending from d-2, we can either go to c2 or b1
-        post = []
-        for unused_x in range(100):
-            post.append(str(sc.nextPitch('D-2', Direction.DESCENDING)))
-        self.assertGreater(post.count('C2'), 25)
-        self.assertGreater(post.count('B1'), 25)
+        ids = net.getRelativeNodeIds('c4', 1, 'D-2', direction=Direction.DESCENDING)
+        self.assertEqual([net.nodeIdToDegree(nId) for nId in ids], [2, 7])
+
+        nextDegrees = []
+        for r in (lambda: 0.25, lambda: 0.75):
+            nId = net.getRelativeNodeId('c4', 1, 'D-2',
+                                        direction=Direction.DESCENDING,
+                                        randomGenerator=r)
+            unused_edges, nextNodes = net.getNext(net.nodes[nId], Direction.DESCENDING)
+            nextDegrees.append([n.degree for n in nextNodes])
+        self.assertEqual(nextDegrees, [[1], [6]])
+
+        self.assertIn(str(sc.nextPitch('D-2', Direction.DESCENDING)), ('C2', 'B1'))
 
     def testWeightedHexatonicBluesA(self):
         sc = scale.WeightedHexatonicBlues('c4')
