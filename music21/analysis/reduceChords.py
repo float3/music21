@@ -455,14 +455,28 @@ class ChordReducer:
     # PUBLIC METHODS #
     def alignHockets(self, scoreTree):
         r'''
-        Aligns hockets between parts in `tree`.
+        Aligns hockets between parts in `tree`: when a consonant verticality
+        is followed in the same measure by one that adds notes to it, the
+        added notes start with the first.
+
+        >>> upper = converter.parse('tinyNotation: 4/4 c1')
+        >>> lower = converter.parse('tinyNotation: 4/4 r4 e2.')
+        >>> scoreTree = tree.fromStream.asTimespans(stream.Score([upper, lower]),
+        ...     flatten=True, classList=(note.Note, chord.Chord))
+        >>> analysis.reduceChords.ChordReducer().alignHockets(scoreTree)
+        >>> for timespan in scoreTree:
+        ...     print(timespan)
+        <PitchedTimespan (0.0 to 4.0) <music21.note.Note C>>
+        <PitchedTimespan (0.0 to 4.0) <music21.note.Note E>>
         '''
         for verticalities in scoreTree.iterateVerticalitiesNwise(n=2):
             verticalityOne, verticalityTwo = verticalities
             pitchSetOne = verticalityOne.pitchSet
             pitchSetTwo = verticalityTwo.pitchSet
-            if (not verticalityOne.isConsonant
-                    or not verticalityTwo.isConsonant):
+            if (not pitchSetOne
+                    or not pitchSetTwo
+                    or not self.isConsonant(pitchSetOne)
+                    or not self.isConsonant(pitchSetTwo)):
                 continue
             if verticalityOne.measureNumber != verticalityTwo.measureNumber:
                 continue
