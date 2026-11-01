@@ -139,7 +139,11 @@ class NoteGroupingTranscriber:
         brailleNote = basic.noteToBraille(currentNote,
                                           showOctave=doShowOctave,
                                           upperFirstInFingering=self.upperFirstInFingering)
-        self.previousNote = currentNote
+        if brailleNote == symbols['basic_exception']:
+            self.previousNote = None
+            self.showLeadingOctave = True
+        else:
+            self.previousNote = currentNote
         return brailleNote
 
     def translateRest(self, currentRest):
@@ -161,7 +165,11 @@ class NoteGroupingTranscriber:
         brailleChord = basic.chordToBraille(currentChord,
                                             descending=descendingChords,
                                             showOctave=doShowOctave)
-        self.previousNote = currentNote
+        if brailleChord == symbols['basic_exception']:
+            self.previousNote = None
+            self.showLeadingOctave = True
+        else:
+            self.previousNote = currentNote
         return brailleChord
 
     def translateDynamic(self, currentDynamic):
@@ -296,6 +304,30 @@ class Test(unittest.TestCase):
                                                note.Note('D4')])
             ngt = NoteGroupingTranscriber()
             self.assertEqual(ngt.transcribeGroup(grouping), expected)
+
+    def testOctaveAfterExceptionSign(self):
+        '''
+        A note after a note or chord written as the exception sign shows its octave.
+        '''
+        import contextlib
+        import io
+
+        from music21 import chord
+        from music21 import note
+        from music21.braille.segment import BrailleElementGrouping
+
+        for unbrailled in (note.Note('E4', type='256th'),
+                           chord.Chord(['E4', 'G4'], type='256th')):
+            for showLeadingOctave, expected in ((True, '⠐⠹⠜⠦⠐⠹'), (False, '⠹⠜⠦⠐⠹')):
+                grouping = BrailleElementGrouping([note.Note('C4'),
+                                                   unbrailled,
+                                                   note.Note('C4')])
+                ngt = NoteGroupingTranscriber()
+                ngt.showLeadingOctave = showLeadingOctave
+                stderr = io.StringIO()
+                with contextlib.redirect_stderr(stderr):
+                    self.assertEqual(ngt.transcribeGroup(grouping), expected)
+                self.assertIn('cannot be transcribed to braille', stderr.getvalue())
 
 
 if __name__ == '__main__':
