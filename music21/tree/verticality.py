@@ -721,6 +721,9 @@ class Verticality(prebase.ProtoM21Object):
          <...AllAttachArticulation>,
          <...OtherAllAttachArticulation>]
 
+        With addPartIdAsGroup=True, each pitch gets the id of the Part that
+        holds its note or chord as a group, with spaces replaced by underscores.
+
         * New in v6.3: copyPitches option.
 
         OMIT_FROM_DOCS
@@ -829,7 +832,6 @@ class Verticality(prebase.ProtoM21Object):
 
             pitchGroup = None
             if addPartIdAsGroup:
-                # ts.element, not n: a chord's notes are not in any stream
                 partContext = ts.element.getContextByClass(stream.Part)
                 if partContext is not None:
                     pidStr = str(partContext.id)
@@ -1235,6 +1237,12 @@ class VerticalitySequence(prebase.ProtoM21Object, Sequence[Verticality]):
 
 class Test(unittest.TestCase):
     def testMakeElementPartIdGroupsForChordNotes(self):
+        '''
+        Notes of a chord get the id of the chord's Part as a group, also when
+        another part has a note at the same pitch.
+
+        AI-assisted (Claude).
+        '''
         from music21 import stream
 
         upper = stream.Part([note.Note('C5', quarterLength=2)])
@@ -1248,7 +1256,6 @@ class Test(unittest.TestCase):
         self.assertEqual([(n.nameWithOctave, list(n.pitch.groups)) for n in c.notes],
                          [('E3', ['Lower']), ('G3', ['Lower']), ('C5', ['Upper'])])
 
-        # a unison between a part's note and a chord's note
         tenor = stream.Part([note.Note('E3', quarterLength=2)])
         tenor.id = 'Tenor'
         bass = stream.Part([chord.Chord(['E3', 'G3'], quarterLength=2)])
