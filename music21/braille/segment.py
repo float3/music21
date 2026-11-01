@@ -2531,30 +2531,6 @@ class Test(unittest.TestCase):
         brailleLines = keyboardPartsToBraille(score).splitlines()
         self.assertEqual(brailleLines[0].strip('⠀'), '⠩⠩⠼⠙⠲')
 
-    def testFindSegmentsDescendingChordsFromClef(self):
-        '''
-        Chords are spelled downward unless a bass or tenor clef is found, and
-        the choice made from a clef carries over to the following segments.
-        '''
-        from music21.braille.objects import BrailleSegmentDivision
-
-        for startClef, expected in ((clef.TrebleClef(), True),
-                                    (clef.BassClef(), False),
-                                    (None, True)):
-            part = stream.Part()
-            for i in range(1, 4):
-                m = stream.Measure(number=i)
-                if i == 1 and startClef is not None:
-                    m.append(startClef)
-                if i == 3:
-                    m.append(BrailleSegmentDivision())
-                m.append(chord.Chord(['C3', 'E3', 'G3'], quarterLength=4.0))
-                part.append(m)
-            for seg in findSegments(part):
-                for groupingKey, grouping in seg.items():
-                    if groupingKey.affinity == Affinity.NOTEGROUP:
-                        self.assertIs(grouping.descendingChords, expected)
-
     def testYieldCombinedGroupingKeysSameHandInARow(self):
         '''
         Keys of one hand that come in a row are each yielded, paired with None.
@@ -2725,6 +2701,32 @@ class Test(unittest.TestCase):
             m.append(n)
         findSegments(stream.Part([m]))
         self.assertEqual([len(n.articulations) for n in m.notes], [1, 1, 1])
+
+    def testFindSegmentsDescendingChordsFromClef(self):
+        '''
+        Chords are spelled downward unless a bass or tenor clef is found, and
+        the choice made from a clef carries over to the following segments.
+
+        AI-assisted (Claude).
+        '''
+        from music21.braille.objects import BrailleSegmentDivision
+
+        for startClef, expected in ((clef.TrebleClef(), True),
+                                    (clef.BassClef(), False),
+                                    (None, True)):
+            part = stream.Part()
+            for i in range(1, 4):
+                m = stream.Measure(number=i)
+                if i == 1 and startClef is not None:
+                    m.append(startClef)
+                if i == 3:
+                    m.append(BrailleSegmentDivision())
+                m.append(chord.Chord(['C3', 'E3', 'G3'], quarterLength=4.0))
+                part.append(m)
+            for seg in findSegments(part):
+                for groupingKey, grouping in seg.items():
+                    if groupingKey.affinity == Affinity.NOTEGROUP:
+                        self.assertIs(grouping.descendingChords, expected)
 
 
 if __name__ == '__main__':
