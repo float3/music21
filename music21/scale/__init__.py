@@ -975,6 +975,8 @@ def _toIntervals(
     [<music21.interval.Interval P5>]
     >>> scale._toIntervals(None)
     []
+
+    AI-assisted (Claude).
     '''
     if intervals is None:
         return []
@@ -1001,6 +1003,8 @@ def _intervalListOrMode(
     >>> sc = scale.AbstractCyclicalScale(['M3'])
     >>> scale._intervalListOrMode(sc, ['m3'], None)
     ['m3']
+
+    AI-assisted (Claude).
     '''
     if mode is None:
         return intervalList
