@@ -279,7 +279,6 @@ def toPart(volpianoText, *, breaksToLayout=False):
 
             m.append(n)
 
-            # notes with no hyphen between them form one neume
             if currentNeumeSpanner is not None:
                 currentNeumeSpanner.addSpannedElements(n)
             elif noteThatWouldGoInSpanner is not None:
@@ -520,6 +519,26 @@ class Test(unittest.TestCase):
             self.assertTrue(fromStream(stream.Stream([clefClass()])).startswith(volpianoClef))
         self.assertEqual(fromStream(stream.Stream([clef.Bass8vbClef(), note.Note('G1')])),
                          fromStream(stream.Stream([clef.BassClef(), note.Note('G2')])))
+
+    def testNeumeTakesEveryNoteOfItsRun(self):
+        '''
+        One Neume holds every note of a run.
+
+        AI-assisted (Claude).
+        '''
+        part = toPart('1---cdef-g-')
+        neumes = list(part[Neume])
+        self.assertEqual(len(neumes), 1)
+        self.assertEqual([n.name for n in neumes[0]], ['C', 'D', 'E', 'F'])
+        self.assertEqual(fromStream(part), '1---cdef-g-')
+
+    def testNeumeEndedWithoutHyphen(self):
+        '''
+        A neume ended by a barline or by the end of the text is kept.
+        '''
+        part = toPart('1---ef3-gh')
+        self.assertEqual([len(neume) for neume in part[Neume]], [2, 2])
+        self.assertEqual(fromStream(part), '1---ef----3gh-')
 
 
 if __name__ == '__main__':
