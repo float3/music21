@@ -107,6 +107,7 @@ from music21 import interval
 from music21 import sieve
 
 if t.TYPE_CHECKING:
+    from collections.abc import Callable
     from io import IOBase
     from music21 import chord
     from music21 import roman
@@ -585,10 +586,14 @@ class AbstractScale(Scale):
                               nodeName: _NodeId,
                               pitchTarget: _PitchOrStr,
                               comparisonAttribute: str = 'pitchClass',
-                              direction: Direction = Direction.ASCENDING) -> int|None:
+                              direction: Direction = Direction.ASCENDING,
+                              *,
+                              randomGenerator: Callable[[], float]|None = None) -> int|None:
         '''
         Expose functionality from
         :class:`~music21.intervalNetwork.IntervalNetwork`.
+
+        * Changed in v11: added `randomGenerator`.
         '''
         net = t.cast('intervalNetwork.IntervalNetwork', self._net)
         post = net.getRelativeNodeDegree(
@@ -597,6 +602,7 @@ class AbstractScale(Scale):
             pitchTarget=pitchTarget,
             comparisonAttribute=comparisonAttribute,
             direction=direction,
+            randomGenerator=randomGenerator
         )
         return post
 
@@ -606,9 +612,13 @@ class AbstractScale(Scale):
                   pitchOrigin: _PitchOrStr,
                   direction: Direction = Direction.ASCENDING,
                   stepSize: int = 1,
-                  getNeighbor: Direction|bool = True) -> pitch.Pitch|None:
+                  getNeighbor: Direction|bool = True,
+                  *,
+                  randomGenerator: Callable[[], float]|None = None) -> pitch.Pitch|None:
         '''
         Expose functionality from :class:`~music21.intervalNetwork.IntervalNetwork`.
+
+        * Changed in v11: added `randomGenerator`.
         '''
         net = t.cast('intervalNetwork.IntervalNetwork', self._net)
         post = net.nextPitch(pitchReference=pitchReference,
@@ -616,7 +626,8 @@ class AbstractScale(Scale):
                              pitchOrigin=pitchOrigin,
                              direction=direction,
                              stepSize=stepSize,
-                             getNeighbor=getNeighbor
+                             getNeighbor=getNeighbor,
+                             randomGenerator=randomGenerator
                              )
         return post
 
@@ -2000,7 +2011,9 @@ class ConcreteScale(Scale):
     def getScaleDegreeFromPitch(self,
                                 pitchTarget: _PitchOrStr|note.Note,
                                 direction: Direction = Direction.ASCENDING,
-                                comparisonAttribute: str = 'name') -> int|None:
+                                comparisonAttribute: str = 'name',
+                                *,
+                                randomGenerator: Callable[[], float]|None = None) -> int|None:
         '''
         For a given pitch, return the appropriate scale degree.
         If no scale degree is available, None is returned.
@@ -2037,6 +2050,19 @@ class ConcreteScale(Scale):
         ...                              direction=scale.Direction.ASCENDING,
         ...                              comparisonAttribute='step')
         3
+
+        Where a pitch is on more than one degree, as A ascending is on
+        degrees 5 and 7 of Rag Marwa, one is chosen at random by weight,
+        using `randomGenerator` (a function returning a number from 0 to 1)
+        if given.
+
+        >>> marwa = scale.RagMarwa('c')
+        >>> marwa.getScaleDegreeFromPitch('a', randomGenerator=lambda: 0.25)
+        5
+        >>> marwa.getScaleDegreeFromPitch('a', randomGenerator=lambda: 0.75)
+        7
+
+        * Changed in v11: added `randomGenerator`.
         '''
         abstract = t.cast(AbstractScale, self._abstract)
         post = abstract.getRelativeNodeDegree(
@@ -2044,7 +2070,8 @@ class ConcreteScale(Scale):
             nodeName=abstract.tonicDegree,
             pitchTarget=t.cast('pitch.Pitch', pitchTarget),
             comparisonAttribute=comparisonAttribute,
-            direction=direction)
+            direction=direction,
+            randomGenerator=randomGenerator)
         return post
 
     def getScaleDegreeAndAccidentalFromPitch(
@@ -2269,6 +2296,8 @@ class ConcreteScale(Scale):
         direction: Direction|int = Direction.ASCENDING,
         stepSize: int = 1,
         getNeighbor: Direction|bool = True,
+        *,
+        randomGenerator: Callable[[], float]|None = None,
     ) -> pitch.Pitch|None:
         '''
         Get the next pitch above (or below if direction is Direction.DESCENDING)
@@ -2313,6 +2342,19 @@ class ConcreteScale(Scale):
         <music21.pitch.Pitch F#4>
         >>> sc.nextPitch('E-4', scale.Direction.ASCENDING, 2)
         <music21.pitch.Pitch G4>
+
+        Where the scale has a weighted random choice, `randomGenerator`
+        (a function returning a number from 0 to 1) makes it if given.
+        In Rag Marwa, A ascending goes on to B from degree 5 and to C
+        from degree 7:
+
+        >>> marwa = scale.RagMarwa('c4')
+        >>> marwa.nextPitch('a4', randomGenerator=lambda: 0.25)
+        <music21.pitch.Pitch B4>
+        >>> marwa.nextPitch('a4', randomGenerator=lambda: 0.75)
+        <music21.pitch.Pitch C5>
+
+        * Changed in v11: added `randomGenerator`.
         '''
         if pitchOrigin is None:
             return self.tonic
@@ -2351,7 +2393,8 @@ class ConcreteScale(Scale):
             pitchOrigin=pitchOrigin,
             direction=directionEnum,
             stepSize=stepSize * stepScalar,  # multiplied
-            getNeighbor=getNeighbor
+            getNeighbor=getNeighbor,
+            randomGenerator=randomGenerator
         )
         return post
 

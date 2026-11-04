@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 from pprint import pformat
+import random
 from textwrap import dedent
 import unittest
 
@@ -925,6 +926,37 @@ class Test(unittest.TestCase):
 
         self.assertIn(str(sc.nextPitch('D-2', Direction.DESCENDING)), ('C2', 'B1'))
 
+    def testRagMarwaNextPitchRandomGenerator(self):
+        '''
+        A walk through Rag Marwa with nextPitch is the same each time
+        for the same randomGenerator.
+
+        AI-assisted (Claude).
+        '''
+        sc = scale.RagMarwa('c4')
+
+        def walk(start, direction, seed):
+            randomGenerator = random.Random(seed).random
+            pitches = []
+            p = start
+            for unused_step in range(10):
+                p = sc.nextPitch(p, direction, randomGenerator=randomGenerator)
+                pitches.append(str(p))
+            return pitches
+
+        ascending = ['D-4', 'E4', 'F#4', 'A4', 'B4', 'A4', 'C5', 'D-5', 'E5', 'F#5']
+        self.assertEqual(walk('c4', Direction.ASCENDING, 1), ascending)
+        self.assertEqual(walk('c4', Direction.ASCENDING, 1), ascending)
+        self.assertEqual(walk('c4', Direction.ASCENDING, 2),
+                         ['D-4', 'E4', 'F#4', 'A4', 'C5', 'D-5', 'E5', 'F#5', 'A5', 'C6'])
+
+        descending = ['D-5', 'B4', 'A4', 'F#4', 'E4', 'D-4', 'B3', 'A3', 'F#3', 'E3']
+        self.assertEqual(walk('c5', Direction.DESCENDING, 2), descending)
+        self.assertEqual(walk('c5', Direction.DESCENDING, 2), descending)
+
+        self.assertEqual(sc.getScaleDegreeFromPitch('a4', randomGenerator=lambda: 0.25), 5)
+        self.assertEqual(sc.getScaleDegreeFromPitch('a4', randomGenerator=lambda: 0.75), 7)
+
     def testWeightedHexatonicBluesA(self):
         sc = scale.WeightedHexatonicBlues('c4')
 
@@ -981,6 +1013,26 @@ class Test(unittest.TestCase):
         #     # F# is taken as out of the scale and then found back in the Scale
         #     # in generation
         #     self.assertTrue(str(sc.nextPitch('f#3', Direction.DESCENDING)) in ['F3', 'F#3'])
+
+    def testWeightedHexatonicBluesRandomGenerator(self):
+        '''
+        From F ascending and from G descending, the next pitch is either
+        F# or the other neighbor; a fixed randomGenerator always picks the same one.
+        '''
+        sc = scale.WeightedHexatonicBlues('c4')
+        for unused_trial in range(5):
+            self.assertEqual(
+                str(sc.nextPitch('f4', Direction.ASCENDING, randomGenerator=lambda: 0.25)),
+                'G4')
+            self.assertEqual(
+                str(sc.nextPitch('f4', Direction.ASCENDING, randomGenerator=lambda: 0.75)),
+                'F#4')
+            self.assertEqual(
+                str(sc.nextPitch('g4', Direction.DESCENDING, randomGenerator=lambda: 0.25)),
+                'F4')
+            self.assertEqual(
+                str(sc.nextPitch('g4', Direction.DESCENDING, randomGenerator=lambda: 0.75)),
+                'F#4')
 
     def testNextA(self):
         sc = scale.MajorScale('c4')

@@ -829,11 +829,14 @@ class IntervalNetwork:
     def weightedSelection(
         self,
         edges: list[Edge],
-        nodes: list[Node]
+        nodes: list[Node],
+        *,
+        randomGenerator: Callable[[], float]|None = None,
     ) -> tuple[Edge, Node]:
         '''
         Perform weighted random selection on a parallel list of
-        edges and corresponding nodes.
+        edges and corresponding nodes, using `randomGenerator` (a function
+        returning a number from 0 to 1) if given.
 
         >>> n1 = scale.intervalNetwork.Node(id=1, degree=1, weight=1000000)
         >>> n2 = scale.intervalNetwork.Node(id=2, degree=1, weight=1)
@@ -848,12 +851,18 @@ class IntervalNetwork:
         1
         >>> n.id
         1
+
+        >>> e, n = net.weightedSelection([e1, e2], [n1, n2], randomGenerator=lambda: 0.9999999)
+        >>> n.id
+        2
+
+        * Changed in v11: added `randomGenerator`.
         '''
         # use index values as values
         iValues = list(range(len(edges)))
         weights = [n.weight for n in nodes]
         # environLocal.printDebug(['weights', weights])
-        i = common.weightedSelection(iValues, weights)
+        i = common.weightedSelection(iValues, weights, randomGenerator=randomGenerator)
         # return corresponding edge and node
         return edges[i], nodes[i]
 
@@ -1208,7 +1217,8 @@ class IntervalNetwork:
         *,
         direction: Direction = Direction.ASCENDING,
         stepSize: int = 1,
-        getNeighbor: bool|Direction = True
+        getNeighbor: bool|Direction = True,
+        randomGenerator: Callable[[], float]|None = None,
     ) -> pitch.Pitch|None:
         # noinspection PyShadowingNames
         '''
@@ -1232,6 +1242,12 @@ class IntervalNetwork:
         ...               direction=scale.Direction.ASCENDING,
         ...               stepSize=2)
         <music21.pitch.Pitch A5>
+
+        Where the network has a weighted choice, either of the node for the
+        pitch origin or of the edge to follow, `randomGenerator` (a function
+        returning a number from 0 to 1) makes the choice if given.
+
+        * Changed in v11: added `randomGenerator`.
         '''
         if pitchOrigin is None:
             raise TypeError('No pitch origin for calling next on this pitch!')
@@ -1245,7 +1261,8 @@ class IntervalNetwork:
                                          nodeName,
                                          pitchOriginObj,
                                          direction=direction,
-                                         getNeighbor=getNeighbor)
+                                         getNeighbor=getNeighbor,
+                                         randomGenerator=randomGenerator)
         n = self.nodes[nodeId]
         pCollect: pitch.Pitch|None = None
         referenceNodes = self.nodeNameToNodes(nodeName)
@@ -1258,7 +1275,8 @@ class IntervalNetwork:
             postEdge, postNode = self.getNext(n, direction)
             if len(postEdge) > 1:
                 # do a weighted selection based on node weights,
-                e, n = self.weightedSelection(postEdge, postNode)
+                e, n = self.weightedSelection(postEdge, postNode,
+                                              randomGenerator=randomGenerator)
                 intervalObj = e.interval
             else:
                 intervalObj = postEdge[0].interval  # get first
@@ -2532,6 +2550,8 @@ class IntervalNetwork:
         pitchTarget: pitch.Pitch|str,
         comparisonAttribute: str = 'ps',
         direction: Direction = Direction.ASCENDING,
+        *,
+        randomGenerator: Callable[[], float]|None = None,
     ) -> int|None:
         '''
         Given a reference pitch assigned to node id,
@@ -2541,6 +2561,10 @@ class IntervalNetwork:
         Comparison Attribute determines what will be used to determine
         equality.  Use `ps` (default) for post-tonal uses.  `name` for
         tonal, and `step` for diatonic.
+
+        If more than one node matches, `randomGenerator` is passed to
+        :meth:`~music21.scale.intervalNetwork.IntervalNetwork.getRelativeNodeId`
+        to choose one.
 
         >>> edgeList = ['M2', 'M2', 'm2', 'M2', 'M2', 'M2', 'm2']
         >>> net = scale.intervalNetwork.IntervalNetwork(edgeList)
@@ -2614,13 +2638,16 @@ class IntervalNetwork:
         2
         >>> net.getRelativeNodeDegree('f6', 1, 'b3')
         1
+
+        * Changed in v11: added `randomGenerator`.
         '''
         nId = self.getRelativeNodeId(
             pitchReference=pitchReference,
             nodeId=nodeId,
             pitchTarget=pitchTarget,
             comparisonAttribute=comparisonAttribute,
-            direction=direction)
+            direction=direction,
+            randomGenerator=randomGenerator)
 
         if nId is None:
             return None
