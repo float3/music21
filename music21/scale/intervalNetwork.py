@@ -100,7 +100,7 @@ class NetworkWalkStep:
     '''
     One pitch of an ascending walk and its node id.
     '''
-    realizedPitch: pitch.Pitch
+    pitch: pitch.Pitch
     nodeId: Terminus|int
 
 
@@ -1530,9 +1530,9 @@ class IntervalNetwork:
                 post = []
                 postNodeId = []
                 for step in walked:
-                    if (_gte(step.realizedPitch.ps, minPitch.ps)
-                            and _lte(step.realizedPitch.ps, maxPitch.ps)):
-                        post.append(step.realizedPitch)
+                    if (_gte(step.pitch.ps, minPitch.ps)
+                            and _lte(step.pitch.ps, maxPitch.ps)):
+                        post.append(step.pitch)
                         postNodeId.append(step.nodeId)
                 self._ascendingCache[ck] = post, postNodeId
                 return post, postNodeId
@@ -1637,7 +1637,7 @@ class IntervalNetwork:
         if walk is None:
             walk = NetworkWalkPath([NetworkWalkStep(start, nodeObj.id)], nodeObj)
             self._ascendingWalks[key] = walk
-        while not walk.ended and not _gte(walk.steps[-1].realizedPitch.ps, maxPitch.ps):
+        while not walk.ended and not _gte(walk.steps[-1].pitch.ps, maxPitch.ps):
             if len(walk.steps) >= 100:
                 break
             n = walk.lastWalkedNode
@@ -1652,14 +1652,14 @@ class IntervalNetwork:
                 return None
             walk.lastWalkedNode = postNode[0]
             p = self.transposePitchAndApplySimplification(postEdge[0].interval,
-                                                          walk.steps[-1].realizedPitch)
+                                                          walk.steps[-1].pitch)
             p = self._spellTerminus(p, walk.lastWalkedNode, terminusName)
             walk.steps.append(NetworkWalkStep(p, walk.lastWalkedNode.id))
 
         walked = []
         for step in walk.steps:
             walked.append(step)
-            if _gte(step.realizedPitch.ps, maxPitch.ps):
+            if _gte(step.pitch.ps, maxPitch.ps):
                 break
         if len(walked) >= 100:
             raise IntervalNetworkException(
