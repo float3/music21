@@ -101,13 +101,18 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/meter-docs-inaccuracies`](https://github.com/float3/music21/tree/pr/meter-docs-inaccuracies): Correct three meter docstrings that disagree with the code (replaces the closed [#2203](https://github.com/cuthbertLab/music21/pull/2203))
 - [`pr/general-note-duration-keywords`](https://github.com/float3/music21/tree/pr/general-note-duration-keywords): List quarterLength and type as keywords of GeneralNote.__init__
 
+### MusicXML
+
+- [`pr/xml-forward-zero`](https://github.com/float3/music21/tree/pr/xml-forward-zero): Make no hidden rest for a Finale `<forward>` of no duration (export failed since #2161)
+- [`pr/multi-measure-rest-unfinished`](https://github.com/float3/music21/tree/pr/multi-measure-rest-unfinished): Put a multi-measure rest cut short into the part
+
 ### Analysis and features
 
 - [`pr/chord-reducer-bass-gap-overlap-2`](https://github.com/float3/music21/tree/pr/chord-reducer-bass-gap-overlap-2): Keep fillBassGaps from overlapping a part's next timespan (ready)
 - [`pr/chord-reducer-first-part-measures-2`](https://github.com/float3/music21/tree/pr/chord-reducer-first-part-measures-2): Chordify ChordReducer.run's reduction on the first part's measures (ready)
 - [`pr/chord-reducer-old-empty-measure-2`](https://github.com/float3/music21/tree/pr/chord-reducer-old-empty-measure-2): Reduce every measure in reduceChordsOld.multiPartReduction (ready)
 - [`pr/reduce-chords-old-opfrac`](https://github.com/float3/music21/tree/pr/reduce-chords-old-opfrac): Use opFrac for the chord end in reduceChordsOld
-- [`pr/chord-reducer-timespan-measures-2`](https://github.com/float3/music21/tree/pr/chord-reducer-timespan-measures-2): Choose ChordReducer.run's chords from slices of the score's timespans (design; issue first)
+- [`pr/chord-reducer-timespan-measures-2`](https://github.com/float3/music21/tree/pr/chord-reducer-timespan-measures-2): Choose ChordReducer.run's chords from slices of the score's timespans (design; issue first; bestClef now recurses into the measures)
 - [`pr/verticality-part-id-chord-notes`](https://github.com/float3/music21/tree/pr/verticality-part-id-chord-notes): Give chord notes part id groups in Verticality.makeElement
 - [`pr/output-tab-orange-include-id-2`](https://github.com/float3/music21/tree/pr/output-tab-orange-include-id-2): Honor includeId and includeClassLabel in Orange and ARFF rows
 - [`pr/features-as-list-rows-2`](https://github.com/float3/music21/tree/pr/features-as-list-rows-2): Return one row per instance from getFeaturesAsList
