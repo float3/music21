@@ -204,7 +204,7 @@ class ChordReducer:
             oldClef.activeSite.remove(oldClef)
         firstMeasure = reducedPart.getElementsByClass(stream.Measure).first()
         if firstMeasure is not None:
-            firstMeasure.insert(0.0, clef.bestClef(reducedPart, allowTreble8vb=True))
+            firstMeasure.insert(0.0, clef.bestClef(reducedPart, allowTreble8vb=True, recurse=True))
 
         return stream.Score([reducedPart])
 
@@ -1098,7 +1098,7 @@ class Test(unittest.TestCase):
         measures = reduction.parts.first().getElementsByClass(stream.Measure)
         self.assertEqual([[c.tie.type if c.tie else None for c in m.notes] for m in measures],
                          [['start'], ['continue'], ['stop'], [None]])
-        self.assertIsInstance(measures.first().clef, clef.Treble8vbClef)
+        self.assertIsInstance(measures.first().clef, clef.BassClef)
 
     def testRunForceOctave(self):
         from music21 import converter
