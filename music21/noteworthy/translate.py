@@ -109,7 +109,7 @@ class NoteworthyTranslator:
         self.currentClef = 'TREBLE'
         self.currentKey = key.KeySignature(0)
 
-        self.openSlurs: list[tuple[note.GeneralNote, stream.Measure, OffsetQL]] = []
+        self.openSlurs: list[tuple[note.GeneralNote, stream.Measure, OffsetQL, int]] = []
         self.tiedSteps: dict[tuple[str, int], tuple[stream.Measure|None, OffsetQL]] = {}
         self.positionMeasure: stream.Measure|None = None
         self.measurePosition: OffsetQL = 0.0
@@ -612,7 +612,9 @@ class NoteworthyTranslator:
         Starts, continues or ends slurs at notes, chords or rests just placed
         together at the current position, each with whether it is slurred.  A
         slurred note is slurred to the next note that starts once it has
-        ended, in any voice, and slurred notes in a row make one slur.
+        ended: the one in the same place in its group of notes placed
+        together if there is one, otherwise the first slurred one, otherwise
+        the first one.  Slurred notes in a row make one slur.
 
         >>> nwt = noteworthy.translate.NoteworthyTranslator()
         >>> nwt.currentMeasure = stream.Measure()
@@ -628,20 +630,22 @@ class NoteworthyTranslator:
         offset = self.currentPosition()
         ended = [openSlur for openSlur in self.openSlurs
                  if openSlur[1] is not self.currentMeasure or openSlur[2] <= offset]
-        for gn, slurred in sorted(generalNotes, key=lambda gnSlurred: not gnSlurred[1]):
+        firstSlurred = min(range(len(generalNotes)), key=lambda i: not generalNotes[i][1])
+        for i, (gn, slurred) in enumerate(generalNotes):
+            arriving = [openSlur for openSlur in ended
+                        if (openSlur[3] if openSlur[3] < len(generalNotes) else firstSlurred) == i]
             end = opFrac(offset + gn.quarterLength)
-            if slurred and ended:
-                start = ended.pop(0)[0]
+            if slurred and arriving:
+                start = arriving.pop(0)[0]
                 self.openSlurs = [openSlur for openSlur in self.openSlurs
                                   if openSlur[0] is not start]
-                self.openSlurs.append((start, self.currentMeasure, end))
+                self.openSlurs.append((start, self.currentMeasure, end, i))
             elif slurred:
-                self.openSlurs.append((gn, self.currentMeasure, end))
-            for start, unused_measure, unused_end in ended:
+                self.openSlurs.append((gn, self.currentMeasure, end, i))
+            for start, unused_measure, unused_end, unused_group in arriving:
                 self.currentMeasure.append(spanner.Slur(start, gn))
                 self.openSlurs = [openSlur for openSlur in self.openSlurs
                                   if openSlur[0] is not start]
-            ended = []
 
     def currentPosition(self) -> OffsetQL:
         '''
@@ -1271,6 +1275,32 @@ class Test(unittest.TestCase):
             '|Clef|Type:Treble',
             '|Note|Dur:4th|Pos:1',
         ]), [])
+
+    def testSlursRunToTheSameGroup(self):
+        def slurs(lines):
+            return [[repr(e) for e in sl.getSpannedElements()]
+                    for sl in self.parseTreble(lines).recurse().getElementsByClass(spanner.Slur)]
+
+        self.assertCountEqual(slurs([
+            '|Chord|Dur:4th,Slur|Pos:1|Dur2:4th,Slur|Pos2:3',
+            '|Chord|Dur:4th|Pos:2|Dur2:4th|Pos2:4',
+        ]), [['<music21.chord.Chord C5>', '<music21.chord.Chord D5>'],
+             ['<music21.chord.Chord E5>', '<music21.chord.Chord F5>']])
+        self.assertCountEqual(slurs([
+            '|Chord|Dur:4th,Slur|Pos:1|Dur2:4th,Slur|Pos2:3',
+            '|Chord|Dur:4th,Slur|Pos:2|Dur2:4th,Slur|Pos2:4',
+            '|Chord|Dur:4th|Pos:3|Dur2:4th|Pos2:5',
+        ]), [['<music21.chord.Chord C5>', '<music21.chord.Chord E5>'],
+             ['<music21.chord.Chord E5>', '<music21.chord.Chord G5>']])
+        self.assertCountEqual(slurs([
+            '|Chord|Dur:4th|Pos:1|Dur2:4th,Slur|Pos2:3',
+            '|Chord|Dur:4th|Pos:2|Dur2:4th|Pos2:4',
+        ]), [['<music21.chord.Chord E5>', '<music21.chord.Chord F5>']])
+        self.assertCountEqual(slurs([
+            '|Chord|Dur:4th,Slur|Pos:1|Dur2:4th,Slur|Pos2:3',
+            '|Note|Dur:4th|Pos:2',
+        ]), [['<music21.chord.Chord C5>', '<music21.note.Note D>'],
+             ['<music21.chord.Chord E5>', '<music21.note.Note D>']])
 
     def testDirectionsGoAtThePosition(self):
         for line, className in (
