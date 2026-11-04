@@ -97,13 +97,16 @@ fix in an earlier form than its branch, the branch is the one to send.
 
 - [`pr/slice-at-offsets-voices-2`](https://github.com/float3/music21/tree/pr/slice-at-offsets-voices-2): Keep the pieces of a note cut in a voice in that voice
 - [`pr/chord-sort-fingerings`](https://github.com/float3/music21/tree/pr/chord-sort-fingerings): Document that sortAscending leaves a chord's fingerings in place
-- [`pr/meter-accent-weights-linear`](https://github.com/float3/music21/tree/pr/meter-accent-weights-linear): Build TimeSignature accent weights in linear time, and reject huge numerators (open: [#2184](https://github.com/cuthbertLab/music21/pull/2184))
+- [`pr/meter-accent-weights-linear`](https://github.com/float3/music21/tree/pr/meter-accent-weights-linear): Build TimeSignature accent weights in linear time, and reject huge numerators (open: [#2184](https://github.com/cuthbertLab/music21/pull/2184); includes help/meter-1972-slow-paths)
+- [`pr/meter-docs-inaccuracies`](https://github.com/float3/music21/tree/pr/meter-docs-inaccuracies): Correct three meter docstrings that disagree with the code (replaces the closed [#2203](https://github.com/cuthbertLab/music21/pull/2203))
+- [`pr/general-note-duration-keywords`](https://github.com/float3/music21/tree/pr/general-note-duration-keywords): List quarterLength and type as keywords of GeneralNote.__init__
 
 ### Analysis and features
 
-- [`pr/chord-reducer-bass-gap-overlap-2`](https://github.com/float3/music21/tree/pr/chord-reducer-bass-gap-overlap-2): Keep fillBassGaps from overlapping a part's next timespan
-- [`pr/chord-reducer-first-part-measures-2`](https://github.com/float3/music21/tree/pr/chord-reducer-first-part-measures-2): Chordify ChordReducer.run's reduction on the first part's measures
-- [`pr/chord-reducer-old-empty-measure-2`](https://github.com/float3/music21/tree/pr/chord-reducer-old-empty-measure-2): Reduce every measure in reduceChordsOld.multiPartReduction
+- [`pr/chord-reducer-bass-gap-overlap-2`](https://github.com/float3/music21/tree/pr/chord-reducer-bass-gap-overlap-2): Keep fillBassGaps from overlapping a part's next timespan (ready)
+- [`pr/chord-reducer-first-part-measures-2`](https://github.com/float3/music21/tree/pr/chord-reducer-first-part-measures-2): Chordify ChordReducer.run's reduction on the first part's measures (ready)
+- [`pr/chord-reducer-old-empty-measure-2`](https://github.com/float3/music21/tree/pr/chord-reducer-old-empty-measure-2): Reduce every measure in reduceChordsOld.multiPartReduction (ready)
+- [`pr/reduce-chords-old-opfrac`](https://github.com/float3/music21/tree/pr/reduce-chords-old-opfrac): Use opFrac for the chord end in reduceChordsOld
 - [`pr/chord-reducer-timespan-measures-2`](https://github.com/float3/music21/tree/pr/chord-reducer-timespan-measures-2): Choose ChordReducer.run's chords from slices of the score's timespans (design; issue first)
 - [`pr/verticality-part-id-chord-notes`](https://github.com/float3/music21/tree/pr/verticality-part-id-chord-notes): Give chord notes part id groups in Verticality.makeElement
 - [`pr/output-tab-orange-include-id-2`](https://github.com/float3/music21/tree/pr/output-tab-orange-include-id-2): Honor includeId and includeClassLabel in Orange and ARFF rows
@@ -124,15 +127,22 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/octave-repeating-close-past-letter`](https://github.com/float3/music21/tree/pr/octave-repeating-close-past-letter): Close octave-repeating scales on the tonic's spelling
 - [`pr/cyclical-octave-duplicating`](https://github.com/float3/music21/tree/pr/cyclical-octave-duplicating): Make cyclical scales that close within an octave octave-duplicating (on octave-repeating-close-past-letter)
 - [`pr/scale-mode-intervals`](https://github.com/float3/music21/tree/pr/scale-mode-intervals): Name the interval list of the abstract cyclical scales intervalList
+- [`pr/next-pitch-random-generator`](https://github.com/float3/music21/tree/pr/next-pitch-random-generator): Pass randomGenerator through nextPitch and getScaleDegreeFromPitch (on relative-node-ids)
+- [`pr/network-walk-step-pitch`](https://github.com/float3/music21/tree/pr/network-walk-step-pitch): Rename NetworkWalkStep.realizedPitch to pitch
 
 ### Formats
 
 - [`pr/nwctxt-chord-groups-2`](https://github.com/float3/music21/tree/pr/nwctxt-chord-groups-2): Read NWC Dur2/Pos2 chord notes and rest chords at the same offset (open, approved: [#2139](https://github.com/cuthbertLab/music21/pull/2139))
+- [`pr/nwc-double-slur-groups`](https://github.com/float3/music21/tree/pr/nwc-double-slur-groups): Slur each NWC chord group to the same group of the next chord (on nwctxt-chord-groups-2)
 - [`pr/nwc-binary-chords-2`](https://github.com/float3/music21/tree/pr/nwc-binary-chords-2): Read chord and rest-chord notes in binary NWC files
 - [`pr/volpiano-neumes-2`](https://github.com/float3/music21/tree/pr/volpiano-neumes-2): Make a volpiano neume hold every note of its run
 - [`pr/musedata-synthetic-tests`](https://github.com/float3/music21/tree/pr/musedata-synthetic-tests): Add synthetic MuseData test files
 - [`pr/musedata-pickup-measure-number`](https://github.com/float3/music21/tree/pr/musedata-pickup-measure-number): Number a MuseData pickup measure 0 (on musedata-synthetic-tests)
 - [`pr/musedata-slurs`](https://github.com/float3/music21/tree/pr/musedata-slurs): Read MuseData slurs as Slur spanners (on musedata-synthetic-tests)
+
+### Repository
+
+- [`pr/gitignore-nix`](https://github.com/float3/music21/tree/pr/gitignore-nix): Ignore Nix files in .gitignore
 
 ### Braille
 
@@ -149,6 +159,7 @@ fix in an earlier form than its branch, the branch is the one to send.
 Not bug fixes: changes offered to the maintainer's `meter-speed-2026` branch
 ([#1972](https://github.com/cuthbertLab/music21/pull/1972), now merged).
 
-- [#2201](https://github.com/cuthbertLab/music21/pull/2201) and [#2204](https://github.com/cuthbertLab/music21/pull/2204): merged into #1972
-- [`help/meter-1972-slow-paths`](https://github.com/float3/music21/tree/help/meter-1972-slow-paths) (open: [#2200](https://github.com/cuthbertLab/music21/pull/2200))
-- [`help/meter-1972-cache-bounds`](https://github.com/float3/music21/tree/help/meter-1972-cache-bounds) (open: [#2202](https://github.com/cuthbertLab/music21/pull/2202), changes requested)
+- [#2201](https://github.com/cuthbertLab/music21/pull/2201) and [#2204](https://github.com/cuthbertLab/music21/pull/2204): merged with #1972
+- [`help/meter-1972-slow-paths`](https://github.com/float3/music21/tree/help/meter-1972-slow-paths) (open against `master`: [#2200](https://github.com/cuthbertLab/music21/pull/2200))
+- [`help/meter-1972-cache-bounds`](https://github.com/float3/music21/tree/help/meter-1972-cache-bounds) (open against `master`: [#2202](https://github.com/cuthbertLab/music21/pull/2202), changes requested)
+- [#2203](https://github.com/cuthbertLab/music21/pull/2203) (`help/meter-1972-docs`): closed, replaced by `pr/meter-docs-inaccuracies`
