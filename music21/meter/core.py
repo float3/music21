@@ -220,7 +220,7 @@ class MeterNode:
         Subdivision takes a MeterTerminal and, making it into a collection of MeterTerminals,
         Returns a MeterSequence.
 
-        This is different from partitioning a MeterSequence. `subdivide` does not happen
+        Like partitioning a MeterSequence, `subdivide` does not happen
         in place and instead returns a new object.
 
         If an integer is provided, assume it is a partition count.
@@ -1730,7 +1730,6 @@ class MeterSequence(prebase.ProtoM21Object, MeterNode, FrozenObject):
     def getLevelWeight(self, level=0):
         '''
         The weightList is an array of weights found in the components.
-        The MeterSequence has a ._weight attribute, but it is not used here
 
         >>> a = meter.MeterSequence('4/4', 4)
         >>> a.getLevelWeight()

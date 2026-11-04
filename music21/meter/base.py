@@ -957,7 +957,7 @@ class TimeSignature(TimeSignatureBase):
     def beatDuration(self) -> duration.FrozenDuration:
         '''
         Return a :class:`~music21.duration.FrozenDuration` object equal to the beat unit
-        of this Time Signature, if and only if this TimeSignature has a uniform beat unit.
+        of this Time Signature, if this TimeSignature has a uniform beat unit.
 
         >>> ts = meter.TimeSignature('3/4')
         >>> ts.beatDuration
