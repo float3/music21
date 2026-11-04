@@ -1518,6 +1518,7 @@ class PartParser(XMLParserBase):
         '''
         self.parseXmlScorePart()
         self.parseMeasures()
+        self.insertActiveMultiMeasureRest()
         self.stream.atSoundingPitch = self.atSoundingPitch
 
         # TODO: this does not work with voices; there, Spanners
@@ -2349,6 +2350,17 @@ class PartParser(XMLParserBase):
         if self.multiMeasureRestsToCapture == 0:
             self.stream.insert(0, self.activeMultiMeasureRestSpanner)
             self.activeMultiMeasureRestSpanner = None
+
+    def insertActiveMultiMeasureRest(self):
+        '''
+        Put the active MultiMeasureRest spanner, if it holds any rests, into the
+        part before it is cut short by the end of the part or by the next one.
+        '''
+        mmrSpanner = self.activeMultiMeasureRestSpanner
+        self.activeMultiMeasureRestSpanner = None
+        self.multiMeasureRestsToCapture = 0
+        if mmrSpanner is not None and mmrSpanner.getSpannedElements():
+            self.stream.coreInsert(0, mmrSpanner)
 
 
 # -----------------------------------------------------------------------------
@@ -6471,6 +6483,7 @@ class MeasureParser(XMLParserBase):
         # TODO: measure-repeat
         mxMultiRest = mxMeasureStyle.find('multiple-rest')
         if mxMultiRest is not None and self.parent is not None:
+            self.parent.insertActiveMultiMeasureRest()
             self.parent.multiMeasureRestsToCapture = int(mxMultiRest.text)
             mmrSpanner = spanner.MultiMeasureRest()
             useSymbols = mxMultiRest.get('use-symbols')
