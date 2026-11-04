@@ -116,6 +116,52 @@ class Test(unittest.TestCase):
             pp.parse()
         self.assertEqual(str(error.exception), msg)
 
+    def testMultiMeasureRestCutShort(self):
+        '''
+        A multi-measure rest cut short by the end of the part or by the next
+        one stands in the part with the rests it took.
+        '''
+        mxScorePart = self.EL('<score-part><part-name>Flute</part-name></score-part>')
+        mxPart = self.EL(
+            '<part>'
+            '<measure number="1"><attributes><divisions>1</divisions>'
+            '<time><beats>4</beats><beat-type>4</beat-type></time>'
+            '<measure-style><multiple-rest>5</multiple-rest></measure-style>'
+            '</attributes>'
+            '<note><rest measure="yes"/><duration>4</duration></note></measure>'
+            '<measure number="2">'
+            '<note><rest measure="yes"/><duration>4</duration></note></measure>'
+            '</part>'
+        )
+        pp = PartParser(mxPart=mxPart, mxScorePart=mxScorePart)
+        pp.partId = '1'
+        pp.parse()
+        mmrs = pp.stream[spanner.MultiMeasureRest]
+        self.assertEqual(len(mmrs), 1)
+        self.assertEqual(mmrs.first().numRests, 2)
+        self.assertIsNone(pp.activeMultiMeasureRestSpanner)
+
+        mxPart = self.EL(
+            '<part>'
+            '<measure number="1"><attributes><divisions>1</divisions>'
+            '<time><beats>4</beats><beat-type>4</beat-type></time>'
+            '<measure-style><multiple-rest>5</multiple-rest></measure-style>'
+            '</attributes>'
+            '<note><rest measure="yes"/><duration>4</duration></note></measure>'
+            '<measure number="2"><attributes>'
+            '<measure-style><multiple-rest>2</multiple-rest></measure-style>'
+            '</attributes>'
+            '<note><rest measure="yes"/><duration>4</duration></note></measure>'
+            '<measure number="3">'
+            '<note><rest measure="yes"/><duration>4</duration></note></measure>'
+            '</part>'
+        )
+        pp = PartParser(mxPart=mxPart, mxScorePart=mxScorePart)
+        pp.partId = '1'
+        pp.parse()
+        self.assertEqual(sorted(mmr.numRests for mmr in pp.stream[spanner.MultiMeasureRest]),
+                         [1, 2])
+
     def testBarRepeatConversion(self):
         from music21 import corpus
         # a = converter.parse(testPrimitive.simpleRepeat45a)
