@@ -99,19 +99,19 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/chord-sort-fingerings`](https://github.com/float3/music21/tree/pr/chord-sort-fingerings): Document that sortAscending leaves a chord's fingerings in place
 - [`pr/meter-accent-weights-linear`](https://github.com/float3/music21/tree/pr/meter-accent-weights-linear): Build TimeSignature accent weights in linear time, and reject huge numerators (open: [#2184](https://github.com/cuthbertLab/music21/pull/2184); includes help/meter-1972-slow-paths)
 - [`pr/meter-docs-inaccuracies`](https://github.com/float3/music21/tree/pr/meter-docs-inaccuracies): Correct three meter docstrings that disagree with the code (replaces the closed [#2203](https://github.com/cuthbertLab/music21/pull/2203))
-- [`pr/general-note-duration-keywords`](https://github.com/float3/music21/tree/pr/general-note-duration-keywords): List quarterLength and type as keywords of GeneralNote.__init__
+- [`pr/general-note-duration-keywords`](https://github.com/float3/music21/tree/pr/general-note-duration-keywords): List quarterLength and type as keywords of GeneralNote.__init__ (open: [#2217](https://github.com/cuthbertLab/music21/pull/2217))
 
 ### MusicXML
 
-- [`pr/xml-forward-zero`](https://github.com/float3/music21/tree/pr/xml-forward-zero): Make no hidden rest for a Finale `<forward>` of no duration (export failed since #2161)
+- [`pr/xml-forward-zero`](https://github.com/float3/music21/tree/pr/xml-forward-zero): Make no hidden rest for a Finale `<forward>` of no duration (export failed since #2161) (open: [#2213](https://github.com/cuthbertLab/music21/pull/2213))
 - [`pr/multi-measure-rest-unfinished`](https://github.com/float3/music21/tree/pr/multi-measure-rest-unfinished): Put a multi-measure rest cut short into the part
 
 ### Analysis and features
 
-- [`pr/chord-reducer-bass-gap-overlap-2`](https://github.com/float3/music21/tree/pr/chord-reducer-bass-gap-overlap-2): Keep fillBassGaps from overlapping a part's next timespan (ready)
+- [`pr/chord-reducer-bass-gap-overlap-2`](https://github.com/float3/music21/tree/pr/chord-reducer-bass-gap-overlap-2): Keep fillBassGaps from overlapping a part's next timespan (open: [#2215](https://github.com/cuthbertLab/music21/pull/2215))
 - [`pr/chord-reducer-first-part-measures-2`](https://github.com/float3/music21/tree/pr/chord-reducer-first-part-measures-2): Chordify ChordReducer.run's reduction on the first part's measures (ready)
 - [`pr/chord-reducer-old-empty-measure-2`](https://github.com/float3/music21/tree/pr/chord-reducer-old-empty-measure-2): Reduce every measure in reduceChordsOld.multiPartReduction (ready)
-- [`pr/reduce-chords-old-opfrac`](https://github.com/float3/music21/tree/pr/reduce-chords-old-opfrac): Use opFrac for the chord end in reduceChordsOld
+- [`pr/reduce-chords-old-opfrac`](https://github.com/float3/music21/tree/pr/reduce-chords-old-opfrac): Use opFrac for the chord end in reduceChordsOld (open: [#2214](https://github.com/cuthbertLab/music21/pull/2214))
 - [`pr/chord-reducer-timespan-measures-2`](https://github.com/float3/music21/tree/pr/chord-reducer-timespan-measures-2): Choose ChordReducer.run's chords from slices of the score's timespans (design; issue first; bestClef now recurses into the measures)
 - [`pr/verticality-part-id-chord-notes`](https://github.com/float3/music21/tree/pr/verticality-part-id-chord-notes): Give chord notes part id groups in Verticality.makeElement
 - [`pr/output-tab-orange-include-id-2`](https://github.com/float3/music21/tree/pr/output-tab-orange-include-id-2): Honor includeId and includeClassLabel in Orange and ARFF rows
@@ -137,7 +137,7 @@ fix in an earlier form than its branch, the branch is the one to send.
 
 ### Formats
 
-- [`pr/nwctxt-chord-groups-2`](https://github.com/float3/music21/tree/pr/nwctxt-chord-groups-2): Read NWC Dur2/Pos2 chord notes and rest chords at the same offset (open, approved: [#2139](https://github.com/cuthbertLab/music21/pull/2139))
+- [`pr/nwctxt-chord-groups-2`](https://github.com/float3/music21/tree/pr/nwctxt-chord-groups-2): Read NWC Dur2/Pos2 chord notes and rest chords at the same offset (open, approved, reopened 2026-11-06: [#2139](https://github.com/cuthbertLab/music21/pull/2139))
 - [`pr/nwc-double-slur-groups`](https://github.com/float3/music21/tree/pr/nwc-double-slur-groups): Slur each NWC chord group to the same group of the next chord (on nwctxt-chord-groups-2)
 - [`pr/nwc-binary-chords-2`](https://github.com/float3/music21/tree/pr/nwc-binary-chords-2): Read chord and rest-chord notes in binary NWC files
 - [`pr/volpiano-neumes-2`](https://github.com/float3/music21/tree/pr/volpiano-neumes-2): Make a volpiano neume hold every note of its run
@@ -147,7 +147,7 @@ fix in an earlier form than its branch, the branch is the one to send.
 
 ### Repository
 
-- [`pr/gitignore-nix`](https://github.com/float3/music21/tree/pr/gitignore-nix): Ignore Nix files in .gitignore
+- [`pr/gitignore-nix`](https://github.com/float3/music21/tree/pr/gitignore-nix): Ignore Nix files in .gitignore (open: [#2216](https://github.com/cuthbertLab/music21/pull/2216))
 
 ### Braille
 
@@ -155,7 +155,7 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/braille-fix-articulations-iteration-2`](https://github.com/float3/music21/tree/pr/braille-fix-articulations-iteration-2): Remove every doubled articulation in BrailleSegment.fixArticulations
 - [`pr/braille-descending-chords-default-2`](https://github.com/float3/music21/tree/pr/braille-descending-chords-default-2): Spell braille chords downward by default and keep the clef's direction
 - [`pr/braille-fix-articulation-tie-edges-2`](https://github.com/float3/music21/tree/pr/braille-fix-articulation-tie-edges-2): Keep a braille tie across a segment break in fixArticulations
-- [`pr/braille-beamed-notes-first-index`](https://github.com/float3/music21/tree/pr/braille-beamed-notes-first-index): Check for a previous element before reading it in prepareBeamedNotes
+- [`pr/braille-beamed-notes-first-index`](https://github.com/float3/music21/tree/pr/braille-beamed-notes-first-index): Check for a previous element before reading it in prepareBeamedNotes (open: [#2218](https://github.com/cuthbertLab/music21/pull/2218))
 - [`pr/braille-slurred-notes-first-index`](https://github.com/float3/music21/tree/pr/braille-slurred-notes-first-index): Order a slur's note indices in prepareSlurredNotes
 - [`pr/braille-chord-previous-note`](https://github.com/float3/music21/tree/pr/braille-chord-previous-note): Show the octave after a note or chord written as the exception sign
 
