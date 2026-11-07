@@ -210,9 +210,9 @@ def musedataPartToStreamPart(museDataPart, inputM21=None):
     # environLocal.printDebug(['first measure parent', mdmObjs[0].parent])
 
     barCount = 0
-    # get each measure
-    # store last Note/Chord/Rest for tie comparisons; span measures
-    eLast = None
+    # last Note/Chord/Rest of each voice, by voice number, for tie comparisons
+    # across measures; a measure without voices continues voice 0.
+    eLastByVoice: dict[int, note.GeneralNote|None] = {}
     slurCollector = _SlurCollector()
     for mIndex, mdm in enumerate(mdmObjs):
         # environLocal.printDebug(['processing:', mdm.src])
@@ -262,6 +262,8 @@ def musedataPartToStreamPart(museDataPart, inputM21=None):
         # store pairs of pitches and durations for making chords after a
         # new note has been found
         pendingRecords = []
+        voiceNumber = 0
+        eLast = eLastByVoice.get(voiceNumber)
 
         # get notes in each record
         for mdr in mdrObjs:
@@ -278,6 +280,9 @@ def musedataPartToStreamPart(museDataPart, inputM21=None):
                 # our existing voice and create a new one
                 m.insert(0, vActive)
                 vActive = stream.Voice()
+                eLastByVoice[voiceNumber] = eLast
+                voiceNumber += 1
+                eLast = eLastByVoice.get(voiceNumber)
 
             if mdr.isRest():
                 # environLocal.printDebug(['got mdr rest, parent:', mdr.parent])
@@ -314,6 +319,7 @@ def musedataPartToStreamPart(museDataPart, inputM21=None):
         # check for any remaining single notes (if last) or chords
         if pendingRecords:
             eLast = _processPending(pendingRecords, eLast, m, vActive, slurCollector)
+        eLastByVoice[voiceNumber] = eLast
 
         # may be bending elements in a voice to append to a measure
         if vActive is not None and vActive:
@@ -713,6 +719,59 @@ class Test(unittest.TestCase):
         # s.show()
 
         # s.show()
+
+    def testTiesStayInTheirVoice(self):
+        '''
+        A tie at the end of the upper voice continues in the upper voice of
+        the next measure, not into the lower voice after a `back`.
+
+        AI-assisted (Claude).
+        '''
+        from music21 import musedata
+        from music21 import stream
+
+        mdw = musedata.MuseDataWork()
+        mdw.addString('\n'.join([
+            '', '', '',
+            '04/16/93 E. Correia',
+            'WK#:581       MV#:3c',
+            'Breitkopf & Hartel, Vol. 13',
+            'Clarinet Quintet',
+            'Trio II',
+            'Piano',
+            '1 0',
+            'Group memberships: score',
+            'score: part 1 of 1',
+            '$  K:0   Q:1   T:2/4   C:4',
+            'measure 1',
+            'C5     1        q     u',
+            'E5     1-       q     u',
+            'back   2',
+            'C4     1        q     d',
+            'G3     1-       q     d',
+            'measure 2',
+            'E5     2        h     u',
+            'back   2',
+            'G3     1        q     d',
+            'A3     1        q     d',
+            'measure 3',
+            'F5     2        h',
+            '/END',
+        ]))
+        s = museDataWorkToStreamScore(mdw)
+        measures = s.parts[0].getElementsByClass(stream.Measure)
+
+        def tieTypes(v):
+            return [n.tie.type if n.tie else None for n in v.notes]
+
+        upper1, lower1 = measures[0].voices
+        upper2, lower2 = measures[1].voices
+        self.assertEqual(tieTypes(upper1), [None, 'start'])
+        self.assertEqual(tieTypes(lower1), [None, 'start'])
+        self.assertEqual(tieTypes(upper2), ['stop'])
+        self.assertEqual(tieTypes(lower2), ['stop', None])
+        # a measure without voices follows on from the upper voice
+        self.assertEqual(tieTypes(measures[2]), [None])
 
 
     # def testMuseDataStage1A(self):
