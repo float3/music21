@@ -6,7 +6,7 @@
 #               Michael Scott Asato Cuthbert
 #               Dylan J. Nagler
 #
-# Copyright:    Copyright © 2010-22 Michael Scott Asato Cuthbert
+# Copyright:    Copyright © 2010-26 Michael Scott Asato Cuthbert
 # License:      BSD, see license.txt
 # ------------------------------------------------------------------------------
 '''
@@ -1208,7 +1208,7 @@ class ABCSlurStart(ABCToken):
 class ABCParenStop(ABCToken):
     '''
     A general parenthesis stop;
-    comes at the end of a tuplet, slur, or dynamic marking.
+    comes at the end of a slur, crescendo, or diminuendo.
     '''
     __slots__ = ()
 
@@ -2635,7 +2635,6 @@ class ABCHandler:
                 # token
                 token.updateNoteCount()
                 lastTupletToken = token
-                self.activeParens.append('Tuplet')
 
             # notes within slur marks need to be added to the spanner
             if isinstance(token, ABCSlurStart):
@@ -2646,10 +2645,16 @@ class ABCHandler:
                 self.activeSpanners.append(slurObj)
                 self.activeParens.append('Slur')
             elif isinstance(token, ABCParenStop):
-                if self.activeParens:
-                    p = self.activeParens.pop()
-                    if p in ('Slur', 'Crescendo', 'Diminuendo'):
-                        self.activeSpanners.pop()
+                # slurs and hairpins may overlap, so each stop ends the latest of its own kind
+                if token.src == ')':
+                    closes: tuple[str, ...] = ('Slur',)
+                else:
+                    closes = ('Crescendo', 'Diminuendo')
+                for parenIndex in range(len(self.activeParens) - 1, -1, -1):
+                    if self.activeParens[parenIndex] in closes:
+                        del self.activeParens[parenIndex]
+                        del self.activeSpanners[parenIndex]
+                        break
 
             if isinstance(token, ABCTie):
                 # tPrev is usually an ABCNote but may be a GraceStop.
@@ -3880,6 +3885,39 @@ class Test(unittest.TestCase):
         ah = ABCHandler()
         ah.process(testFiles.slurTest)
         self.assertEqual(len(ah), 70)  # number of tokens
+
+    def testSlurAroundTuplet(self):
+        '''
+        https://github.com/cuthbertLab/music21/issues/1798
+
+        AI-assisted (Claude).
+        '''
+        def spannerNames(abcBody):
+            ah = ABCHandler()
+            ah.process('X:1\nM:4/4\nL:1/8\nK:C\n' + abcBody + '\n')
+            out = []
+            for token in ah.tokens:
+                if isinstance(token, ABCNote):
+                    names = [type(sp).__name__ for sp in token.applicableSpanners]
+                    out.append((token.src.strip(), names))
+            return out
+
+        # a tuplet has no closing parenthesis, so ')' ends the slur
+        self.assertEqual(spannerNames('(a(3bcd e) f|'), [
+            ('a', ['Slur']), ('b', ['Slur']), ('c', ['Slur']), ('d', ['Slur']),
+            ('e', ['Slur']), ('f', []),
+        ])
+        self.assertEqual(spannerNames('!crescendo(! (3abc d !crescendo)! e|'), [
+            ('a', ['Crescendo']), ('b', ['Crescendo']), ('c', ['Crescendo']),
+            ('d', ['Crescendo']), ('e', []),
+        ])
+        # a slur and a crescendo can overlap without nesting
+        self.assertEqual(spannerNames('(a !crescendo(! b) c !crescendo)! d|'), [
+            ('a', ['Slur']), ('b', ['Slur', 'Crescendo']), ('c', ['Crescendo']), ('d', []),
+        ])
+        self.assertEqual(spannerNames('!diminuendo(! a (b !diminuendo)! c) d|'), [
+            ('a', ['Diminuendo']), ('b', ['Diminuendo', 'Slur']), ('c', ['Slur']), ('d', []),
+        ])
 
     def testTies(self):
         from music21.abcFormat import testFiles
