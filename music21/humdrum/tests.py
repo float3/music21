@@ -135,6 +135,32 @@ class Test(unittest.TestCase):
         self.assertEqual(a.duration.type, '16th')
         self.assertEqual(a.duration.slash, False)
 
+    def testGraceNoteInsideTuplet(self):
+        '''
+        A grace note inside a triplet leaves the triplet's bracket whole.
+
+        AI-assisted (Claude).
+        '''
+        def tupletTypes(events):
+            ks = KernSpine()
+            ks.setup()
+            notes = [ks.processNoteEvent(eventC) for eventC in events]
+            types = []
+            for n in notes:
+                if n.duration.tuplets:
+                    types.append(n.duration.tuplets[0].type)
+                else:
+                    types.append(None)
+            return types
+
+        self.assertEqual(tupletTypes(['12c', '12qd', '12e', '12f', '4g']),
+                         ['start', None, None, 'stop', None])
+        self.assertEqual(tupletTypes(['12c', '12e', '12qd', '12f', '4g']),
+                         ['start', None, None, 'stop', None])
+        # a grace note after an unfinished tuplet: the tuplet still stops on its last note
+        self.assertEqual(tupletTypes(['12c', '12e', '16qd', '4g']),
+                         ['start', 'stop', None, None])
+
     def testChordFromProcessChordEvent(self):
         ks = KernSpine()
         ks.setup()

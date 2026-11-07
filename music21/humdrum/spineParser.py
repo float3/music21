@@ -1451,8 +1451,6 @@ class KernSpine(HumdrumSpine):
 
         self.setBeamsForNote(eventNote)
         self.setTupletTypeForNote(eventNote)
-
-        self.lastNote = eventNote
         return eventNote
 
     def processChordEvent(self, eventC: str) -> chord.Chord:
@@ -1498,8 +1496,6 @@ class KernSpine(HumdrumSpine):
                                  duration=firstDuration)
         self.setBeamsForNote(eventChord)
         self.setTupletTypeForNote(eventChord)
-        self.lastNote = eventChord
-
         return eventChord
 
     def setBeamsForNote(self, n: note.GeneralNote) -> None:
@@ -1525,6 +1521,12 @@ class KernSpine(HumdrumSpine):
                         self.currentBeamNumbers += 1
 
     def setTupletTypeForNote(self, n: note.GeneralNote) -> None:
+        '''
+        Marks where a tuplet starts and stops, and stores `n` as `self.lastNote`.
+        Grace notes are skipped: they neither count toward nor end a tuplet.
+        '''
+        if n.duration.isGrace:
+            return
         # nested tuplets not supported by Humdrum.
         nDur = n.duration
         nTuplets = n.duration.tuplets
@@ -1551,6 +1553,7 @@ class KernSpine(HumdrumSpine):
                 self.inTuplet = False
                 self.currentTupletQL = 0.0
                 self.desiredTupletQL = 0.0
+        self.lastNote = n
 
 
 class DynamSpine(HumdrumSpine):
