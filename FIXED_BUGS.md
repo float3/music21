@@ -121,6 +121,7 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/part-reduction-whole-word-groups`](https://github.com/float3/music21/tree/pr/part-reduction-whole-word-groups): Match PartReduction part groups on whole words of the part id
 - [`pr/dolan-part-groups-2`](https://github.com/float3/music21/tree/pr/dolan-part-groups-2): Set Dolan's default part groups when a stream is given
 - [`pr/windowed-adjacent-average-speed`](https://github.com/float3/music21/tree/pr/windowed-adjacent-average-speed): Reuse measure copies in adjacentAverage windowed analysis
+- [`pr/roman-figure-secondary`](https://github.com/float3/music21/tree/pr/roman-figure-secondary): Reset a RomanNumeral's secondary key and implied scale when its figure changes
 
 ### Audio
 
@@ -144,6 +145,9 @@ fix in an earlier form than its branch, the branch is the one to send.
 - [`pr/musedata-synthetic-tests`](https://github.com/float3/music21/tree/pr/musedata-synthetic-tests): Add synthetic MuseData test files
 - [`pr/musedata-pickup-measure-number`](https://github.com/float3/music21/tree/pr/musedata-pickup-measure-number): Number a MuseData pickup measure 0 (on musedata-synthetic-tests)
 - [`pr/musedata-slurs`](https://github.com/float3/music21/tree/pr/musedata-slurs): Read MuseData slurs as Slur spanners (on musedata-synthetic-tests)
+- [`pr/musedata-voice-ties`](https://github.com/float3/music21/tree/pr/musedata-voice-ties): Keep MuseData ties within their voice
+- [`pr/abc-tuplet-in-slur`](https://github.com/float3/music21/tree/pr/abc-tuplet-in-slur): End ABC slurs and hairpins at their own closing marks (fixes [#1798](https://github.com/cuthbertLab/music21/issues/1798))
+- [`pr/humdrum-grace-in-tuplet`](https://github.com/float3/music21/tree/pr/humdrum-grace-in-tuplet): Skip grace notes when grouping Humdrum tuplets
 
 ### Repository
 
