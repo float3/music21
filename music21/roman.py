@@ -3655,8 +3655,43 @@ class RomanNumeral(harmony.Harmony):
         self._figure = newFigure
         if self._parsingComplete:
             self.bracketedAlterations = []
+            self.secondaryRomanNumeral = None
+            self.secondaryRomanNumeralKey = None
+            # an augmented sixth in major replaces the implied scale with minor
+            self._setImpliedScaleFromKey()
+            # the root is found again from the new pitches
+            self._overrides.pop('root', None)
             self._parseFigure()
             self._updatePitches()
+
+    def _setImpliedScaleFromKey(self) -> None:
+        '''
+        Sets `.useImpliedScale` and `.impliedScale` from the key or scale:
+        with no key, or with an abstract scale, the numeral is spelled in
+        that scale on C.
+
+        An augmented sixth with no key is spelled in C minor; this puts
+        C major back:
+
+        >>> rn = roman.RomanNumeral('Ger65')
+        >>> rn.impliedScale
+        <music21.key.Key of c minor>
+        >>> rn._setImpliedScaleFromKey()
+        >>> rn.useImpliedScale
+        True
+        >>> rn.impliedScale
+        <music21.scale.MajorScale C major>
+        '''
+        keyOrScale = self._scale
+        if keyOrScale is None:
+            self.useImpliedScale = True
+            self.impliedScale = scale.MajorScale('C')
+        elif hasattr(keyOrScale, 'isConcrete') and not keyOrScale.isConcrete:
+            self.useImpliedScale = True
+            self.impliedScale = keyOrScale.derive(1, 'C')
+        else:
+            self.useImpliedScale = False
+            self.impliedScale = None
 
     @property
     def figureAndKey(self) -> str:
@@ -3782,16 +3817,7 @@ class RomanNumeral(harmony.Harmony):
             pass  # None
             # cache object if passed directly
         self._scale = keyOrScale
-        if (keyOrScale is None
-                or (hasattr(keyOrScale, 'isConcrete')
-                    and not keyOrScale.isConcrete)):
-            self.useImpliedScale = True
-            if self._scale is not None:
-                self.impliedScale = self._scale.derive(1, 'C')
-            else:
-                self.impliedScale = scale.MajorScale('C')
-        else:
-            self.useImpliedScale = False
+        self._setImpliedScaleFromKey()
         # need to permit object creation with no arguments, thus
         # self._figure can be None
         if self._parsingComplete:
@@ -4958,6 +4984,31 @@ class Test(unittest.TestCase):
             with self.subTest(figure=fig):
                 with self.assertRaises(RomanNumeralException):
                     RomanNumeral(fig, 'C')
+
+    def testSetFigureReparsesSecondaryAndAugmentedSixth(self):
+        def pitchNames(rn: RomanNumeral) -> list[str]:
+            return [p.nameWithOctave for p in rn.pitches]
+
+        for oldFigure, newFigure in [
+            ('V/V', 'V'),
+            ('V7/IV', 'V7/ii'),
+            ('Ger65/V', 'V'),
+            ('Ger65', 'III'),
+            ('It6', 'iii'),
+            ('Fr43', 'bVI'),
+            ('V', 'Ger65'),
+        ]:
+            for keyString in ('C', None):
+                with self.subTest(old=oldFigure, new=newFigure, key=keyString):
+                    rn = RomanNumeral(oldFigure, keyString)
+                    rn.figure = newFigure
+                    fresh = RomanNumeral(newFigure, keyString)
+                    self.assertEqual(pitchNames(rn), pitchNames(fresh))
+                    self.assertEqual(rn.secondaryRomanNumeral, fresh.secondaryRomanNumeral)
+                    self.assertEqual(rn.secondaryRomanNumeralKey,
+                                     fresh.secondaryRomanNumeralKey)
+                    self.assertEqual(rn.useImpliedScale, fresh.useImpliedScale)
+                    self.assertEqual(rn.impliedScale, fresh.impliedScale)
 
 
 class TestExternal(unittest.TestCase):
